@@ -1,0 +1,42 @@
+plugins {
+    id("java")
+    id("io.quarkus") version "${quarkusPlatformVersion}"
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+
+dependencies {
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+
+    // Sécurité / OIDC
+    implementation("io.quarkus:quarkus-oidc")
+    implementation("io.quarkus:quarkus-security")
+
+    // Client REST
+    implementation 'io.quarkus:quarkus-rest'
+    implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-arc'
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.rest-assured:rest-assured'
+
+    // MyBatis
+    implementation("io.quarkiverse.mybatis:quarkus-mybatis:$quarkusMybatisVersion")
+
+    // JDBC (PostgreSQL ou autre)
+    implementation("io.quarkus:quarkus-jdbc-postgresql") // adapte selon ton SGBD
+
+    // https://mvnrepository.com/artifact/org.jsoup/jsoup
+    implementation("org.jsoup:jsoup:1.20.1")
+
+    // utilisation avec swagger
+    implementation("io.quarkus:quarkus-smallrye-openapi")
+}

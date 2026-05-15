@@ -1,0 +1,6 @@
+
+# Fichiers gradle
+.gradle/
+
+# Fichier de build
+build/
