@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 until /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8180/ --realm master --user admin --password admin 2>/dev/null; do
     echo "Keycloak is still starting, waiting 5 seconds..."
@@ -20,3 +20,6 @@ http://localhost:8180/realms/usager/account/
 
 #Manage as admin
 http://localhost:8180/realms/master/account/#/personal-info
+
+#Normal
+localhost

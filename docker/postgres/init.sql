@@ -32,7 +32,7 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
-CREATE TABLE Utilisateur(
+CREATE TABLE app.Utilisateur(
                             cip VARCHAR(50),
                             pseudo VARCHAR(50) NOT NULL,
                             courriel VARCHAR(50) NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE Utilisateur(
                             UNIQUE(courriel)
 );
 
-CREATE TABLE Équipe(
+CREATE TABLE app.Équipe(
                        equipe_id VARCHAR(50),
                        Administrateur VARCHAR(50) NOT NULL,
                        nom_équipe VARCHAR(50) NOT NULL,
@@ -53,74 +53,74 @@ CREATE TABLE Équipe(
                        UNIQUE(nom_équipe)
 );
 
-CREATE TABLE Discussion(
+CREATE TABLE app.Discussion(
                            discussion_id VARCHAR(50),
                            equipe_id VARCHAR(50) NOT NULL,
                            PRIMARY KEY(discussion_id),
                            UNIQUE(equipe_id),
-                           FOREIGN KEY(equipe_id) REFERENCES Équipe(equipe_id)
+                           FOREIGN KEY(equipe_id) REFERENCES app.Équipe(equipe_id)
 );
 
-CREATE TABLE Message(
+CREATE TABLE app.Message(
                         message_id VARCHAR(50),
-                        Date_ DATETIME,
+                        Date_ DATE,
                         Contenu VARCHAR(50),
                         cip VARCHAR(50) NOT NULL,
                         discussion_id VARCHAR(50) NOT NULL,
                         PRIMARY KEY(message_id),
-                        FOREIGN KEY(cip) REFERENCES Utilisateur(cip),
-                        FOREIGN KEY(discussion_id) REFERENCES Discussion(discussion_id)
+                        FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
+                        FOREIGN KEY(discussion_id) REFERENCES app.Discussion(discussion_id)
 );
 
-CREATE TABLE Tâche(
+CREATE TABLE app.Tâche(
                       tache_id VARCHAR(50),
                       nom_tache VARCHAR(50),
-                      date_creation DATETIME NOT NULL,
-                      date_début DATETIME,
+                      date_creation DATE NOT NULL,
+                      date_début DATE,
                       date_fin VARCHAR(50),
                       equipe_id VARCHAR(50) NOT NULL,
                       cip VARCHAR(50) NOT NULL,
                       PRIMARY KEY(tache_id),
-                      FOREIGN KEY(equipe_id) REFERENCES Équipe(equipe_id),
-                      FOREIGN KEY(cip) REFERENCES Utilisateur(cip)
+                      FOREIGN KEY(equipe_id) REFERENCES app.Équipe(equipe_id),
+                      FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip)
 );
 
-CREATE TABLE est_dans(
+CREATE TABLE app.est_dans(
                          cip VARCHAR(50),
                          equipe_id VARCHAR(50),
                          PRIMARY KEY(cip, equipe_id),
-                         FOREIGN KEY(cip) REFERENCES Utilisateur(cip),
-                         FOREIGN KEY(equipe_id) REFERENCES Équipe(equipe_id)
+                         FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
+                         FOREIGN KEY(equipe_id) REFERENCES app.Équipe(equipe_id)
 );
 
-CREATE TABLE Assignée(
+CREATE TABLE app.Assignée(
                          cip VARCHAR(50),
                          tache_id VARCHAR(50),
                          PRIMARY KEY(cip, tache_id),
-                         FOREIGN KEY(cip) REFERENCES Utilisateur(cip),
-                         FOREIGN KEY(tache_id) REFERENCES Tâche(tache_id)
+                         FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
+                         FOREIGN KEY(tache_id) REFERENCES app.Tâche(tache_id)
 );
 
-CREATE TABLE Lire(
+CREATE TABLE app.Lire(
                      cip VARCHAR(50),
                      message_id VARCHAR(50),
                      PRIMARY KEY(cip, message_id),
-                     FOREIGN KEY(cip) REFERENCES Utilisateur(cip),
-                     FOREIGN KEY(message_id) REFERENCES Message(message_id)
+                     FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
+                     FOREIGN KEY(message_id) REFERENCES app.Message(message_id)
 );
 
-CREATE TABLE fait_parti(
+CREATE TABLE app.fait_parti(
                            cip VARCHAR(50),
                            discussion_id VARCHAR(50),
                            PRIMARY KEY(cip, discussion_id),
-                           FOREIGN KEY(cip) REFERENCES Utilisateur(cip),
-                           FOREIGN KEY(discussion_id) REFERENCES Discussion(discussion_id)
+                           FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
+                           FOREIGN KEY(discussion_id) REFERENCES app.Discussion(discussion_id)
 );
 
 
 
 --DEPRECATED
-CREATE TABLE app.message (
+CREATE TABLE app.oldmessage (
                              id integer,
                              trimester_id character varying(32),
                              profile_id character varying(255),
