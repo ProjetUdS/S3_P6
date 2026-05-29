@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.LoginMapper">
+
+    <insert id="createUsager">
+        insert into app.Utilisateur (
+            cip,
+            pseudo,
+            courriel,
+            nom,
+            prenom,
+            photo_de_profil_id
+        )
+        values (
+                   #{cip},
+                   #{pseudo},
+                   #{courriel},
+                   #{nom},
+                   #{prenom},
+                   #{photoProfilId}
+               )
+            on conflict (cip) do update set
+            pseudo = excluded.pseudo,
+                                     courriel = excluded.courriel,
+                                     nom = excluded.nom,
+                                     prenom = excluded.prenom,
+                                     photo_de_profil_id = excluded.photo_de_profil_id
+    </insert>
+
+</mapper>

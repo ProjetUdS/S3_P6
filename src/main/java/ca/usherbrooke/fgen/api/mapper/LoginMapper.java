@@ -9,9 +9,10 @@ import java.util.List;
 
 @Mapper
 public interface LoginMapper {
-    void createUsager(@Param("pseudo") String pseudo,
+    void createUsager(@Param("cip") String cip,
+                      @Param("pseudo") String pseudo,
                       @Param("courriel") String courriel,
                       @Param("nom") String nom,
                       @Param("prenom") String prenom,
-                      @Param("photo_profil_id") String photo_profil_id);
+                      @Param("photoProfilId") String photoProfilId);
 }
