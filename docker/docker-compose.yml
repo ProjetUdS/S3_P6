@@ -19,6 +19,7 @@ services:
     volumes:
       - ./keycloak/data:/var/tmp
       - ./keycloak/startup-scripts/init.sh:/docker-entrypoint-sh/init.sh
+      - ./keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf
     entrypoint: sh -c "/docker-entrypoint-sh/init.sh"
     environment:
       KEYCLOAK_ADMIN: admin
