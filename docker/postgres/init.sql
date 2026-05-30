@@ -117,6 +117,14 @@ CREATE TABLE app.fait_parti(
                            FOREIGN KEY(discussion_id) REFERENCES app.Discussion(discussion_id)
 );
 
+CREATE TABLE app.contact(
+                        cip VARCHAR(50),
+                        cip_contact VARCHAR(50),
+                        PRIMARY KEY(cip, cip_contact),
+                        FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
+                        FOREIGN KEY(cip_contact) REFERENCES app.Utilisateur(cip)
+);
+
 
 
 --DEPRECATED
