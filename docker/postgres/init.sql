@@ -101,14 +101,6 @@ CREATE TABLE app.Assignée(
                          FOREIGN KEY(tache_id) REFERENCES app.Tâche(tache_id)
 );
 
-CREATE TABLE app.Lire(
-                     cip VARCHAR(50),
-                     message_id VARCHAR(50),
-                     PRIMARY KEY(cip, message_id),
-                     FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
-                     FOREIGN KEY(message_id) REFERENCES app.Message(message_id)
-);
-
 CREATE TABLE app.fait_parti(
                            cip VARCHAR(50),
                            discussion_id VARCHAR(50),

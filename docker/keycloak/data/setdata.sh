@@ -16,10 +16,10 @@ echo -e -n "\r"
 echo "server running ...."
 
 #Logging as user
-http://localhost:8180/realms/usager/account/
+#http://localhost:8180/realms/usager/account/
 
 #Manage as admin
-http://localhost:8180/realms/master/account/#/personal-info
+#http://localhost:8180/realms/master/account/#/personal-info
 
 #Normal
-localhost
+#localhost
