@@ -10,13 +10,14 @@ import java.util.List;
 @Mapper
 public interface MessageMapper {
 
-    List<Message> select(@Param("trimesterId") String trimesterId,
-                         @Param("profileId") String profileId,
-                         @Param("unit")String unit,
-                         @Param("id") Integer id);
+    List<Message> select(@Param("discussionId") String discussionId,
+                         @Param("limite") Integer limit,
+                         @Param("decalage") Integer offset,
+                         @Param("messageId") String messageId);
+    List<Message> allMessages( @Param("discussionId") String discussionId);
     Message selectOne(@Param("id") Integer id);
     void deleteOne(@Param("id") Integer id);
-    List<Message> allMessages();
-    void insertMessage(@Param("message") Message message);
-    Integer getNewId();
+    void insertMessage(@Param("message") Message message,
+                       @Param("discussionId") String discussionId);
+    String getNewId();
 }
