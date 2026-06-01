@@ -17,11 +17,11 @@ public interface TacheMapper {
 
   List<Tache> allTasksByTeam(@Param("equipeId") String equipeId);
 
-  List<Tache> allTasksByUser(@Param("usersID") String usersId);
+  List<Tache> allTasksByUser(@Param("userId") String userId);
 
-  Tache selectOne(@Param("id") String id);
+  Tache selectOne(@Param("tacheId") String tacheId);
 
-  void deleteOne(@Param("id") String id);
+  void deleteOne(@Param("tacheId") String tacheId);
 
   void insertTache(@Param("tache") Tache tache);
 

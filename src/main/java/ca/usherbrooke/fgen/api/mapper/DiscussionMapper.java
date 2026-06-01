@@ -12,9 +12,9 @@ public interface DiscussionMapper {
       @Param("equipeId") String equipeId,
       @Param("discussionId") String discussionId);
 
-  Discussion selectOne(@Param("id") String id);
+  Discussion selectOne(@Param("discussionId") String discussionId);
 
-  void deleteOne(@Param("id") String id);
+  void deleteOne(@Param("discussionId") String discussionId);
 
   void insertDiscussion(@Param("discussion") Discussion discussion);
 
