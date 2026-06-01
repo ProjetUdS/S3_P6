@@ -44,13 +44,13 @@ CREATE TABLE app.Utilisateur(
                             UNIQUE(courriel)
 );
 
-CREATE TABLE app.Équipe(
+CREATE TABLE app.Equipe(
                        equipe_id VARCHAR(50),
-                       Administrateur VARCHAR(50) NOT NULL,
-                       nom_équipe VARCHAR(50) NOT NULL,
+                       administrateur VARCHAR(50) NOT NULL,
+                       nom_equipe VARCHAR(50) NOT NULL,
                        PRIMARY KEY(equipe_id),
-                       UNIQUE(Administrateur),
-                       UNIQUE(nom_équipe)
+                       UNIQUE(administrateur),
+                       UNIQUE(nom_equipe)
 );
 
 CREATE TABLE app.Discussion(
@@ -58,13 +58,13 @@ CREATE TABLE app.Discussion(
                            equipe_id VARCHAR(50) NOT NULL,
                            PRIMARY KEY(discussion_id),
                            UNIQUE(equipe_id),
-                           FOREIGN KEY(equipe_id) REFERENCES app.Équipe(equipe_id)
+                           FOREIGN KEY(equipe_id) REFERENCES app.Equipe(equipe_id)
 );
 
 CREATE TABLE app.Message(
                         message_id VARCHAR(50),
-                        Date_ DATE,
-                        Contenu VARCHAR(50),
+                        date_ DATE,
+                        contenu VARCHAR(50),
                         cip VARCHAR(50) NOT NULL,
                         discussion_id VARCHAR(50) NOT NULL,
                         PRIMARY KEY(message_id),
@@ -72,36 +72,38 @@ CREATE TABLE app.Message(
                         FOREIGN KEY(discussion_id) REFERENCES app.Discussion(discussion_id)
 );
 
-CREATE TABLE app.Tâche(
+CREATE TABLE app.Tache(
                       tache_id VARCHAR(50),
                       nom_tache VARCHAR(50),
+                      status VARCHAR(50) NOT NULL,
+                      description TEXT,
                       date_creation DATE NOT NULL,
-                      date_début DATE,
-                      date_fin VARCHAR(50),
+                      date_debut DATE,
+                      date_fin DATE,
                       equipe_id VARCHAR(50) NOT NULL,
                       cip VARCHAR(50) NOT NULL,
                       PRIMARY KEY(tache_id),
-                      FOREIGN KEY(equipe_id) REFERENCES app.Équipe(equipe_id),
+                      FOREIGN KEY(equipe_id) REFERENCES app.Equipe(equipe_id),
                       FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip)
 );
 
-CREATE TABLE app.est_dans(
+CREATE TABLE app.Est_dans(
                          cip VARCHAR(50),
                          equipe_id VARCHAR(50),
                          PRIMARY KEY(cip, equipe_id),
                          FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
-                         FOREIGN KEY(equipe_id) REFERENCES app.Équipe(equipe_id)
+                         FOREIGN KEY(equipe_id) REFERENCES app.Equipe(equipe_id)
 );
 
-CREATE TABLE app.Assignée(
+CREATE TABLE app.Assignee(
                          cip VARCHAR(50),
                          tache_id VARCHAR(50),
                          PRIMARY KEY(cip, tache_id),
                          FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
-                         FOREIGN KEY(tache_id) REFERENCES app.Tâche(tache_id)
+                         FOREIGN KEY(tache_id) REFERENCES app.Tache(tache_id)
 );
 
-CREATE TABLE app.fait_parti(
+CREATE TABLE app.Fait_parti(
                            cip VARCHAR(50),
                            discussion_id VARCHAR(50),
                            PRIMARY KEY(cip, discussion_id),
@@ -109,7 +111,7 @@ CREATE TABLE app.fait_parti(
                            FOREIGN KEY(discussion_id) REFERENCES app.Discussion(discussion_id)
 );
 
-CREATE TABLE app.contact(
+CREATE TABLE app.Contact(
                         cip VARCHAR(50),
                         cip_contact VARCHAR(50),
                         PRIMARY KEY(cip, cip_contact),
