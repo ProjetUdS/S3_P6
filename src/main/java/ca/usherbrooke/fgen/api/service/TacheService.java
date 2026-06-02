@@ -3,10 +3,8 @@ package ca.usherbrooke.fgen.api.service;
 import ca.usherbrooke.fgen.api.business.Tache;
 import ca.usherbrooke.fgen.api.mapper.TacheMapper;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
@@ -32,7 +30,7 @@ public class TacheService {
 
   @GET
   @Path("/{tacheId}")
-  public Tache getTache(@PathParam("tacheId") String tacheId) {d) {
+  public Tache getTache(@PathParam("tacheId") String tacheId) {
     // Todo : implement and add the correct path
     return null;
   }

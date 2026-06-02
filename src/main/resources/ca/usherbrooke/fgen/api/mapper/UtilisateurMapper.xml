@@ -6,7 +6,7 @@
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.UtilisateurMapper">
 
     <insert id="createUsager">
-        insert into app.Utilisateur (
+        insert into app.utilisateur (
             cip,
             pseudo,
             courriel,

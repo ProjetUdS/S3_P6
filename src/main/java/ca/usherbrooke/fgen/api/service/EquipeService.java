@@ -3,11 +3,7 @@ package ca.usherbrooke.fgen.api.service;
 import ca.usherbrooke.fgen.api.business.Equipe;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
