@@ -16,14 +16,14 @@
         )
         values (
                    #{cip},
-                   #{pseudo},
+                   #{username},
                    #{courriel},
                    #{nom},
                    #{prenom},
                    #{photoProfilId}
                )
             on conflict (cip) do update set
-            pseudo = excluded.pseudo,
+                                     pseudo = excluded.pseudo,
                                      courriel = excluded.courriel,
                                      nom = excluded.nom,
                                      prenom = excluded.prenom,

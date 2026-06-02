@@ -4,6 +4,7 @@ import java.util.List;
 
 public class Person {
     public String cip;
+    public String username;
     public String last_name;
     public String first_name;
     public String email;

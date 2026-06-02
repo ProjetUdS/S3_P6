@@ -27,7 +27,7 @@ public class UtilisateurService {
     Person p = buildPersonFromJwt();
 
     loginMapper.createUsager(
-        p.cip, p.cip, p.email, p.last_name, p.first_name, null // TODO add when there
+        p.cip, p.username, p.email, p.last_name, p.first_name, null // TODO add when there
         );
 
     return p;
@@ -35,7 +35,8 @@ public class UtilisateurService {
 
   private Person buildPersonFromJwt() {
     Person p = new Person();
-    p.cip = this.securityContext.getUserPrincipal().getName();
+    p.cip = (String) this.jwt.getClaim("cip");
+    p.username = (String) this.jwt.getClaim("preferred_username");
     p.last_name = (String) this.jwt.getClaim("family_name");
     p.first_name = (String) this.jwt.getClaim("given_name");
     p.email = (String) this.jwt.getClaim("email");
