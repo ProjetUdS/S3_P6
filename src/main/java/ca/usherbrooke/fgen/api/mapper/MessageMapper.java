@@ -11,8 +11,8 @@ public interface MessageMapper {
 
   List<Message> select(
       @Param("discussionId") String discussionId,
-      @Param("limite") Integer limit,
-      @Param("decalage") Integer offset,
+      @Param("limite") Integer limite,
+      @Param("decalage") Integer decalage,
       @Param("cip") String cip,
       @Param("messageId") String messageId);
 
