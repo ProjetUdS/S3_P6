@@ -17,7 +17,7 @@
                 if (authenticated) {
                     console.log("Authentifié ! Synchronisation avec la base de données...");
 
-                    axios.get("http://localhost:8888/api/login", {
+                    axios.get("http://localhost:8888/api/utilisateur/login", {
                         headers: {
                             'Authorization': 'Bearer ' + keycloak.token
                         }

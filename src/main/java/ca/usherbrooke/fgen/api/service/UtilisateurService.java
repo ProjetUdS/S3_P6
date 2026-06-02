@@ -13,7 +13,7 @@ import jakarta.ws.rs.core.SecurityContext;
 import java.util.List;
 import java.util.Map;
 
-@Path("/api")
+@Path("/api/utilisateur")
 @Produces({"application/json"})
 public class UtilisateurService {
   @Context SecurityContext securityContext;
@@ -50,39 +50,39 @@ public class UtilisateurService {
   }
 
   @GET
-  //    @Path("")
+  //Default path
   public List<Person> getUtilisateurs(
-      @Param("cip") String cip,
-      @Param("pseudo") String pseudo,
-      @Param("courriel") String courriel,
-      @Param("nom") String nom,
-      @Param("prenom") String prenom,
-      @Param("photoProfilId") String photoProfilId) {
+      @QueryParam("cip") String cip,
+      @QueryParam("pseudo") String pseudo,
+      @QueryParam("courriel") String courriel,
+      @QueryParam("nom") String nom,
+      @QueryParam("prenom") String prenom,
+      @QueryParam("photoProfilId") String photoProfilId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @GET
-  //    @Path("")
+  @Path("/{cip}")
   public Person getUtilisateur(
-      @Param("cip") String cip,
-      @Param("pseudo") String pseudo,
-      @Param("nom") String nom,
-      @Param("prenom") String prenom) {
+      @PathParam("cip") String cip,
+      @QueryParam("pseudo") String pseudo,
+      @QueryParam("nom") String nom,
+      @QueryParam("prenom") String prenom) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @DELETE
-  //    @Path("")
-  public String deleteUtilisateur(@Param("cip") String cip) {
+  @Path("/{cip}")
+  public String deleteUtilisateur(@PathParam("cip") String cip) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @POST
-  //    @Path("")
-  public String ajouteContact(@Param("cip") String cip, @Param("contact") String contact) {
+  @Path("/{cip}/contact/{contact_cip}")
+  public String ajouteContact(@PathParam("cip") String cip, @PathParam("contact") String contact) {
     // Todo : implement and add the correct path
     return null;
   }
