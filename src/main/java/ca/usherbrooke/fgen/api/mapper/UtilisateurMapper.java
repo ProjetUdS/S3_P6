@@ -10,7 +10,7 @@ import java.util.List;
 public interface UtilisateurMapper {
   void createUsager(
       @Param("cip") String cip,
-      @Param("pseudo") String pseudo,
+      @Param("username") String username,
       @Param("courriel") String courriel,
       @Param("nom") String nom,
       @Param("prenom") String prenom,
@@ -18,12 +18,12 @@ public interface UtilisateurMapper {
 
   List<Person> select(
       @Param("cip") String cip,
-      @Param("pseudo") String pseudo,
+      @Param("username") String username,
       @Param("nom") String nom,
       @Param("prenom") String prenom);
 
   Person selectOne(
-      @Param("cip") String cip, @Param("pseudo") String pseudo, @Param("courriel") String courriel);
+      @Param("cip") String cip, @Param("username") String username, @Param("courriel") String courriel);
 
   void deleteOne(@Param("cip") String cip);
 
