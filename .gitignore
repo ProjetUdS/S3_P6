@@ -14,3 +14,7 @@ opencode.json
 
 # Private
 http-*.private.env.json
+
+#HTTP env
+http-*.private.env.json
+*.env
