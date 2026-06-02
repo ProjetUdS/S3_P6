@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
-@Path("/api")
+@Path("/api/discussion")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class DiscussionService {
@@ -17,39 +17,39 @@ public class DiscussionService {
   @Inject MessageMapper messageMapper;
 
   @GET
-  //    Path("")
+  //No path use discussion
   public List<Discussion> getDiscussions(
-      @Param("cip") List<String> users_id,
-      @Param("equipeId") String equipeId,
-      @Param("discussionId") String discussionId) {
+      @QueryParam("cip") List<String> users_id,
+      @QueryParam("equipeId") String equipeId,
+      @QueryParam("discussionId") String discussionId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @GET
-  //  @Path("")
-  public Discussion getDiscussion(@Param("discussionId") String discussionId) {
+  @Path("/{discussionId}")
+  public Discussion getDiscussion(@PathParam("discussionId") String discussionId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @DELETE
-  //  @Path("")
-  public String deleteDiscussion(@Param("discussionId") String discussionId) {
+  @Path("/{discussionId}")
+  public String deleteDiscussion(@PathParam("discussionId") String discussionId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @POST
-  //  @Path("")
-  public String createDiscussion(@Param("discussion") Discussion discussion) {
+  //Default top thing
+  public String createDiscussion(Discussion discussion) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @GET
-  //  @Path("")
-  public String getNewId(@Param("discussion") Discussion discussion) {
+  @Path("/nouveauID")
+  public String getNewId() {
     // Todo : implement and add the correct path
     return null;
   }

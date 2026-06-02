@@ -16,8 +16,6 @@ public interface MessageMapper {
       @Param("cip") String cip,
       @Param("messageId") String messageId);
 
-  List<Message> allMessages(@Param("discussionId") String discussionId);
-
   Message selectOne(@Param("messageId") String messageId);
 
   void deleteOne(@Param("messageId") String messageId, @Param("discussionId") String discussionId);

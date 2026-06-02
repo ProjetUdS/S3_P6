@@ -11,7 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Path("/api")
+@Path("/api/message")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class MessageService {
@@ -19,50 +19,42 @@ public class MessageService {
   @Inject MessageMapper messageMapper;
 
   @GET
-  //	@Path("")
+  //No path use messages
   public List<Message> getMessages(
-      @Param("discussionId") String discussionId,
-      @Param("limite") Integer limit,
-      @Param("decalage") Integer offset,
-      @Param("cip") String cip,
-      @Param("messageId") String messageId) {
+      @QueryParam("discussionId") String discussionId,
+      @QueryParam("limite") Integer limit,
+      @QueryParam("decalage") Integer offset,
+      @QueryParam("cip") String cip,
+      @QueryParam("messageId") String messageId) {
     // Todo : implement and add the correct path
     return null;
   }
   ;
 
   @GET
-  // @Path("")
-  public List<Message> getAllMessages(@Param("discussionId") String discussionId) {
-    // Todo : implement and add the correct path
-    return null;
-  }
-
-  @GET
-  // @Path("")
-  public Message getMessage(@Param("messageId") String messageId) {
+  @Path("/{messageId}")
+  public Message getMessage(@PathParam("messageId") String messageId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @DELETE
-  // @Path("")
-  public String deleteMessage(
-      @Param("messageId") String messageId, @Param("discussionId") String discussionId) {
+  @Path("/{messageId}")
+  public String deleteMessage(@PathParam("messageId") String messageId, @QueryParam("discussionId") String discussionId) {
     // Todo : implement and add the correct path
     return null; // TODO replace this stub to something useful
   }
 
   @POST
-  // @Path("")
-  public String sendMessage(@Param("message") Message message) {
+  //Utilise path de base
+  public String sendMessage(Message message) {
     // Todo : implement and add the correct path
     return null; // TODO replace this stub to something useful
   }
 
   @GET
-  // @Path("")
-  public String getNewId(@Param("message") Message message) {
+  @Path("/nouveauID")
+  public String getNewId() {
     // Todo : implement and add the correct path
     return null; // TODO replace this stub to something useful
   }

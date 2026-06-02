@@ -12,59 +12,48 @@ import org.apache.ibatis.annotations.Param;
 import java.util.Date;
 import java.util.List;
 
+@Path("/api/tache")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public class TacheService {
 
   @Inject TacheMapper tacheMapper;
 
   @GET
-  //    @Path("")
+  //Use tache
   public List<Tache> getTaches(
-      @Param("equipeId") String equipeId,
-      @Param("usersID") List<String> usersId,
-      @Param("dateCreation") Date dateCreation,
-      @Param("nomTache") String nomTache) {
+      @QueryParam("equipeId") String equipeId,
+      @QueryParam("usersID") List<String> usersId,
+      @QueryParam("dateCreation") Date dateCreation,
+      @QueryParam("nomTache") String nomTache) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @GET
-  //    @Path("")
-  public List<Tache> getTachesByTeam(@Param("equipeId") String equipeId) {
-    // Todo : implement and add the correct path
-    return null;
-  }
-
-  @GET
-  //    @Path("")
-  public List<Tache> getTachesByUser(@Param("userId") String userId) {
-    // Todo : implement and add the correct path
-    return null;
-  }
-
-  @GET
-  //    @Path("")
-  public Tache getTache(@Param("tacheId") String tacheId) {
+  @Path("/{tacheId}")
+  public Tache getTache(@PathParam("tacheId") String tacheId) {d) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @DELETE
-  //    @Path("")
-  public String deleteTache(@Param("tacheId") String tacheId) {
+  @Path("/{tacheId}")
+  public String deleteTache(@PathParam("tacheId") String tacheId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @POST
-  //    @Path("")
-  public String createTache(@Param("tache") Tache tache) {
+  //Utilise tache
+  public String createTache(Tache tache) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @GET
-  //    @Path("")
-  public String getNewId(@Param("tache") Tache tache) {
+  @Path("/nouveauID")
+  public String getNewId() {
     // Todo : implement and add the correct path
     return null;
   }

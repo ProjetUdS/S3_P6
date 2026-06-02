@@ -21,38 +21,38 @@ public class EquipeService {
   @GET
   // No path, use equipes
   public List<Equipe> getEquipes(
-      @Param("usersCip") List<String> usersCip,
-      @Param("equipeId") String equipeId,
-      @Param("administrateur") String administrateur,
-      @Param("nomEquipe") String nomEquipe) {
+      @QueryParam("usersCip") List<String> usersCip,
+      @QueryParam("equipeId") String equipeId,
+      @QueryParam("administrateur") String administrateur,
+      @QueryParam("nomEquipe") String nomEquipe) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @GET
   @Path("/{equipeID}")
-  public Equipe getEquipe(@Param("equipeId") String equipeId) {
+  public Equipe getEquipe(@PathParam("equipeId") String equipeId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @DELETE
   @Path("/{equipeID}")
-  public String deleteEquipe(@Param("equipeId") String equipeId) {
+  public String deleteEquipe(@PathParam("equipeId") String equipeId) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @POST
-  @Path("/{equipeID}")
-  public String createEquipe(@Param("equipe") Equipe equipe) {
+  //Default top thing
+  public String createEquipe(Equipe equipe) {
     // Todo : implement and add the correct path
     return null;
   }
 
   @GET
   @Path("/nouveauID")
-  public String getNewId(@Param("equipe") Equipe equipe) {
+  public String getNewId() {
     // Todo : implement and add the correct path
     return null;
   }
