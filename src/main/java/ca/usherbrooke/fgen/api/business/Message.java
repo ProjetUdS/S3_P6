@@ -1,18 +1,15 @@
 package ca.usherbrooke.fgen.api.business;
-//import io.quarkus.runtime.annotations.RegisterForReflection;
 
+// import io.quarkus.runtime.annotations.RegisterForReflection;
 
+import java.util.Date;
 
-//@RegisterForReflection
+// @RegisterForReflection
 public class Message {
 
-    public Integer id;
-    public String trimesterId;
-    public String profileId;
-    public String unit;
-    public String cip;
-    public String description;
-    public String inscriptor;
-    public String inscription;
-
+  public String id;
+  public Date date;
+  public String contenu;
+  public String cip;
+  public String discussionId;
 }
