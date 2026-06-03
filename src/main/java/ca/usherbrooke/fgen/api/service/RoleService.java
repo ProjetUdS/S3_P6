@@ -1,6 +1,6 @@
 package ca.usherbrooke.fgen.api.service;
 
-import ca.usherbrooke.fgen.api.business.Person;
+import ca.usherbrooke.fgen.api.business.Utilisateur;
 import ca.usherbrooke.fgen.api.business.Roles;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
@@ -30,8 +30,8 @@ public class RoleService {
     @GET
     @Path("/teacher")
     @RolesAllowed({Roles.TEACHER})
-    public Person teacher() {
-        Person p = new Person();
+    public Utilisateur teacher() {
+        Utilisateur p = new Utilisateur();
         p.cip = this.securityContext.getUserPrincipal().getName();
         p.nom = (String)this.jwt.getClaim("family_name");
         p.prenom = (String)this.jwt.getClaim("given_name");
@@ -48,8 +48,8 @@ public class RoleService {
     @GET
     @Path("/student")
     @RolesAllowed({"student"})
-    public Person student() {
-        Person p = new Person();
+    public Utilisateur student() {
+        Utilisateur p = new Utilisateur();
         p.cip = this.securityContext.getUserPrincipal().getName();
         p.nom = (String)this.jwt.getClaim("family_name");
         p.prenom = (String)this.jwt.getClaim("given_name");
@@ -65,8 +65,8 @@ public class RoleService {
     @GET
     @Path("/any")
     @PermitAll
-    public Person me() {
-        Person p = new Person();
+    public Utilisateur me() {
+        Utilisateur p = new Utilisateur();
         p.cip = this.securityContext.getUserPrincipal().getName();
         p.nom = (String)this.jwt.getClaim("family_name");
         p.nom = (String)this.jwt.getClaim("given_name");

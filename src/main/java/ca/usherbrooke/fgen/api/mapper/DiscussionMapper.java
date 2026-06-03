@@ -7,16 +7,16 @@ import java.util.List;
 
 public interface DiscussionMapper {
 
-  List<Discussion> select(
-      @Param("cip") List<String> usersId,
-      @Param("equipeId") String equipeId,
-      @Param("discussionId") String discussionId);
+    List<Discussion> select(
+            @Param("cip") List<String> usersId,
+            @Param("equipeId") String equipeId,
+            @Param("discussionId") String discussionId);
 
-  Discussion selectOne(@Param("discussionId") String discussionId);
+    Discussion selectOne(@Param("discussionId") String discussionId);
 
-  void deleteOne(@Param("discussionId") String discussionId);
+    void deleteOne(@Param("discussionId") String discussionId);
 
-  void insertDiscussion(@Param("discussion") Discussion discussion);
+    void insertDiscussion(@Param("discussion") Discussion discussion);
 
-  String getNewId();
+    String getNewId();
 }

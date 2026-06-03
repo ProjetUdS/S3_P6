@@ -6,31 +6,52 @@
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.UtilisateurMapper">
 
     <insert id="createUsager">
-        insert into app.utilisateur (
-            cip,
-            pseudo,
-            courriel,
-            nom,
-            prenom,
-            photo_de_profil_id
-        )
-        values (
-                   #{cip},
-                   #{username},
-                   #{courriel},
-                   #{nom},
-                   #{prenom},
-                   #{photoProfilId}
-               )
-            on conflict (cip) do update set
-                                     pseudo = excluded.pseudo,
-                                     courriel = excluded.courriel,
-                                     nom = excluded.nom,
-                                     prenom = excluded.prenom,
-                                     photo_de_profil_id = excluded.photo_de_profil_id
+        insert into app.utilisateur (cip,
+                                     pseudo,
+                                     courriel,
+                                     nom,
+                                     prenom,
+                                     photo_de_profil_id)
+        values (#{cip},
+                #{username},
+                #{courriel},
+                #{nom},
+                #{prenom},
+                #{photoProfilId}) on conflict (cip) do
+        update set
+            pseudo = excluded.pseudo,
+            courriel = excluded.courriel,
+            nom = excluded.nom,
+            prenom = excluded.prenom,
+            photo_de_profil_id = excluded.photo_de_profil_id
     </insert>
 
-    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Person">
-        SELECT
+    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
+        SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
+        FROM app.utilisateur
+        WHERE cip = #{cip}
+          AND pseudo = #{username}
+          AND nom = #{nom}
+          AND prenom = #{prenom}
     </select>
+
+    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
+        SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
+        FROM app.utilisateur
+        WHERE cip = #{cip}
+          AND pseudo = #{username}
+          AND courriel = #{courriel}
+    </select>
+
+    <delete id="deleteOne">
+        DELETE
+        FROM app.utilisateur
+        WHERE cip = #{cip}
+    </delete>
+
+    <insert id="InsertContact">
+        INSERT INTO app.contact (cip, cip_contact)
+        VALUES (#{cip}, #{contact})
+    </insert>
+
 </mapper>

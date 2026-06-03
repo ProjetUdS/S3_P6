@@ -8,8 +8,8 @@
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
         SELECT d.equipe_id, d.discussion_id
         FROM app.discussion d
-        INNER JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
-        WHERE fp.cip = any(#{usersId})
+                 INNER JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
+        WHERE fp.cip = any (#{usersId})
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Discussion">
