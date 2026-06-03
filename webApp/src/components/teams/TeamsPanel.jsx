@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TeamIcon } from '../shared/Avatar';
 import { getEquipes } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -6,10 +6,15 @@ import CreateTeamModal from './CreateTeamModal';
 
 export default function TeamsPanel({ activeTeamId, onSelectTeam }) {
   const { user } = useAuth();
+  const userRef = useRef(user);
   const [teams, setTeams] = useState([]);
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     if (user?.cip) {
@@ -74,7 +79,7 @@ export default function TeamsPanel({ activeTeamId, onSelectTeam }) {
           onClose={() => setShowCreateModal(false)}
           onCreated={() => {
             setShowCreateModal(false);
-            getEquipes(user.cip).then(data => setTeams(data || []));
+            getEquipes(userRef.current.cip).then(data => setTeams(data || []));
           }}
         />
       )}
