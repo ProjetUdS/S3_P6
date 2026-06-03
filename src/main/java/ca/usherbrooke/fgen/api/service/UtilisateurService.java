@@ -82,7 +82,7 @@ public class UtilisateurService {
 
   @POST
   @Path("/{cip}/contact/{contact_cip}")
-  public String ajouteContact(@PathParam("cip") String cip, @PathParam("contact") String contact) {
+  public String ajouteContact(@PathParam("cip") String cip, @PathParam("contact_cip") String contact) {
     // Todo : implement and add the correct path
     return null;
   }
