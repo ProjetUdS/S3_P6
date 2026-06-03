@@ -23,8 +23,8 @@
 
     <insert id="insertEquipe">
         INSERT INTO app.equipe(equipe_id, administrateur, nom_equipe)
-        VALUES (#{equipeId}, #{administrateur}, #{nomEquipe})
-        ON CONFLICT (equipe_id) DO UPDATE SET
+        VALUES (#{equipe.id}, #{equipe.administrateur}, #{equipe.nomEquipe})
+            ON CONFLICT (equipe_id) DO UPDATE SET
             administrateur = excluded.administrateur,
             nom_equipe = excluded.nom_equipe
     </insert>

@@ -14,7 +14,7 @@ public interface EquipeMapper {
       @Param("administrateur") String administrateur,
       @Param("nomEquipe") String nomEquipe);
 
-  EquipeMapper selectOne(@Param("equipeId") String equipeId);
+  Equipe selectOne(@Param("equipeId") String equipeId);
 
   void deleteOne(@Param("equipeId") String equipeId);
 
