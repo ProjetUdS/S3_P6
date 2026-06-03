@@ -5,23 +5,29 @@
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.MessageMapper">
 
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Message">
-        select discussion_id,
-               cip,
-               message_id
+        select message_id    as id,
+               date_         as date,
+           contenu,
+           cip,
+           discussion_id as discussionId
         from app.message
         where (discussion_id,
-               cip,
-               message_id) =
-              (coalesce(#{discussionId}, discussion_id),
-               coalesce(#{cip}, cip),
-               coalesce(#{messageId}, message_id))
-        order by date_ ASC --ajout benoit (historique)
-        limit #{limite}
+            cip,
+            message_id) =
+            (coalesce(#{discussionId}, discussion_id),
+            coalesce(#{cip}, cip),
+            coalesce(#{messageId}, message_id))
+        order by date_ ASC
+            limit #{limite}
         offset #{decalage}
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Message">
-        select message_id
+        select message_id    as id,
+               date_         as date,
+           contenu,
+           cip,
+           discussion_id as discussionId
         from app.message
         where message_id = #{messageId}
     </select>
