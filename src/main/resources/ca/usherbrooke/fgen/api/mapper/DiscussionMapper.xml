@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMapper">
+
+    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
+        SELECT d.equipe_id, d.discussion_id
+        FROM app.discussion d
+        INNER JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
+        WHERE fp.cip = any(#{usersId})
+    </select>
+
+    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Discussion">
+        SELECT discussion_id, equipe_id
+        FROM app.discussion
+        WHERE discussion_id = #{discussionId}
+    </select>
+
+    <delete id="deleteOne">
+        DELETE
+        FROM app.discussion
+        WHERE discussion_id = #{discussionId}
+    </delete>
+
+    <insert id="insertDiscussion">
+        INSERT INTO app.discussion(discussion_id, equipe_id)
+        VALUES (#{discussion.discussionId}, #{discussion.equipeId})
+    </insert>
+
+    <select id="getNewId" resultType="String">
+        SELECT md5(random()::text || clock_timestamp()::text) AS new_id
+    </select>
+
+
+</mapper>

@@ -8,7 +8,7 @@ import java.util.List;
 public interface DiscussionMapper {
 
   List<Discussion> select(
-      @Param("cip") List<String> users_id,
+      @Param("cip") List<String> usersId,
       @Param("equipeId") String equipeId,
       @Param("discussionId") String discussionId);
 
