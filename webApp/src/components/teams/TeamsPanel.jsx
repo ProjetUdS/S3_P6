@@ -30,44 +30,49 @@ export default function TeamsPanel({ activeTeamId, onSelectTeam }) {
     t.nomEquipe.toLowerCase().includes(search.toLowerCase())
   );
 
-  const gradient = 'linear-gradient(135deg, #7c6af7, #a78bfa)';
-
   return (
     <aside className="left-panel" aria-label="Teams">
-      <input
-        className="panel-search"
-        placeholder="Rechercher une équipe"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+      <div className="panel-header">
+        <div className="panel-title">Équipes</div>
+        <div className="search-bar">
+          <span>🔍</span>
+          <input
+            placeholder="Rechercher"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
 
       <button
-        className="panel-add-btn"
+        className="panel-create-team-btn"
         onClick={() => setShowCreateModal(true)}
         aria-label="Créer une équipe"
       >
-        + Créer une équipe
+        + Nouvelle équipe
       </button>
 
       {loading ? (
-        <div className="loading-spinner" />
+        <div className="loading-spinner" style={{ margin: '40px auto' }} />
       ) : filtered.length === 0 ? (
-        <div className="empty-list">Aucune équipe</div>
+        <div className="panel-section">Aucune équipe</div>
       ) : (
         <ul className="panel-list" role="listbox">
           {filtered.map(team => (
             <li key={team.equipeId}>
               <button
-                className={`panel-item ${team.equipeId === activeTeamId ? 'active' : ''}`}
+                className={`list-item ${team.equipeId === activeTeamId ? 'active' : ''}`}
                 onClick={() => onSelectTeam(team)}
                 aria-label={team.nomEquipe}
               >
                 <TeamIcon
                   initials={team.nomEquipe.substring(0, 1).toUpperCase()}
-                  gradient={gradient}
+                  gradient="var(--grad-sr)"
                   size="md"
                 />
-                <span className="panel-item-label">{team.nomEquipe}</span>
+                <div className="list-item-info">
+                  <div className="list-item-name">{team.nomEquipe}</div>
+                </div>
               </button>
             </li>
           ))}
