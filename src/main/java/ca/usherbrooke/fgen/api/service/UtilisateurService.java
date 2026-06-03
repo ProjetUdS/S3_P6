@@ -87,4 +87,10 @@ public class UtilisateurService {
         utilisateurMapper.insertContact(cip, contact);
         return "200";
     }
+
+  @GET
+  @Path("/contacts")
+  public List<Utilisateur> getContacts(@QueryParam("userCip") String cip) {
+    return utilisateurMapper.getContacts(cip);
+  }
 }
