@@ -49,8 +49,7 @@ CREATE TABLE app.Equipe(
                        administrateur VARCHAR(50) NOT NULL,
                        nom_equipe VARCHAR(50) NOT NULL,
                        PRIMARY KEY(equipe_id),
-                       UNIQUE(administrateur),
-                       UNIQUE(nom_equipe)
+                       UNIQUE(nom_equipe, administrateur)
 );
 
 CREATE TABLE app.Discussion(
