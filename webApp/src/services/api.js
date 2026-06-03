@@ -123,4 +123,19 @@ export async function deleteTache(tacheId) {
   return response.data;
 }
 
+export async function getContacts(cip) {
+  const response = await api.get('/utilisateur/contacts', { params: { userCip: cip } });
+  return response.data;
+}
+
+export async function getTeamMembers(equipeId) {
+  const response = await api.get('/equipes', { params: { equipeId } });
+  return response.data;
+}
+
+export async function addTeamMember(equipeId, memberCip) {
+  const response = await api.post(`/equipes/${equipeId}/member`, { memberCip });
+  return response.data;
+}
+
 export default api;
