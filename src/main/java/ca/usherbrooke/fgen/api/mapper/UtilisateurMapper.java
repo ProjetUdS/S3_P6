@@ -1,6 +1,6 @@
 package ca.usherbrooke.fgen.api.mapper;
 
-import ca.usherbrooke.fgen.api.business.Person;
+import ca.usherbrooke.fgen.api.business.Utilisateur;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -8,24 +8,24 @@ import java.util.List;
 
 @Mapper
 public interface UtilisateurMapper {
-  void createUsager(
-      @Param("cip") String cip,
-      @Param("username") String username,
-      @Param("courriel") String courriel,
-      @Param("nom") String nom,
-      @Param("prenom") String prenom,
-      @Param("photoProfilId") String photoProfilId);
+    void createUsager(
+            @Param("cip") String cip,
+            @Param("username") String username,
+            @Param("courriel") String courriel,
+            @Param("nom") String nom,
+            @Param("prenom") String prenom,
+            @Param("photoProfilId") String photoProfilId);
 
-  List<Person> select(
-      @Param("cip") String cip,
-      @Param("username") String username,
-      @Param("nom") String nom,
-      @Param("prenom") String prenom);
+    List<Utilisateur> select(
+            @Param("cip") String cip,
+            @Param("username") String username,
+            @Param("nom") String nom,
+            @Param("prenom") String prenom);
 
-  Person selectOne(
-      @Param("cip") String cip, @Param("username") String username, @Param("courriel") String courriel);
+    Utilisateur selectOne(
+            @Param("cip") String cip, @Param("username") String username, @Param("courriel") String courriel);
 
-  void deleteOne(@Param("cip") String cip);
+    void deleteOne(@Param("cip") String cip);
 
-  void insertContact(@Param("cip") String cip, @Param("contact") String contact);
+    Void insertContact(@Param("cip") String cip, @Param("contact") String contact);
 }
