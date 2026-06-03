@@ -17,42 +17,37 @@ public class TacheService {
 
   @Inject TacheMapper tacheMapper;
 
-  @GET
-  //Use tache
-  public List<Tache> getTaches(
-      @QueryParam("equipeId") String equipeId,
-      @QueryParam("usersID") List<String> usersId,
-      @QueryParam("dateCreation") Date dateCreation,
-      @QueryParam("nomTache") String nomTache) {
-    // Todo : implement and add the correct path
-    return null;
-  }
+    @GET
+    public List<Tache> getTaches(
+            @QueryParam("equipeId") String equipeId,
+            @QueryParam("usersID") List<String> usersId,
+            @QueryParam("dateCreation") Date dateCreation,
+            @QueryParam("nomTache") String nomTache) {
+        return tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
+    }
 
-  @GET
-  @Path("/{tacheId}")
-  public Tache getTache(@PathParam("tacheId") String tacheId) {
-    // Todo : implement and add the correct path
-    return null;
-  }
+    @GET
+    @Path("/{tacheId}")
+    public Tache getTache(@PathParam("tacheId") String tacheId) {
+        return tacheMapper.selectOne(tacheId);
+    }
 
-  @DELETE
-  @Path("/{tacheId}")
-  public String deleteTache(@PathParam("tacheId") String tacheId) {
-    // Todo : implement and add the correct path
-    return null;
-  }
+    @DELETE
+    @Path("/{tacheId}")
+    public void deleteTache(@PathParam("tacheId") String tacheId) {
+        tacheMapper.deleteOne(tacheId);
+    }
 
-  @POST
-  //Utilise tache
-  public String createTache(Tache tache) {
-    // Todo : implement and add the correct path
-    return null;
-  }
+    @POST
+    public void createTache(Tache tache) {
+        tache.id = UUID.randomUUID().toString();
+        tache.dateCreation = new java.util.Date();
+        tacheMapper.insertTache(tache);
+    }
 
-  @GET
-  @Path("/nouveauID")
-  public String getNewId() {
-    // Todo : implement and add the correct path
-    return null;
-  }
+    @GET
+    @Path("/nouveauID")
+    public String getNewId() {
+        return tacheMapper.getNewId();
+    }
 }

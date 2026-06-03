@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.TacheMapper">
+
+    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Tache">
+        select tache_id      as id,
+               nom_tache     as nomTache,
+               status,
+               description,
+               date_creation as dateCreation,
+               date_debut    as dateDebut,
+               date_fin      as dateFin,
+               equipe_id     as equipeId,
+               cip
+        from app.Tache
+        where (equipe_id, nom_tache) =
+              (coalesce(#{equipeId}, equipe_id),
+               coalesce(#{nomTache}, nom_tache))
+    </select>
+
+    <select id="allTasksByTeam" resultType="ca.usherbrooke.fgen.api.business.Tache">
+        select tache_id      as id,
+               nom_tache     as nomTache,
+               status,
+               description,
+               date_creation as dateCreation,
+               date_debut    as dateDebut,
+               date_fin      as dateFin,
+               equipe_id     as equipeId,
+               cip
+        from app.Tache
+        where equipe_id = #{equipeId}
+    </select>
+
+    <select id="allTasksByUser" resultType="ca.usherbrooke.fgen.api.business.Tache">
+        select tache_id      as id,
+               nom_tache     as nomTache,
+               status,
+               description,
+               date_creation as dateCreation,
+               date_debut    as dateDebut,
+               date_fin      as dateFin,
+               equipe_id     as equipeId,
+               cip
+        from app.Tache
+        where cip = #{userId}
+    </select>
+
+    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Tache">
+        select tache_id      as id,
+               nom_tache     as nomTache,
+               status,
+               description,
+               date_creation as dateCreation,
+               date_debut    as dateDebut,
+               date_fin      as dateFin,
+               equipe_id     as equipeId,
+               cip
+        from app.Tache
+        where tache_id = #{tacheId}
+    </select>
+
+    <delete id="deleteOne">
+        delete from app.Tache
+        where tache_id = #{tacheId}
+    </delete>
+
+    <insert id="insertTache">
+        insert into app.Tache(tache_id,
+                              nom_tache,
+                              status,
+                              description,
+                              date_creation,
+                              date_debut,
+                              date_fin,
+                              equipe_id,
+                              cip)
+        values (#{tache.id},
+                #{tache.nomTache},
+                #{tache.status},
+                #{tache.description},
+                #{tache.dateCreation},
+                #{tache.dateDebut},
+                #{tache.dateFin},
+                #{tache.equipeId},
+                #{tache.cip})
+            on conflict (tache_id) do update set
+            nom_tache   = excluded.nom_tache,
+                                          status      = excluded.status,
+                                          description = excluded.description
+    </insert>
+
+    <select id="getNewId" resultType="String">
+        select gen_random_uuid()
+    </select>
+
+</mapper>
