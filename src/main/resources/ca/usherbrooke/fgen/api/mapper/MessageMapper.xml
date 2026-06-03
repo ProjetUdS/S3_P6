@@ -15,6 +15,7 @@
               (coalesce(#{discussionId}, discussion_id),
                coalesce(#{cip}, cip),
                coalesce(#{messageId}, message_id))
+        order by date_ ASC --ajout benoit (historique)
         limit #{limite}
         offset #{decalage}
     </select>
