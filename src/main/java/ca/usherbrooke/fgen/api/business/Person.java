@@ -4,10 +4,10 @@ import java.util.List;
 
 public class Person {
     public String cip;
-    public String username;
-    public String last_name;
-    public String first_name;
-    public String email;
+    public String pseudo;
+    public String nom;
+    public String prenom;
+    public String courriel;
     public List roles;
 
     public String toString() {
