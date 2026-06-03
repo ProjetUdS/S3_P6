@@ -24,5 +24,8 @@ jobs:
       - name: Rendre gradlew exécutable
         run: chmod +x gradlew
 
+      - name: Start Docker containers
+        run: docker compose -f docker/docker-compose
+
       - name: Exécution des tests JUnit
         run: ./gradlew test
