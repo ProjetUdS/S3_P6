@@ -6,7 +6,7 @@
     div[class*="login-pf"] {
         height: auto !important;
         min-height: min-content !important;
-        padding-bottom: 40px !important;
+        padding-bottom: 5px !important;
         overflow: auto !important;
     }
 
@@ -93,6 +93,18 @@
 
             <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
                 <input class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}" type="submit" value="Register" />
+            </div>
+
+            <div class="${properties.kcFormGroupClass!}">
+                <div id="kc-form-options" class="${properties.kcFormOptionsClass!}">
+                    <div class="${properties.kcFormOptionsWrapperClass!}">
+            <span>
+                <a href="${url.loginUrl}">
+                    ${kcSanitize(msg("backToLogin"))?no_esc}
+                </a>
+            </span>
+                    </div>
+                </div>
             </div>
         </form>
     </#if>
