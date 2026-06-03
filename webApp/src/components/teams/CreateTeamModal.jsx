@@ -14,8 +14,6 @@ export default function CreateTeamModal({ onClose, onCreated }) {
   useEffect(() => {
     if (user?.cip) {
       getContacts(user.cip).then(setContacts).catch(() => setError('Failed to load contacts'));
-    } else {
-      setLoading(false);
     }
   }, [user]);
 
@@ -38,76 +36,57 @@ export default function CreateTeamModal({ onClose, onCreated }) {
     }
   }
 
-  const overlayStyle = {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
-    backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 1000,
-  };
-  const cardStyle = {
-    background: '#fff', borderRadius: 14, padding: 24, width: 360, boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-  };
-  const inputStyle = {
-    width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #dcdce4',
-    fontSize: 14, outline: 'none', boxSizing: 'border-box',
-  };
-  const listStyle = { maxHeight: 200, overflowY: 'auto', marginTop: 12 };
-
   return (
-    <div style={overlayStyle} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={cardStyle}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 600 }}>Créer une équipe</h2>
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <h2 className="modal-title">Créer une équipe</h2>
 
         <input
-          style={inputStyle}
+          className="modal-input"
           placeholder="Nom de l'équipe"
           value={teamName}
           onChange={e => setTeamName(e.target.value)}
         />
 
-        <div style={{ marginTop: 16, fontSize: 13, fontWeight: 500, color: '#5a5a6e' }}>Membres</div>
+        <div style={{ marginTop: 16, fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>Membres</div>
 
-        {loading && <div style={{ color: '#a0a0b4', fontSize: 13, marginTop: 8 }}>Chargement...</div>}
-        {error && <div style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{error}</div>}
+        {loading && <div style={{ color: 'var(--text-tertiary)', fontSize: 13, marginTop: 8 }}>Chargement...</div>}
+        {error && <div style={{ color: 'var(--red)', fontSize: 13, marginTop: 8 }}>{error}</div>}
 
-        <div style={listStyle}>
+        <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 12 }}>
           {contacts.map(c => (
             <div
               key={c.cip}
               onClick={() => toggleContact(c.cip)}
+              className="suggestion-item"
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px',
-                cursor: 'pointer', borderRadius: 8,
-                background: selectedCips.has(c.cip) ? 'rgba(124,106,247,0.08)' : 'transparent',
+                background: selectedCips.has(c.cip) ? 'var(--purple-bg)' : 'var(--bg-secondary)',
+                borderColor: selectedCips.has(c.cip) ? 'var(--purple)' : 'var(--border)',
               }}
             >
-              <div style={{ width: 10, height: 10, borderRadius: '50%', border: `2px solid ${selectedCips.has(c.cip) ? '#7c6af7' : '#dcdce4'}`, flexShrink: 0 }} />
-              <Avatar initials={c.pseudo?.substring(0, 2).toUpperCase() || '?'} gradient="linear-gradient(135deg, #7c6af7, #a78bfa)" size="sm" />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{c.prenom} {c.nom}</div>
-                <div style={{ fontSize: 11, color: '#a0a0b4' }}>{c.courriel}</div>
+              <div style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                border: `2px solid ${selectedCips.has(c.cip) ? 'var(--purple)' : 'var(--border)'}`,
+                flexShrink: 0,
+              }} />
+              <Avatar initials={c.pseudo?.substring(0, 2).toUpperCase() || '?'} gradient="var(--grad-sr)" size="sm" />
+              <div className="suggestion-info">
+                <div className="suggestion-name">{c.prenom} {c.nom}</div>
+                <div className="suggestion-email">{c.courriel}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {error && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 8 }}>{error}</div>}
-
-        <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+        <div className="modal-actions" style={{ marginTop: 20 }}>
+          <button className="btn-cancel" onClick={onClose}>Annuler</button>
           <button
-            onClick={onClose}
-            style={{
-              flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-              fontSize: 14, fontWeight: 500, background: 'transparent', color: '#5a5a6e',
-            }}
-          >Annuler</button>
-          <button
+            className="btn-primary"
             onClick={handleCreate}
             disabled={!teamName.trim()}
-            style={{
-              flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: teamName.trim() ? 'pointer' : 'not-allowed',
-              fontSize: 14, fontWeight: 500, background: teamName.trim() ? '#7c6af7' : '#dcdce4',
-              color: '#fff',
-            }}
+            style={{ opacity: teamName.trim() ? 1 : 0.5 }}
           >Créer</button>
         </div>
       </div>
