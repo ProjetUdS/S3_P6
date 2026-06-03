@@ -33,9 +33,9 @@ public class RoleService {
     public Person teacher() {
         Person p = new Person();
         p.cip = this.securityContext.getUserPrincipal().getName();
-        p.last_name = (String)this.jwt.getClaim("family_name");
-        p.first_name = (String)this.jwt.getClaim("given_name");
-        p.email = (String)this.jwt.getClaim("email");
+        p.nom = (String)this.jwt.getClaim("family_name");
+        p.prenom = (String)this.jwt.getClaim("given_name");
+        p.courriel = (String)this.jwt.getClaim("email");
         Map realmAccess = (Map)this.jwt.getClaim("realm_access");
         if (realmAccess != null && realmAccess.containsKey("roles")) {
             p.roles = (List)realmAccess.get("roles");
@@ -51,9 +51,9 @@ public class RoleService {
     public Person student() {
         Person p = new Person();
         p.cip = this.securityContext.getUserPrincipal().getName();
-        p.last_name = (String)this.jwt.getClaim("family_name");
-        p.first_name = (String)this.jwt.getClaim("given_name");
-        p.email = (String)this.jwt.getClaim("email");
+        p.nom = (String)this.jwt.getClaim("family_name");
+        p.prenom = (String)this.jwt.getClaim("given_name");
+        p.courriel = (String)this.jwt.getClaim("email");
         Map realmAccess = (Map)this.jwt.getClaim("realm_access");
         if (realmAccess != null && realmAccess.containsKey("roles")) {
             p.roles = (List)realmAccess.get("roles");
@@ -68,9 +68,9 @@ public class RoleService {
     public Person me() {
         Person p = new Person();
         p.cip = this.securityContext.getUserPrincipal().getName();
-        p.last_name = (String)this.jwt.getClaim("family_name");
-        p.first_name = (String)this.jwt.getClaim("given_name");
-        p.email = (String)this.jwt.getClaim("email");
+        p.nom = (String)this.jwt.getClaim("family_name");
+        p.nom = (String)this.jwt.getClaim("given_name");
+        p.courriel = (String)this.jwt.getClaim("email");
         Map realmAccess = (Map)this.jwt.getClaim("realm_access");
         if (realmAccess != null && realmAccess.containsKey("roles")) {
             p.roles = (List)realmAccess.get("roles");

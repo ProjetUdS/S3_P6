@@ -19,7 +19,7 @@ public class UtilisateurService {
   @Context SecurityContext securityContext;
   @Inject JsonWebToken jwt;
 
-  @Inject UtilisateurMapper loginMapper;
+  @Inject UtilisateurMapper utilisateurMapper;
 
   @GET
   @Path("/login")
@@ -28,6 +28,8 @@ public class UtilisateurService {
 
     loginMapper.createUsager(
         p.cip, p.username, p.email, p.last_name, p.first_name, null // TODO add when there
+    utilisateurMapper.createUsager(
+        p.cip, p.pseudo, p.courriel, p.nom, p.prenom, null // TODO add when there
         );
 
     return p;
@@ -36,10 +38,10 @@ public class UtilisateurService {
   private Person buildPersonFromJwt() {
     Person p = new Person();
     p.cip = (String) this.jwt.getClaim("cip");
-    p.username = (String) this.jwt.getClaim("preferred_username");
-    p.last_name = (String) this.jwt.getClaim("family_name");
-    p.first_name = (String) this.jwt.getClaim("given_name");
-    p.email = (String) this.jwt.getClaim("email");
+    p.pseudo = (String) this.jwt.getClaim("preferred_username");
+    p.nom = (String) this.jwt.getClaim("family_name");
+    p.prenom = (String) this.jwt.getClaim("given_name");
+    p.courriel = (String) this.jwt.getClaim("email");
 
     Map realmAccess = (Map) this.jwt.getClaim("realm_access");
     if (realmAccess != null && realmAccess.containsKey("roles")) {

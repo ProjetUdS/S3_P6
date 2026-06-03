@@ -30,4 +30,7 @@
                                      photo_de_profil_id = excluded.photo_de_profil_id
     </insert>
 
+    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Person">
+        SELECT
+    </select>
 </mapper>
