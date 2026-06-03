@@ -49,5 +49,22 @@
     "saml.authnstatement": "false",
     "display.on.consent.screen": "false",
     "saml.onetimeuse.condition": "false"
-  }
+  },
+  "protocolMappers": [
+    {
+      "name": "cip",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usermodel-attribute-mapper",
+        "consentRequired": false,
+        "config": {
+          "userinfo.token.claim": "true",
+          "user.attribute": "cip",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "claim.name": "cip",
+          "jsonType.label": "String"
+        }
+
+    }
+  ]
 }

@@ -37,7 +37,7 @@
 
             <div class="form-group">
                 <label for="firstName">First Name</label>
-                <input type="firstName" id="firstName" name="firstName" required />
+                <input type="text" id="firstName" name="firstName" required />
             </div>
 
             <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
