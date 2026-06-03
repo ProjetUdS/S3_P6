@@ -6,7 +6,7 @@ import FriendsPanel from './components/friends/FriendsPanel';
 import ChatView from './components/chat/ChatView';
 import TeamsPanel from './components/teams/TeamsPanel';
 import TeamArea from './components/teams/TeamArea';
-import { FRIENDS, TEAMS } from './data/mockData';
+import { FRIENDS } from './data/mockData';
 
 import './styles/globals.css';
 import './styles/layout.css';
@@ -18,7 +18,6 @@ export default function App() {
   const [activeFriend, setActiveFriend] = useState(null);
   const [activeTeam, setActiveTeam] = useState(null);
   const [friends, setFriends] = useState(FRIENDS);
-  const [teams, setTeams] = useState(TEAMS);
 
   useEffect(() => {
     if (authenticated && user) {
@@ -30,14 +29,6 @@ export default function App() {
           { id: 'pl', name: 'Priya L.', initials: 'PL', status: 'offline', sub: 'Offline', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
         ]);
         setActiveFriend({ id: 'sr', name: 'Sara R.', initials: 'SR', status: 'online', sub: 'Active now', gradient: 'linear-gradient(135deg, #7c6af7, #a78bfa)', unread: 3 });
-      }
-      if (teams.length === 0) {
-        setTeams([
-          { id: 'product', name: 'Product', memberCount: 5, initials: 'P', gradient: 'linear-gradient(135deg, #7c6af7, #a78bfa)', unread: 2 },
-          { id: 'design', name: 'Design', memberCount: 3, initials: 'D', gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
-          { id: 'engineering', name: 'Engineering', memberCount: 8, initials: 'E', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
-        ]);
-        setActiveTeam({ id: 'product', name: 'Product', memberCount: 5, initials: 'P', gradient: 'linear-gradient(135deg, #7c6af7, #a78bfa)', unread: 2 });
       }
     }
   }, [authenticated, user]);
