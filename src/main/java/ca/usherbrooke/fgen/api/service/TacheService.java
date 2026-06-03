@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Path("/api/tache")
 @Produces(MediaType.APPLICATION_JSON)
