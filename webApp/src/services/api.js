@@ -98,7 +98,10 @@ export async function getEquipe(equipeId) {
   return response.data;
 }
 
-export async function createEquipe(equipe) {
+export async function createEquipe(teamName, adminCip, memberCips = []) {
+  const idRes = await api.get('/equipes/nouveauID');
+  const equipeId = idRes.data;
+  const equipe = { equipeId, administrateur: adminCip, nomEquipe: teamName };
   const response = await api.post('/equipes', equipe);
   return response.data;
 }
