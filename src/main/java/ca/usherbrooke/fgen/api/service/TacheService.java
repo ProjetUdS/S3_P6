@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Path("/api/tache")
 @Produces(MediaType.APPLICATION_JSON)
@@ -24,35 +25,34 @@ public class TacheService {
       @QueryParam("usersID") List<String> usersId,
       @QueryParam("dateCreation") Date dateCreation,
       @QueryParam("nomTache") String nomTache) {
-    // Todo : implement and add the correct path
-    return null;
+    List<Tache> taches = tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
+    return taches;
   }
 
   @GET
   @Path("/{tacheId}")
   public Tache getTache(@PathParam("tacheId") String tacheId) {
-    // Todo : implement and add the correct path
-    return null;
+    Tache tache = tacheMapper.selectOne(tacheId);
+    return tache;
   }
 
   @DELETE
   @Path("/{tacheId}")
   public String deleteTache(@PathParam("tacheId") String tacheId) {
-    // Todo : implement and add the correct path
-    return null;
+    tacheMapper.deleteOne(tacheId);
+    return "Tache deleted successfully";
   }
 
   @POST
   //Utilise tache
   public String createTache(Tache tache) {
-    // Todo : implement and add the correct path
-    return null;
+    tacheMapper.insertTache(tache);
+    return "Tache created successfully";
   }
 
   @GET
   @Path("/nouveauID")
   public String getNewId() {
-    // Todo : implement and add the correct path
-    return null;
+    return UUID.randomUUID().toString().replace("-", "");
   }
 }

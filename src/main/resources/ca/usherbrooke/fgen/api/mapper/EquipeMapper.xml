@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.EquipeMapper">
+    <select id="getEquipes" resultType="ca.usherbrooke.fgen.api.model.Equipe">
+        SELECT equipe_id, administrateur, nom_equipe
+        FROM app.equipe
+    </select>
+
+    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.model.Equipe">
+        SELECT equipe_id, administrateur, nom_equipe
+        FROM app.equipe
+        WHERE equipe_id = #{equipeId}
+    </select>
+
+    <delete id="deleteOne">
+        DELETE
+        FROM app.equipe
+        WHERE equipe_id = #{equipeId}
+    </delete>
+
+    <insert id="insertEquipe">
+        INSERT INTO app.equipe(equipe_id, administrateur, nom_equipe)
+        VALUES (#{equipeId}, #{administrateur}, #{nomEquipe})
+        ON CONFLICT (equipe_id) DO UPDATE SET
+            administrateur = excluded.administrateur,
+            nom_equipe = excluded.nom_equipe
+    </insert>
+
+    <select id="getNewId" resultType="String">
+        SELECT md5(random()::text || clock_timestamp()::text) AS new_id
+    </select>
+
+</mapper>
