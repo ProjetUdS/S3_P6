@@ -1,13 +1,15 @@
 services:
   webserver:
-    image: nginx
+    build:
+      context: ..
+      dockerfile: docker/webserver/Dockerfile
+    image: my-react-vite-app
+    pull_policy: never
     container_name: webserver
-    volumes:
-      - ./webserver/nginx.conf:/etc/nginx/nginx.conf
-      - ./webserver/includes/:/etc/nginx/includes/
-      - ./webserver/html:/usr/share/nginx/html/
     ports:
       - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - auth
     networks:
@@ -18,10 +20,10 @@ services:
     container_name: auth
     volumes:
       - ./keycloak/data:/var/tmp
-      - ./keycloak/startup-scripts/init.sh:/docker-entrypoint-sh/init.sh
+      - ./keycloak/startup-scripts/init.sh:/init.sh
       - ./keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf
       - ./keycloak/customized:/opt/keycloak/themes/customized
-    entrypoint: sh -c "/docker-entrypoint-sh/init.sh"
+    entrypoint: sh -c "/init.sh"
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin

@@ -16,13 +16,10 @@ import java.util.Map;
 @Path("/api/utilisateur")
 @Produces({"application/json"})
 public class UtilisateurService {
-    @Context
-    SecurityContext securityContext;
-    @Inject
-    JsonWebToken jwt;
+    @Context    SecurityContext securityContext;
+    @Inject    JsonWebToken jwt;
 
-    @Inject
-    UtilisateurMapper utilisateurMapper;
+    @Inject    UtilisateurMapper utilisateurMapper;
 
     @GET
     @Path("/login")
