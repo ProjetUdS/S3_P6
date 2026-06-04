@@ -1,23 +1,30 @@
 package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Equipe;
+import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
+import ca.usherbrooke.fgen.api.record.TeamMember;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
 
-import java.util.List;
+import java.util.*;
 import java.util.UUID;
 
 @Path("/api/equipes")
+@Consumes(MediaType.APPLICATION_JSON)
 @Produces({"application/json"})
 public class EquipeService {
 
     @Inject
     EquipeMapper equipeMapper;
 
+    @Inject
+    EquipeMemberMapper equipeMemberMapper;
+
     @GET
     public List<Equipe> select(
-            @QueryParam("usersCip") List<String> usersCip,
+            @QueryParam("usersCip") String[] usersCip,
             @QueryParam("equipeId") String equipeId,
             @QueryParam("administrateur") String administrateur,
             @QueryParam("nomEquipe") String nomEquipe) {
@@ -30,6 +37,12 @@ public class EquipeService {
         return equipeMapper.selectOne(equipeId);
     }
 
+    @GET
+    @Path("/{equipeId}/members")
+    public List<TeamMember> selectMembers(@PathParam("equipeId") String equipeId) {
+        return equipeMapper.selectMembers(equipeId);
+    }
+
     @DELETE
     @Path("/{equipeId}")
     public String deleteOne(@PathParam("equipeId") String equipeId) {
@@ -38,12 +51,17 @@ public class EquipeService {
     }
 
     @POST
-    public String insertEquipe(Equipe equipe) {
-        if (equipe.id == null) {
-            equipe.id = UUID.randomUUID().toString().replace("-", "");
+    public String insertEquipe(Equipe equipe, @QueryParam("membersCip") List<String> membersCip) {
+        if (equipe.equipeId == null) {
+            equipe.equipeId = UUID.randomUUID().toString().replace("-", "");
         }
         equipeMapper.insertEquipe(equipe);
-        return equipe.id;
+
+        for (String cip : membersCip) {
+            equipeMemberMapper.insertMember(equipe.equipeId, cip);
+        }
+
+        return equipe.equipeId;
     }
 
     @GET

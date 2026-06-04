@@ -2,6 +2,7 @@ package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Discussion;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMapper;
+import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -14,11 +15,12 @@ import java.util.List;
 public class DiscussionService {
 
   @Inject DiscussionMapper discussionMapper;
+  @Inject DiscussionMemberMapper discussionMemberMapper;
 
   // GET /api/discussion  → liste les discussions des utilisateurs donnés
   @GET
   public List<Discussion> getDiscussions(
-          @QueryParam("cip") List<String> usersId,
+          @QueryParam("usersId") String[] usersId,
           @QueryParam("equipeId") String equipeId,
           @QueryParam("discussionId") String discussionId) {
     return discussionMapper.select(usersId, equipeId, discussionId);
@@ -45,7 +47,14 @@ public class DiscussionService {
     if (discussion.discussionId == null) {
       discussion.discussionId = discussionMapper.getNewId();
     }
-    discussionMapper.insertDiscussion(discussion);
+    if (discussion.equipeId != null) {
+      discussionMapper.insertDiscussion(discussion);
+    } else {
+      discussionMapper.insertDiscussionNoEquipe(discussion.discussionId);
+    }
+    if (discussion.members != null && !discussion.members.isEmpty()) {
+      discussionMemberMapper.insertMembers(discussion.discussionId, discussion.members);
+    }
     return discussion.discussionId;
   }
 
