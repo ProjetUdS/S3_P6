@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { MEETINGS, CALENDAR, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches } from '../../services/api';
+import { getTeamMembers, getTaches, createTache } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
 /**
@@ -12,9 +13,13 @@ import { gradientForCip, initialsFromUser } from '../../utils/gradient';
  *   team  – team object with equipeId, nomEquipe, etc.
  */
 export default function TeamPlanning({ team }) {
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [newTaskName, setNewTaskName] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!team?.equipeId) {
@@ -66,6 +71,44 @@ export default function TeamPlanning({ team }) {
     );
   }
 
+  async function handleCreateTask() {
+    if (!newTaskName.trim() || !team?.equipeId || !user?.cip) return;
+    setCreating(true);
+    try {
+      await createTache({
+        nomTache: newTaskName.trim(),
+        equipeId: team.equipeId,
+        cip: user.cip,
+        status: 'en_cours',
+      });
+      setNewTaskName('');
+      setShowTaskForm(false);
+      const data = await getTaches(team.equipeId);
+      const transformed = (data || []).map(t => ({
+        id: t.id,
+        done: t.status === 'termine' || t.status === 'done',
+        text: t.nomTache,
+        assignee: {
+          initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
+          gradient: gradientForCip(t.cip),
+        },
+        priority: t.status === 'termine' ? 'done' :
+                 t.status === 'urgent' ? 'high' :
+                 t.status === 'important' ? 'med' : 'low',
+      }));
+      setTasks(transformed);
+    } catch (err) {
+      console.error('Failed to create task:', err);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreateTask(); }
+    if (e.key === 'Escape') { setShowTaskForm(false); setNewTaskName(''); }
+  }
+
   return (
     <div className="planning-layout">
       {/* ── Main scrollable area ── */}
@@ -75,7 +118,7 @@ export default function TeamPlanning({ team }) {
         <section aria-labelledby="tasks-heading">
           <div className="plan-section-header">
             <div className="plan-section-title" id="tasks-heading">Tasks</div>
-            <button className="plan-add-btn" aria-label="Create new task">➕ New task</button>
+            <button className="plan-add-btn" aria-label="Create new task" onClick={() => setShowTaskForm(true)}>➕ New task</button>
           </div>
           <ul className="task-list" aria-label="Task list">
             {tasks.map(task => (
@@ -100,6 +143,38 @@ export default function TeamPlanning({ team }) {
               </li>
             ))}
           </ul>
+
+          {showTaskForm && (
+            <form className="task-create-form" onSubmit={e => { e.preventDefault(); handleCreateTask(); }}>
+              <input
+                className="task-create-input"
+                type="text"
+                placeholder="Task name..."
+                value={newTaskName}
+                onChange={e => setNewTaskName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                aria-label="New task name"
+              />
+              <div className="task-create-actions">
+                <button
+                  type="submit"
+                  className="task-create-btn"
+                  disabled={!newTaskName.trim() || creating}
+                  style={{ opacity: (!newTaskName.trim() || creating) ? 0.5 : 1 }}
+                >
+                  {creating ? 'Creating...' : 'Create'}
+                </button>
+                <button
+                  type="button"
+                  className="task-create-cancel"
+                  onClick={() => { setShowTaskForm(false); setNewTaskName(''); }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </section>
 
         {/* Upcoming meetings */}
