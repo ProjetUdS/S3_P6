@@ -62,8 +62,8 @@ CREATE TABLE app.Discussion(
 
 CREATE TABLE app.Message(
                         message_id VARCHAR(50),
-                        date_ DATE,
-                        contenu VARCHAR(50),
+                        date_ TIMESTAMP,
+                        contenu TEXT,
                         cip VARCHAR(50) NOT NULL,
                         discussion_id VARCHAR(50) NOT NULL,
                         PRIMARY KEY(message_id),
@@ -94,6 +94,7 @@ CREATE TABLE app.Est_dans(
                          FOREIGN KEY(equipe_id) REFERENCES app.Equipe(equipe_id)
 );
 
+
 CREATE TABLE app.Assignee(
                          cip VARCHAR(50),
                          tache_id VARCHAR(50),
@@ -105,10 +106,12 @@ CREATE TABLE app.Assignee(
 CREATE TABLE app.Fait_parti(
                            cip VARCHAR(50),
                            discussion_id VARCHAR(50),
+                           etat VARCHAR(20) NOT NULL,
                            PRIMARY KEY(cip, discussion_id),
                            FOREIGN KEY(cip) REFERENCES app.Utilisateur(cip),
                            FOREIGN KEY(discussion_id) REFERENCES app.Discussion(discussion_id)
 );
+
 
 CREATE TABLE app.Contact(
                         cip VARCHAR(50),
