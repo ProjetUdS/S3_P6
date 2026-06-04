@@ -1,6 +1,7 @@
 package ca.usherbrooke.fgen.api.mapper;
 
 import ca.usherbrooke.fgen.api.business.Equipe;
+import ca.usherbrooke.fgen.api.record.TeamMember;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,6 +16,8 @@ public interface EquipeMapper {
       @Param("nomEquipe") String nomEquipe);
 
   Equipe selectOne(@Param("equipeId") String equipeId);
+
+  List<TeamMember> selectMembers(@Param("equipeId") String equipeId);
 
   void deleteOne(@Param("equipeId") String equipeId);
 

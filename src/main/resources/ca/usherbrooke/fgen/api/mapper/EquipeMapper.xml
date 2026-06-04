@@ -5,8 +5,13 @@
 
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.EquipeMapper">
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Equipe">
-        SELECT equipe_id, administrateur, nom_equipe
-        FROM app.equipe
+        SELECT eq.equipe_id, administrateur, nom_equipe
+        FROM app.equipe as eq
+                  JOIN app.est_dans as membre ON membre.equipe_id = eq.equipe_id
+        WHERE eq.equipe_id = #{equipeId}
+          AND eq.administrateur = #{administrateur}
+          AND eq.nom_equipe = #{nomEquipe}
+          AND membre.equipe_id = #{equipeId}
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Equipe">
@@ -14,6 +19,17 @@
         FROM app.equipe
         WHERE equipe_id = #{equipeId}
     </select>
+
+    <select id="selectMembers" resultType="ca.usherbrooke.fgen.api.record.TeamMember">
+        SELECT u.cip, u.pseudo, u.nom, u.prenom,
+               CASE WHEN u.cip = e.administrateur THEN 'Admin' ELSE 'Member' END as role,
+               null as status
+        FROM app.equipe e
+        INNER JOIN app.est_dans ed ON ed.equipe_id = e.equipe_id
+        INNER JOIN app.utilisateur u ON u.cip = ed.cip
+        WHERE e.equipe_id = #{equipeId}
+    </select>
+
 
     <delete id="deleteOne">
         DELETE
