@@ -1,6 +1,9 @@
+# IDE
+.idea/
 
 # Fichiers gradle
 .gradle/
 
 # Fichier de build
 build/
+/out/

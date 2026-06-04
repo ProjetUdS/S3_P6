@@ -1,8 +1,5 @@
-#!/bin/bash
-
-# Appel du processus d'attente du démarrage de keycloak et ajout des usage
-echo "beginning of installation..."
+#!/bin/sh
+echo "beginnning of installation of keycloak"
 
 /var/tmp/setdata.sh &
-/opt/keycloak/bin/kc.sh start-dev --http-port 8180
-
+/opt/keycloak/bin/kc.sh start-dev --http-port=8180

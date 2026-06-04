@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.UtilisateurMapper">
+
+    <insert id="createUsager">
+        insert into app.utilisateur (cip,
+                                     pseudo,
+                                     courriel,
+                                     nom,
+                                     prenom,
+                                     photo_de_profil_id)
+        values (#{cip},
+                #{username},
+                #{courriel},
+                #{nom},
+                #{prenom},
+                #{photoProfilId}) on conflict (cip) do
+        update set
+            pseudo = excluded.pseudo,
+            courriel = excluded.courriel,
+            nom = excluded.nom,
+            prenom = excluded.prenom,
+            photo_de_profil_id = excluded.photo_de_profil_id
+    </insert>
+
+<!--    TODO: add and fix the remaining conditions
+(#{cip} IS NULL OR cip = #{cip})
+          AND (#{nom} IS NULL OR nom ILIKE CONCAT(#{nom}, '%'))
+          AND (#{prenom} IS NULL OR prenom ILIKE CONCAT(#{prenom}, '%'))
+          AND
+          -->
+  <select id="select" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
+        SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
+        FROM app.utilisateur
+        WHERE (#{username} IS NULL OR pseudo ILIKE CONCAT(#{username}, '%'))
+    </select>
+
+    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
+        SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
+        FROM app.utilisateur
+        WHERE cip = #{cip}
+          AND pseudo = #{username}
+          AND courriel = #{courriel}
+    </select>
+
+    <delete id="deleteOne">
+        DELETE
+        FROM app.utilisateur
+        WHERE cip = #{cip}
+    </delete>
+
+    <insert id="insertContact">
+        INSERT INTO app.contact (cip, cip_contact)
+        VALUES (#{cip}, #{contact})
+    </insert>
+
+    <select id="getContacts" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
+        SELECT u.cip, u.pseudo, u.courriel, u.nom, u.prenom, u.photo_de_profil_id
+        FROM app.Contact c
+        JOIN app.Utilisateur u ON c.cip_contact = u.cip
+        WHERE c.cip = #{cip}
+    </select>
+
+</mapper>

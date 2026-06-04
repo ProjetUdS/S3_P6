@@ -13,4 +13,4 @@ Démarrer le serveur d'application
 - Tester un service dans un browser : http://localhost:8888/q/swagger-ui
 
 Utiliser l'application
-- Tester le serveur web dans un browser : localhost/usager
+- Tester le serveur web dans un browser : localhost

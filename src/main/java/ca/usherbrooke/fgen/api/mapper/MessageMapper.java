@@ -1,6 +1,5 @@
 package ca.usherbrooke.fgen.api.mapper;
 
-
 import ca.usherbrooke.fgen.api.business.Message;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -10,13 +9,20 @@ import java.util.List;
 @Mapper
 public interface MessageMapper {
 
-    List<Message> select(@Param("trimesterId") String trimesterId,
-                         @Param("profileId") String profileId,
-                         @Param("unit")String unit,
-                         @Param("id") Integer id);
-    Message selectOne(@Param("id") Integer id);
-    void deleteOne(@Param("id") Integer id);
-    List<Message> allMessages();
+    List<Message> select(@Param("discussionId") String discussionId, @Param("limite") Integer limite, @Param("decalage") Integer decalage, @Param("cip") String cip, @Param("messageId") String messageId);
+
+    Message selectOne(@Param("messageId") String messageId);
+
+    void deleteOne(@Param("messageId") String messageId, @Param("discussionId") String discussionId);
+
     void insertMessage(@Param("message") Message message);
-    Integer getNewId();
+
+    String getNewId();
+
+    List<String> getFriendDiscussionIds(@Param("cip") String cip);
+
+    List<Message> getFriendConversation(@Param("cip1") String cip1,
+                                        @Param("cip2") String cip2,
+                                        @Param("limite") Integer limite,
+                                        @Param("decalage") Integer decalage);
 }

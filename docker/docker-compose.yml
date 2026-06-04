@@ -1,28 +1,37 @@
 services:
   webserver:
-    image: nginx
+    build:
+      context: ..
+      dockerfile: docker/webserver/Dockerfile
+    image: my-react-vite-app
+    pull_policy: never
     container_name: webserver
-    volumes:
-      - ./webserver/nginx.conf:/etc/nginx/nginx.conf
-      - ./webserver/includes/:/etc/nginx/includes/
-      - ./webserver/html:/usr/share/nginx/html/
     ports:
-      - 80:80
+      - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - auth
     networks:
       acad-net:
+
   auth:
     image: quay.io/keycloak/keycloak:19.0.3
     container_name: auth
     volumes:
       - ./keycloak/data:/var/tmp
-      - ./keycloak/startup-scripts/init.sh:/docker-entrypoint-sh/init.sh
-    entrypoint: sh -c "/docker-entrypoint-sh/init.sh"
+      - ./keycloak/startup-scripts/init.sh:/init.sh
+      - ./keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf
+      - ./keycloak/customized:/opt/keycloak/themes/customized
+    entrypoint: sh -c "/init.sh"
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_PROXY: edge
     ports:
-      - 8180:8180
+      - "8180:8180"
+    depends_on:
+      - database-keycloak
     networks:
       acad-net:
 
@@ -31,13 +40,27 @@ services:
     container_name: database
     restart: always
     ports:
-      - 5444:5432
+      - "5444:5432"
     volumes:
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./postgres/02_setdata.sql:/docker-entrypoint-initdb.d/02_setdata.sql
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DATABASE: postgres
+    networks:
+      acad-net:
+
+  database-keycloak:
+    image: postgres:18
+    container_name: database-users
+    restart: always
+    ports:
+      - "5445:5432"
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak-strongPassword
+      POSTGRES_DB: keycloak-users
     networks:
       acad-net:
 

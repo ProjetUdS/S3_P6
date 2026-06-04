@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMapper">
+
+<!--    TODO : fix filtre avec autre que équipe
+fp.cip = any (coalesce( #{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler},ARRAY[fp.cip]))
+        AND d.discussion_id = (coalesce(#{discussionId},d.discussion_id))
+-->
+    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
+        SELECT d.equipe_id, d.discussion_id
+        FROM app.discussion d
+        WHERE d.equipe_id = (coalesce(#{equipeId}, d.equipe_id))
+    </select>
+
+    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Discussion">
+        SELECT discussion_id, equipe_id
+        FROM app.discussion
+        WHERE discussion_id = #{discussionId}
+    </select>
+
+    <delete id="deleteOne">
+        DELETE
+        FROM app.discussion
+        WHERE discussion_id = #{discussionId}
+    </delete>
+
+    <insert id="insertDiscussion">
+        INSERT INTO app.discussion(discussion_id, equipe_id)
+        VALUES (#{discussion.discussionId}, #{discussion.equipeId})
+    </insert>
+
+    <insert id="insertDiscussionNoEquipe">
+        INSERT INTO app.discussion(discussion_id, equipe_id)
+        VALUES (#{discussionId}, NULL)
+    </insert>
+
+    <select id="getNewId" resultType="String">
+        SELECT md5(random()::text || clock_timestamp()::text) AS new_id
+    </select>
+
+
+</mapper>

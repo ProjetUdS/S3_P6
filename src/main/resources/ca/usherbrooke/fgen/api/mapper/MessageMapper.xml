@@ -5,79 +5,75 @@
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.MessageMapper">
 
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Message">
-        select id,
-               trimester_id,
-               profile_id,
-               unit,
-               description,
-               inscription,
-               cip,
-               inscriptor
+        select message_id    as id,
+               date_         as date,
+           contenu,
+           cip,
+           discussion_id as discussionId
         from app.message
-        where (trimester_id,
-               profile_id,
-               unit,
-               id) =
-              (coalesce(#{trimesterId}, trimester_id),
-               coalesce(#{profileId}, profile_id),
-               coalesce(#{unit}, unit),
-               coalesce(#{id}, id))
+        where (discussion_id,
+            cip,
+            message_id) =
+            (coalesce(#{discussionId}, discussion_id),
+            coalesce(#{cip}, cip),
+            coalesce(#{messageId}, message_id))
+        order by date_ ASC
+            limit #{limite}
+        offset #{decalage}
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Message">
-        select id,
-               trimester_id,
-               profile_id,
-               unit,
-               description,
-               inscription,
-               cip,
-               inscriptor
+        select message_id    as id,
+               date_         as date,
+           contenu,
+           cip,
+           discussion_id as discussionId
         from app.message
-        where id = #{id}
-    </select>
-
-
-    <select id="allMessages" resultType="ca.usherbrooke.fgen.api.business.Message">
-        select id,
-               trimester_id,
-               profile_id,
-               unit,
-               description,
-               inscription,
-               cip,
-               inscriptor
-        from app.message
-        order by inscription desc;
-
+        where message_id = #{messageId}
     </select>
 
     <delete id="deleteOne">
         delete
         from app.message
-        where id = #{id}
+        where message_id = #{messageId}
     </delete>
+
+    <insert id="insertMessage">
+        insert into app.message(message_id,
+                                       date_,
+                                       contenu,
+                                       cip,
+                                       discussion_id)
+        values (#{message.id},
+                #{message.date},
+                #{message.contenu},
+                #{message.cip},
+                #{message.discussionId})
+        on conflict (message_id) do update set contenu = excluded.contenu;
+    </insert>
 
     <select id="getNewId" resultType="Integer">
         select nextval('app.message_seq'::regclass)
     </select>
 
-    <insert id="insertMessage">
-        insert into app.message(id,
-                                       trimester_id,
-                                       profile_id,
-                                       unit,
-                                       description,
-                                       cip,
-                                       inscriptor)
-        values (#{message.id},
-                #{message.trimesterId},
-                #{message.profileId},
-                #{message.unit},
-                #{message.description},
-                #{message.cip},
-                #{message.inscriptor})
-        on conflict (id) do update set description = excluded.description;
-    </insert>
+    <select id="getFriendDiscussionIds" resultType="String">
+        SELECT DISTINCT discussion_id
+        FROM app.message
+        WHERE cip = #{cip}
+          AND discussion_id IS NOT NULL
+    </select>
+
+    <select id="getFriendConversation" resultType="ca.usherbrooke.fgen.api.business.Message">
+        SELECT message_id    as id,
+               date_         as date,
+               contenu,
+               cip,
+               discussion_id as discussionId
+        FROM app.message
+        WHERE cip = #{cip1} OR cip = #{cip2}
+        ORDER BY date_ ASC
+        LIMIT #{limite}
+        OFFSET #{decalage}
+    </select>
 
 </mapper>

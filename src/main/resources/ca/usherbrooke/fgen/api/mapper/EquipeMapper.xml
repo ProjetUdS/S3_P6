@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.EquipeMapper">
+    <!--    TODO : add filtering by cip. Ne fonctionne pas mais rescemle à ça
+      JOIN app.est_dans as membre
+                          ON membre.equipe_id = eq.equipe_id
+              AND (membre.cip) = any (coalesce(#{usersCip}, ARRAY[membre.cip]));
+    -->
+    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Equipe">
+        SELECT eq.equipe_id,
+               eq.administrateur,
+               eq.nom_equipe
+        FROM app.equipe as eq
+
+        WHERE (eq.equipe_id, administrateur, nom_equipe) =
+              (
+               coalesce(#{equipeId}, eq.equipe_id),
+               coalesce(#{administrateur}, eq.administrateur),
+               coalesce(#{nomEquipe}, eq.nom_equipe)
+                  )
+    </select>
+
+    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Equipe">
+        SELECT equipe_id, administrateur, nom_equipe
+        FROM app.equipe
+        WHERE equipe_id = #{equipeId}
+    </select>
+
+    <select id="selectMembers" resultType="ca.usherbrooke.fgen.api.record.TeamMember">
+        SELECT u.cip, u.pseudo, u.nom, u.prenom,
+               CASE WHEN u.cip = e.administrateur THEN 'Admin' ELSE 'Member' END as role,
+               null as status
+        FROM app.equipe e
+        INNER JOIN app.est_dans ed ON ed.equipe_id = e.equipe_id
+        INNER JOIN app.utilisateur u ON u.cip = ed.cip
+        WHERE e.equipe_id = #{equipeId}
+    </select>
+
+
+    <delete id="deleteOne">
+        DELETE
+        FROM app.equipe
+        WHERE equipe_id = #{equipeId}
+    </delete>
+
+    <insert id="insertEquipe">
+        INSERT INTO app.equipe(equipe_id, administrateur, nom_equipe)
+        VALUES (#{equipe.equipeId}, #{equipe.administrateur}, #{equipe.nomEquipe})
+        ON CONFLICT (equipe_id) DO UPDATE SET
+            administrateur = excluded.administrateur,
+            nom_equipe = excluded.nom_equipe
+    </insert>
+
+    <select id="getNewId" resultType="String">
+        SELECT md5(random()::text || clock_timestamp()::text) AS new_id
+    </select>
+
+</mapper>
