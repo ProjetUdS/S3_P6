@@ -54,7 +54,7 @@
         VALUES (#{cip}, #{contact})
     </insert>
 
-    <select id="getContacts" resultType="ca.usherbrooke.fgen.api.business.Person">
+    <select id="getContacts" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
         SELECT u.cip, u.pseudo, u.courriel, u.nom, u.prenom, u.photo_de_profil_id
         FROM app.Contact c
         JOIN app.Utilisateur u ON c.cip_contact = u.cip
