@@ -6,12 +6,13 @@ import ca.usherbrooke.fgen.api.record.TeamMember;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Path("/api/equipes")
+@Consumes(MediaType.APPLICATION_JSON)
 @Produces({"application/json"})
 public class EquipeService {
 
@@ -23,7 +24,7 @@ public class EquipeService {
 
     @GET
     public List<Equipe> select(
-            @QueryParam("usersCip") List<String> usersCip,
+            @QueryParam("usersCip") String[] usersCip,
             @QueryParam("equipeId") String equipeId,
             @QueryParam("administrateur") String administrateur,
             @QueryParam("nomEquipe") String nomEquipe) {

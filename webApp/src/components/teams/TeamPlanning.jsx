@@ -1,16 +1,64 @@
 // src/components/teams/TeamPlanning.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { TASKS, MEETINGS, CALENDAR, TODAY_EVENTS, TEAM_MEMBERS } from '../../data/mockData';
+import { MEETINGS, CALENDAR, TODAY_EVENTS } from '../../data/mockData';
+import { getTeamMembers, getTaches } from '../../services/api';
+import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
 /**
  * TeamPlanning  — Planning tab: tasks, upcoming meetings, calendar, right sidebar.
  *
  * Props:
- *   team  – team object (not used heavily here but passed for context)
+ *   team  – team object with equipeId, nomEquipe, etc.
  */
-export default function TeamPlanning({ team: _team }) {
-  const [tasks, setTasks] = useState(TASKS);
+export default function TeamPlanning({ team }) {
+  const [members, setMembers] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!team?.equipeId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    Promise.all([
+      getTeamMembers(team.equipeId)
+        .then(data => {
+          const transformed = (data || []).map(m => {
+            const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
+            return {
+              id: m.cip,
+              name,
+              initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
+              role: m.role || 'Member',
+              gradient: gradientForCip(m.cip),
+              status: m.status || 'offline',
+            };
+          });
+          setMembers(transformed);
+        })
+        .catch(err => console.error('Failed to load team members:', err)),
+      getTaches(team.equipeId)
+        .then(data => {
+          const transformed = (data || []).map(t => ({
+            id: t.id,
+            done: t.status === 'termine' || t.status === 'done',
+            text: t.nomTache,
+            assignee: {
+              initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
+              gradient: gradientForCip(t.cip),
+            },
+            priority: t.status === 'termine' ? 'done' :
+                     t.status === 'urgent' ? 'high' :
+                     t.status === 'important' ? 'med' : 'low',
+          }));
+          setTasks(transformed);
+        })
+        .catch(err => console.error('Failed to load tasks:', err)),
+    ]).finally(() => setLoading(false));
+  }, [team?.equipeId]);
 
   function toggleTask(id) {
     setTasks(prev =>
@@ -99,15 +147,21 @@ export default function TeamPlanning({ team: _team }) {
         {/* Team members */}
         <div>
           <div className="ps-section-title">Team Members</div>
-          {TEAM_MEMBERS.map(m => (
-            <div key={m.id} className="member-row">
-              <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status} dotSize="sm" />
-              <div className="member-info">
-                <div className="member-name">{m.name}</div>
-                <div className="member-role">{m.role}</div>
+          {loading ? (
+            <div className="loading-spinner" style={{ margin: '10px 0' }} />
+          ) : members.length === 0 ? (
+            <div className="panel-section">No members</div>
+          ) : (
+            members.map(m => (
+              <div key={m.id} className="member-row">
+                <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status} dotSize="sm" />
+                <div className="member-info">
+                  <div className="member-name">{m.name}</div>
+                  <div className="member-role">{m.role}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         <div className="ps-divider" />
@@ -134,15 +188,15 @@ export default function TeamPlanning({ team: _team }) {
           <div className="ps-section-title">Quick Stats</div>
           <div className="stat-row">
             <span className="stat-label">Tasks open</span>
-            <span className="stat-value">3</span>
+            <span className="stat-value">{tasks.filter(t => !t.done).length}</span>
           </div>
           <div className="stat-row">
             <span className="stat-label">Completed</span>
-            <span className="stat-value green">1</span>
+            <span className="stat-value green">{tasks.filter(t => t.done).length}</span>
           </div>
           <div className="stat-row">
-            <span className="stat-label">Meetings today</span>
-            <span className="stat-value">2</span>
+            <span className="stat-label">Total members</span>
+            <span className="stat-value">{members.length}</span>
           </div>
         </div>
       </aside>

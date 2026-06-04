@@ -10,7 +10,7 @@ import java.util.List;
 @Mapper
 public interface EquipeMapper {
   List<Equipe> select(
-      @Param("usersCip") List<String> usersCip,
+      @Param("usersCip") String[] usersCip,
       @Param("equipeId") String equipeId,
       @Param("administrateur") String administrateur,
       @Param("nomEquipe") String nomEquipe);

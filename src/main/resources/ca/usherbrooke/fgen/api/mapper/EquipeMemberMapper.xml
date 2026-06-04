@@ -6,6 +6,6 @@
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper">
     <insert id="insertMember">
         INSERT INTO app.est_dans(equipe_id, cip)
-        VALUES (#{equipeId}, #{cip})
+        VALUES (#{equipeId}, #{memberCip})
     </insert>
 </mapper>

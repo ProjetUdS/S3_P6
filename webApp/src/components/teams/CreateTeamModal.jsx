@@ -29,7 +29,8 @@ export default function CreateTeamModal({ onClose, onCreated }) {
     if (!teamName.trim()) return;
     setError(null);
     try {
-      await createEquipe(teamName.trim(), user.cip, [...selectedCips]);
+      const allMemberCips = [user.cip, ...Array.from(selectedCips)];
+      await createEquipe(teamName.trim(), user.cip, allMemberCips);
       onCreated();
     } catch (e) {
       setError(e.message || 'Failed to create team');

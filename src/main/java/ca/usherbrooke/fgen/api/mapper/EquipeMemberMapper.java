@@ -9,7 +9,7 @@ import java.util.List;
 @Mapper
 public interface EquipeMemberMapper {
 
-  void insertMember(@Param("equipe") String equipId, @Param("membersCip")  String usersCip);
+  void insertMember(@Param("equipeId") String equipeId, @Param("memberCip")  String memberCip);
 
   String getNewId();
 }

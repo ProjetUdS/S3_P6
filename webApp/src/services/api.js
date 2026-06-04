@@ -102,7 +102,9 @@ export async function createEquipe(teamName, adminCip, memberCips = []) {
   const idRes = await api.get('/equipes/nouveauID');
   const equipeId = idRes.data;
   const equipe = { equipeId, administrateur: adminCip, nomEquipe: teamName };
-  const response = await api.post('/equipes', equipe);
+  const params = new URLSearchParams();
+  memberCips.forEach(c => params.append('membersCip', c));
+  const response = await api.post(`/equipes?${params.toString()}`, equipe);
   return response.data;
 }
 
@@ -132,7 +134,7 @@ export async function getContacts(cip) {
 }
 
 export async function getTeamMembers(equipeId) {
-  const response = await api.get('/equipes', { params: { equipeId } });
+  const response = await api.get(`/equipes/${equipeId}/members`);
   return response.data;
 }
 

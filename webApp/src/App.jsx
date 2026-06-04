@@ -6,7 +6,8 @@ import FriendsPanel from './components/friends/FriendsPanel';
 import ChatView from './components/chat/ChatView';
 import TeamsPanel from './components/teams/TeamsPanel';
 import TeamArea from './components/teams/TeamArea';
-import { FRIENDS } from './data/mockData';
+import { getContacts } from './services/api';
+import { gradientForCip, initialsFromUser } from './utils/gradient';
 
 import './styles/globals.css';
 import './styles/layout.css';
@@ -17,21 +18,28 @@ export default function App() {
   const [view, setView] = useState('messages');
   const [activeFriend, setActiveFriend] = useState(null);
   const [activeTeam, setActiveTeam] = useState(null);
-  const [friends, setFriends] = useState(FRIENDS);
+  const [friends, setFriends] = useState([]);
 
   useEffect(() => {
-    if (authenticated && user) {
-      if (friends.length === 0) {
-        setFriends([
-          { id: 'sr', name: 'Sara R.', initials: 'SR', status: 'online', sub: 'Active now', gradient: 'linear-gradient(135deg, #7c6af7, #a78bfa)', unread: 3 },
-          { id: 'tm', name: 'Tom M.', initials: 'TM', status: 'away', sub: 'Away · 2h ago', gradient: 'linear-gradient(135deg, #667eea, #764ba2)' },
-          { id: 'ak', name: 'Alex K.', initials: 'AK', status: 'online', sub: 'Active now', gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
-          { id: 'pl', name: 'Priya L.', initials: 'PL', status: 'offline', sub: 'Offline', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
-        ]);
-        setActiveFriend({ id: 'sr', name: 'Sara R.', initials: 'SR', status: 'online', sub: 'Active now', gradient: 'linear-gradient(135deg, #7c6af7, #a78bfa)', unread: 3 });
-      }
+    if (authenticated && user?.cip) {
+      getContacts(user.cip)
+        .then(data => {
+          const transformed = (data || []).map(c => ({
+            id: c.cip,
+            name: `${c.prenom || ''} ${c.nom || ''}`.trim() || c.pseudo,
+            initials: initialsFromUser(c),
+            status: 'online',
+            sub: 'Active now',
+            gradient: gradientForCip(c.cip),
+          }));
+          setFriends(transformed);
+          if (transformed.length > 0 && !activeFriend) {
+            setActiveFriend(transformed[0]);
+          }
+        })
+        .catch(err => console.error('Failed to load contacts:', err));
     }
-  }, [authenticated, user]);
+  }, [authenticated, user?.cip]);
 
   if (loading) {
     return (
@@ -68,6 +76,7 @@ export default function App() {
           <FriendsPanel
             activeFriendId={activeFriend?.id}
             onSelectFriend={setActiveFriend}
+            friends={friends}
           />
           {activeFriend
             ? <ChatView friend={activeFriend} key={activeFriend.id} />

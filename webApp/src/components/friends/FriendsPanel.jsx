@@ -1,7 +1,6 @@
 // src/components/friends/FriendsPanel.jsx
 import React, { useState } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { FRIENDS } from '../../data/mockData';
 import AddFriendModal from './AddFriendModal';
 
 /**
@@ -10,14 +9,16 @@ import AddFriendModal from './AddFriendModal';
  * Props:
  *   activeFriendId  {string|null}  – id of currently selected friend
  *   onSelectFriend  (friend) => void
+ *   friends         {Array}        – friends data from API
  */
-export default function FriendsPanel({ activeFriendId, onSelectFriend }) {
+export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: friendsProp }) {
   const [showModal, setShowModal] = useState(false);
   const [query, setQuery]         = useState('');
 
+  const friends = friendsProp || [];
   const filtered = query
-    ? FRIENDS.filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
-    : FRIENDS;
+    ? friends.filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
+    : friends;
 
   return (
     <>
