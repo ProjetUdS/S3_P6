@@ -54,7 +54,7 @@ CREATE TABLE app.Equipe(
 
 CREATE TABLE app.Discussion(
                            discussion_id VARCHAR(50),
-                           equipe_id VARCHAR(50) NOT NULL,
+                           equipe_id VARCHAR(50),
                            PRIMARY KEY(discussion_id),
                            UNIQUE(equipe_id),
                            FOREIGN KEY(equipe_id) REFERENCES app.Equipe(equipe_id)
