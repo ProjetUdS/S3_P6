@@ -20,24 +20,27 @@ export default function App() {
   const [activeTeam, setActiveTeam] = useState(null);
   const [friends, setFriends] = useState([]);
 
+  function loadContacts() {
+    if (!user?.cip) return;
+    getContacts(user.cip)
+      .then(data => {
+        const transformed = (data || []).map(c => ({
+          id: c.cip,
+          cip: c.cip,
+          name: `${c.prenom || ''} ${c.nom || ''}`.trim() || c.pseudo,
+          initials: initialsFromUser(c),
+          status: 'online',
+          sub: 'Active now',
+          gradient: gradientForCip(c.cip),
+        }));
+        setFriends(transformed);
+      })
+      .catch(err => console.error('Failed to load contacts:', err));
+  }
+
   useEffect(() => {
     if (authenticated && user?.cip) {
-      getContacts(user.cip)
-        .then(data => {
-          const transformed = (data || []).map(c => ({
-            id: c.cip,
-            name: `${c.prenom || ''} ${c.nom || ''}`.trim() || c.pseudo,
-            initials: initialsFromUser(c),
-            status: 'online',
-            sub: 'Active now',
-            gradient: gradientForCip(c.cip),
-          }));
-          setFriends(transformed);
-          if (transformed.length > 0 && !activeFriend) {
-            setActiveFriend(transformed[0]);
-          }
-        })
-        .catch(err => console.error('Failed to load contacts:', err));
+      loadContacts();
     }
   }, [authenticated, user?.cip]);
 
@@ -77,6 +80,8 @@ export default function App() {
             activeFriendId={activeFriend?.id}
             onSelectFriend={setActiveFriend}
             friends={friends}
+            existingCips={friends.map(f => f.id)}
+            onFriendAdded={loadContacts}
           />
           {activeFriend
             ? <ChatView friend={activeFriend} key={activeFriend.id} />

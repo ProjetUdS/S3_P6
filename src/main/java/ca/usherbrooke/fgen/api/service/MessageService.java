@@ -6,6 +6,7 @@ import ca.usherbrooke.fgen.api.mapper.MessageMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -14,15 +15,11 @@ import java.util.UUID;
 @Consumes(MediaType.APPLICATION_JSON)
 public class MessageService {
 
-    @Inject MessageMapper messageMapper;
+    @Inject
+    MessageMapper messageMapper;
 
     @GET
-    public List<Message> getMessages(
-            @QueryParam("discussionId") String discussionId,
-            @QueryParam("limite") Integer limit,
-            @QueryParam("decalage") Integer offset,
-            @QueryParam("cip") String cip,
-            @QueryParam("messageId") String messageId) {
+    public List<Message> getMessages(@QueryParam("discussionId") String discussionId, @QueryParam("limite") Integer limit, @QueryParam("decalage") Integer offset, @QueryParam("cip") String cip, @QueryParam("messageId") String messageId) {
         return messageMapper.select(discussionId, limit, offset, cip, messageId);
     }
 
@@ -34,9 +31,7 @@ public class MessageService {
 
     @DELETE
     @Path("/{messageId}")
-    public void deleteMessage(
-            @PathParam("messageId") String messageId,
-            @QueryParam("discussionId") String discussionId) {
+    public void deleteMessage(@PathParam("messageId") String messageId, @QueryParam("discussionId") String discussionId) {
         messageMapper.deleteOne(messageId, discussionId);
     }
 
@@ -51,5 +46,17 @@ public class MessageService {
     @Path("/nouveauID")
     public String getNewId() {
         return messageMapper.getNewId();
+    }
+
+    @GET
+    @Path("/friendDiscussions")
+    public List<String> getFriendDiscussionIds(@QueryParam("cip") String cip) {
+        return messageMapper.getFriendDiscussionIds(cip);
+    }
+
+    @GET
+    @Path("/friendConversation")
+    public List<Message> getFriendConversation(@QueryParam("cip1") String cip1, @QueryParam("cip2") String cip2, @QueryParam("limite") Integer limit, @QueryParam("decalage") Integer offset) {
+        return messageMapper.getFriendConversation(cip1, cip2, limit, offset);
     }
 }

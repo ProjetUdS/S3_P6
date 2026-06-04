@@ -10,8 +10,10 @@ import AddFriendModal from './AddFriendModal';
  *   activeFriendId  {string|null}  – id of currently selected friend
  *   onSelectFriend  (friend) => void
  *   friends         {Array}        – friends data from API
+ *   existingCips    {Array}        – cip values of current friends (to filter from search)
+ *   onFriendAdded   {Function}     – callback to reload contacts after adding a friend
  */
-export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: friendsProp }) {
+export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: friendsProp, existingCips, onFriendAdded }) {
   const [showModal, setShowModal] = useState(false);
   const [query, setQuery]         = useState('');
 
@@ -78,7 +80,7 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: 
       </div>
 
       {/* Add Friend Modal */}
-      {showModal && <AddFriendModal onClose={() => setShowModal(false)} />}
+      {showModal && <AddFriendModal onClose={() => setShowModal(false)} existingCips={existingCips} onAdded={onFriendAdded} />}
     </>
   );
 }

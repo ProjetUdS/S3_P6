@@ -9,18 +9,20 @@ import java.util.List;
 @Mapper
 public interface MessageMapper {
 
-  List<Message> select(
-      @Param("discussionId") String discussionId,
-      @Param("limite") Integer limite,
-      @Param("decalage") Integer decalage,
-      @Param("cip") String cip,
-      @Param("messageId") String messageId);
+    List<Message> select(@Param("discussionId") String discussionId, @Param("limite") Integer limite, @Param("decalage") Integer decalage, @Param("cip") String cip, @Param("messageId") String messageId);
 
-  Message selectOne(@Param("messageId") String messageId);
+    Message selectOne(@Param("messageId") String messageId);
 
-  void deleteOne(@Param("messageId") String messageId, @Param("discussionId") String discussionId);
+    void deleteOne(@Param("messageId") String messageId, @Param("discussionId") String discussionId);
 
-  void insertMessage(@Param("message") Message message);
+    void insertMessage(@Param("message") Message message);
 
-  String getNewId();
+    String getNewId();
+
+    List<String> getFriendDiscussionIds(@Param("cip") String cip);
+
+    List<Message> getFriendConversation(@Param("cip1") String cip1,
+                                        @Param("cip2") String cip2,
+                                        @Param("limite") Integer limite,
+                                        @Param("decalage") Integer decalage);
 }

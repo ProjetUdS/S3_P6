@@ -56,4 +56,24 @@
         select nextval('app.message_seq'::regclass)
     </select>
 
+    <select id="getFriendDiscussionIds" resultType="String">
+        SELECT DISTINCT discussion_id
+        FROM app.message
+        WHERE cip = #{cip}
+          AND discussion_id IS NOT NULL
+    </select>
+
+    <select id="getFriendConversation" resultType="ca.usherbrooke.fgen.api.business.Message">
+        SELECT message_id    as id,
+               date_         as date,
+               contenu,
+               cip,
+               discussion_id as discussionId
+        FROM app.message
+        WHERE cip = #{cip1} OR cip = #{cip2}
+        ORDER BY date_ ASC
+        LIMIT #{limite}
+        OFFSET #{decalage}
+    </select>
+
 </mapper>

@@ -93,7 +93,8 @@ export default function TeamChat({ team }) {
     if (discussions?.[0]) {
       discussionId = discussions[0].discussionId;
     } else {
-      const newDiscussion = await createDiscussion({ equipeId: team.equipeId }).catch(err => {
+      const memberCips = (members || []).map(m => m.id);
+      const newDiscussion = await createDiscussion({ equipeId: team.equipeId, members: memberCips }).catch(err => {
         console.error('Failed to create discussion:', err);
         return null;
       });

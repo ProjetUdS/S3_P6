@@ -1,67 +1,120 @@
 // src/components/chat/ChatView.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { MESSAGES_SR } from '../../data/mockData';
+import { getFriendConversation, sendMessage, createDiscussion } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
-/**
- * ChatView  — the main 1-on-1 chat area.
- *
- * Props:
- *   friend  – the selected friend object
- */
 export default function ChatView({ friend }) {
   const { user } = useAuth();
-  const [messages, setMessages] = useState(MESSAGES_SR);
-  const [input, setInput]       = useState('');
+  const myCip = user?.cip;
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
 
-  const me = {
-    initials: user?.preferred_username
-      ? user.preferred_username.substring(0, 2).toUpperCase()
-      : 'JD',
-    gradient: 'linear-gradient(135deg, #7c6af7, #a78bfa)',
-  };
+  useEffect(() => {
+    if (!friend?.cip || !myCip) return;
+    setLoading(true);
+    getFriendConversation(myCip, friend.cip, 100, 0)
+      .then(data => {
+        const transformed = (data || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
+          const msgDate = new Date(m.date);
+          const today = new Date();
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          let day = null;
+          if (msgDate.toDateString() === today.toDateString()) day = 'Today';
+          else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
+          return {
+            id: m.id,
+            from: m.cip,
+            day,
+            text: m.contenu,
+            time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+        });
+        setMessages(transformed);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load messages:', err);
+        setLoading(false);
+      });
+  }, [friend?.cip, myCip]);
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  function handleSend() {
+  async function handleSend() {
     const text = input.trim();
-    if (!text) return;
-    setMessages(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        from: 'jd',
-        day: null,
-        bubbles: [{ type: 'text', content: text }],
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-    setInput('');
-  }
+    if (!text || !myCip || !friend?.cip) return;
+    setSending(true);
+    let discussionId = null;
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    const existing = await getFriendConversation(myCip, friend.cip, 1, 0).catch(() => []);
+    if (existing.length > 0) {
+      discussionId = existing[0].discussionId;
+    } else {
+      discussionId = await createDiscussion({ members: [myCip, friend.cip] }).catch(err => {
+        console.error('Failed to create discussion:', err);
+        return null;
+      });
+      if (discussionId) {
+        discussionId = discussionId.discussionId || discussionId;
+      }
+    }
+    if (!discussionId) { setSending(false); return; }
+
+    try {
+      await sendMessage({
+        contenu: text,
+        cip: myCip,
+        discussionId,
+      });
+      setInput('');
+      const data = await getFriendConversation(myCip, friend.cip, 100, 0);
+      const transformed = (data || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
+        const msgDate = new Date(m.date);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        let day = null;
+        if (msgDate.toDateString() === today.toDateString()) day = 'Today';
+        else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
+        return {
+          id: m.id,
+          from: m.cip,
+          day,
+          text: m.contenu,
+          time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+      });
+      setMessages(transformed);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      setSending(false);
     }
   }
 
-  const isOwn = msg => msg.from === me.initials;
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  }
+
+  const isOwn = msg => msg.from === myCip;
 
   return (
     <div className="main-area">
       {/* Topbar */}
       <div className="chat-topbar">
-        <Avatar initials={friend.initials} gradient={friend.gradient} size="md" status={friend.status} />
+        <Avatar initials={friend?.initials} gradient={friend?.gradient} size="md" status={friend?.status} />
         <div className="chat-topbar-info">
-          <div className="chat-topbar-name">{friend.name}</div>
+          <div className="chat-topbar-name">{friend?.name}</div>
           <div className="chat-topbar-sub">
-            {friend.status === 'online' ? 'Active now' : friend.sub}
+            {friend?.status === 'online' ? 'Active now' : friend?.sub}
           </div>
         </div>
         <div className="topbar-actions">
@@ -73,14 +126,25 @@ export default function ChatView({ friend }) {
 
       {/* Messages */}
       <div className="messages-area" role="log" aria-live="polite" aria-label="Chat messages">
-        {messages.map(msg => (
-          <MessageGroup
-            key={msg.id}
-            msg={msg}
-            own={isOwn(msg)}
-            friend={friend}
-          />
-        ))}
+        {loading && messages.length === 0 ? (
+          <div className="loading-spinner" style={{ margin: '40px auto' }} />
+        ) : messages.length === 0 ? (
+          <div className="empty-state" style={{ margin: '40px auto' }}>
+            <span className="empty-state-icon">💬</span>
+            <span className="empty-state-text">No messages yet</span>
+          </div>
+        ) : (
+          messages.map(msg => (
+            <MessageGroup
+              key={msg.id}
+              msg={msg}
+              own={isOwn(msg)}
+              friend={friend}
+              myInitials={initialsFromUser(user)}
+              myGradient={gradientForCip(myCip)}
+            />
+          ))
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -95,72 +159,38 @@ export default function ChatView({ friend }) {
         <input
           className="chat-text-input"
           type="text"
-          placeholder={`Message ${friend.name}…`}
+          placeholder={`Message ${friend?.name || 'friend'}…`}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           aria-label="Message input"
+          disabled={sending}
         />
-        <button className="send-btn" onClick={handleSend} aria-label="Send message">➤</button>
+        <button className="send-btn" onClick={handleSend} aria-label="Send message" disabled={sending || !input.trim()}>
+          ➤
+        </button>
       </div>
     </div>
   );
 }
 
 // ── MessageGroup ─────────────────────────────────────────────────────────────
-function MessageGroup({ msg, own, friend }) {
+function MessageGroup({ msg, own, friend, myInitials, myGradient }) {
   const sender = own
-    ? { initials: 'JD', gradient: 'linear-gradient(135deg, #7c6af7, #a78bfa)' }
-    : { initials: friend.initials, gradient: friend.gradient };
+    ? { initials: myInitials, gradient: myGradient }
+    : { initials: friend?.initials, gradient: friend?.gradient };
 
   return (
     <>
-      {/* Day divider */}
       {msg.day && <div className="day-divider">{msg.day}</div>}
-
       <div className={`msg-group ${own ? 'own' : ''}`}>
         <Avatar initials={sender.initials} gradient={sender.gradient} size="sm" />
-
         <div className="msg-content">
-          {!own && <div className="msg-sender">{friend.name}</div>}
-
-          {msg.bubbles.map((b, i) => (
-            <Bubble key={i} bubble={b} own={own} />
-          ))}
-
+          {!own && <div className="msg-sender">{friend?.name}</div>}
+          <div className={`bubble ${own ? 'own' : ''}`}>{msg.text}</div>
           <div className="msg-time">{msg.time}</div>
         </div>
       </div>
     </>
   );
-}
-
-// ── Bubble ────────────────────────────────────────────────────────────────────
-function Bubble({ bubble, own }) {
-  if (bubble.type === 'text') {
-    return <div className={`bubble ${own ? 'own' : ''}`}>{bubble.content}</div>;
-  }
-
-  if (bubble.type === 'image') {
-    return (
-      <div className="img-attachment" role="img" aria-label={`Image: ${bubble.filename}`}>
-        {/* Replace with <img src={...} alt={bubble.filename} /> once you have real assets */}
-        <div className="img-placeholder">
-          <span className="img-placeholder-icon" aria-hidden="true">🖼️</span>
-          <span>{bubble.filename}</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (bubble.type === 'video') {
-    return (
-      <div className="video-attachment" role="button" aria-label={`Video: ${bubble.filename}`}>
-        <div className="play-btn" aria-hidden="true">▶</div>
-        <div className="video-label">{bubble.filename} · {bubble.duration}</div>
-      </div>
-    );
-  }
-
-  return null;
 }

@@ -20,5 +20,7 @@ public interface DiscussionMapper {
 
     void insertDiscussion(@Param("discussion") Discussion discussion);
 
+    void insertDiscussionNoEquipe(@Param("discussionId") String discussionId);
+
     String getNewId();
 }

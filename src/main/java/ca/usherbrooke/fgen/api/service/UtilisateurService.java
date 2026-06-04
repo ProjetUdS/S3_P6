@@ -59,7 +59,7 @@ public class UtilisateurService {
             @QueryParam("prenom") String prenom,
             @QueryParam("photoProfilId") String photoProfilId) {
         // Todo : implement and add the correct path
-        return null;
+        return utilisateurMapper.select(cip,pseudo,nom,prenom);
     }
 
     @GET

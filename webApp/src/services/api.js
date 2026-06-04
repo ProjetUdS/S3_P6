@@ -133,6 +133,24 @@ export async function getContacts(cip) {
   return response.data;
 }
 
+export async function searchUsers(query) {
+  const response = await api.get('/utilisateur', { params: { pseudo: query } });
+  return response.data;
+}
+
+export async function addContact(userCip, contactCip) {
+  const response = await api.post(`/utilisateur/${userCip}/contact/${contactCip}`);
+  return response.data;
+}
+
+export async function getFriendConversation(userCip, friendCip, limit, offset) {
+  const params = { cip1: userCip, cip2: friendCip };
+  if (limit) params.limite = limit;
+  if (offset) params.decalage = offset;
+  const response = await api.get('/message/friendConversation', { params });
+  return response.data;
+}
+
 export async function getTeamMembers(equipeId) {
   const response = await api.get(`/equipes/${equipeId}/members`);
   return response.data;

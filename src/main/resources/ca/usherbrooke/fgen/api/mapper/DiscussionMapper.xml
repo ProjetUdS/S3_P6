@@ -32,6 +32,11 @@ fp.cip = any (coalesce( #{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis
         VALUES (#{discussion.discussionId}, #{discussion.equipeId})
     </insert>
 
+    <insert id="insertDiscussionNoEquipe">
+        INSERT INTO app.discussion(discussion_id, equipe_id)
+        VALUES (#{discussionId}, NULL)
+    </insert>
+
     <select id="getNewId" resultType="String">
         SELECT md5(random()::text || clock_timestamp()::text) AS new_id
     </select>
