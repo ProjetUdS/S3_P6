@@ -2,7 +2,7 @@ package ca.usherbrooke.fgen.api.business;
 
 public class Equipe {
 
-    public String id;
+    public String equipeId;
     public String administrateur;
     public String nomEquipe;
 }

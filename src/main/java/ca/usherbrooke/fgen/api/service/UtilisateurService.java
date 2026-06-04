@@ -16,13 +16,10 @@ import java.util.Map;
 @Path("/api/utilisateur")
 @Produces({"application/json"})
 public class UtilisateurService {
-    @Context
-    SecurityContext securityContext;
-    @Inject
-    JsonWebToken jwt;
+    @Context    SecurityContext securityContext;
+    @Inject    JsonWebToken jwt;
 
-    @Inject
-    UtilisateurMapper utilisateurMapper;
+    @Inject    UtilisateurMapper utilisateurMapper;
 
     @GET
     @Path("/login")
@@ -62,7 +59,7 @@ public class UtilisateurService {
             @QueryParam("prenom") String prenom,
             @QueryParam("photoProfilId") String photoProfilId) {
         // Todo : implement and add the correct path
-        return null;
+        return utilisateurMapper.select(cip,pseudo,nom,prenom);
     }
 
     @GET
@@ -90,4 +87,10 @@ public class UtilisateurService {
         utilisateurMapper.insertContact(cip, contact);
         return "200";
     }
+
+  @GET
+  @Path("/contacts")
+  public List<Utilisateur> getContacts(@QueryParam("userCip") String cip) {
+    return utilisateurMapper.getContacts(cip);
+  }
 }

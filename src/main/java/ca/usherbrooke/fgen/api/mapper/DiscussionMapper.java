@@ -10,7 +10,7 @@ import java.util.List;
 public interface DiscussionMapper {
 
     List<Discussion> select(
-            @Param("cip") List<String> usersId,
+            @Param("usersId") String[] usersId,
             @Param("equipeId") String equipeId,
             @Param("discussionId") String discussionId);
 
@@ -19,6 +19,8 @@ public interface DiscussionMapper {
     void deleteOne(@Param("discussionId") String discussionId);
 
     void insertDiscussion(@Param("discussion") Discussion discussion);
+
+    void insertDiscussionNoEquipe(@Param("discussionId") String discussionId);
 
     String getNewId();
 }

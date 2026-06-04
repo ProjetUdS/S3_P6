@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper">
+
+    <insert id="insertMember">
+        INSERT INTO app.fait_parti (cip, discussion_id)
+        VALUES (#{cip}, #{discussionId})
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <insert id="insertMembers">
+        INSERT INTO app.fait_parti (cip, discussion_id)
+        VALUES
+        <foreach collection="cips" item="cip" separator=",">
+            (#{cip}, #{discussionId})
+        </foreach>
+        ON CONFLICT DO NOTHING
+    </insert>
+
+</mapper>

@@ -27,5 +27,7 @@ public interface UtilisateurMapper {
 
     void deleteOne(@Param("cip") String cip);
 
-    Void insertContact(@Param("cip") String cip, @Param("contact") String contact);
+    void insertContact(@Param("cip") String cip, @Param("contact") String contact);
+
+    List<Utilisateur> getContacts(@Param("cip") String cip);
 }

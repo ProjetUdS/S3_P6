@@ -5,11 +5,14 @@
 
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMapper">
 
+<!--    TODO : fix filtre avec autre que équipe
+fp.cip = any (coalesce( #{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler},ARRAY[fp.cip]))
+        AND d.discussion_id = (coalesce(#{discussionId},d.discussion_id))
+-->
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
         SELECT d.equipe_id, d.discussion_id
         FROM app.discussion d
-                 INNER JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
-        WHERE fp.cip = any (#{usersId})
+        WHERE d.equipe_id = (coalesce(#{equipeId}, d.equipe_id))
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Discussion">
@@ -27,6 +30,11 @@
     <insert id="insertDiscussion">
         INSERT INTO app.discussion(discussion_id, equipe_id)
         VALUES (#{discussion.discussionId}, #{discussion.equipeId})
+    </insert>
+
+    <insert id="insertDiscussionNoEquipe">
+        INSERT INTO app.discussion(discussion_id, equipe_id)
+        VALUES (#{discussionId}, NULL)
     </insert>
 
     <select id="getNewId" resultType="String">
