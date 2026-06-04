@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { TeamIcon } from '../shared/Avatar';
 import { useAuth } from '../../context/AuthContext';
-import { getTeamMembers, getDiscussions, getMessages, sendMessage } from '../../services/api';
+import { getTeamMembers, getDiscussions, getMessages, sendMessage, createDiscussion } from '../../services/api';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
 export default function TeamChat({ team }) {
@@ -80,43 +80,59 @@ export default function TeamChat({ team }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  function handleSend() {
+  async function handleSend() {
     const text = input.trim();
-    if (!text || !myCip) return;
+    if (!text || !myCip || !team?.equipeId) return;
 
-    const now = new Date();
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    let discussionId = null;
+    const discussions = await getDiscussions(null, team.equipeId).catch(err => {
+      console.error('Failed to get discussions:', err);
+      return [];
+    });
 
-    let day = null;
-    if (now.toDateString() === today.toDateString()) day = 'Today';
-    else if (now.toDateString() === yesterday.toDateString()) day = 'Yesterday';
+    if (discussions?.[0]) {
+      discussionId = discussions[0].discussionId;
+    } else {
+      const newDiscussion = await createDiscussion({ equipeId: team.equipeId }).catch(err => {
+        console.error('Failed to create discussion:', err);
+        return null;
+      });
+      if (newDiscussion) {
+        discussionId = newDiscussion.discussionId || newDiscussion;
+      }
+    }
 
-    const newMessage = {
-      id: Date.now(),
-      from: myCip,
-      day,
-      text,
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
+    if (!discussionId) return;
 
-    setMessages(prev => [...prev, newMessage]);
-    setInput('');
+    try {
+      await sendMessage({
+        contenu: text,
+        cip: myCip,
+        discussionId,
+      });
+      setInput('');
 
-    getDiscussions(null, team?.equipeId)
-      .then(discussions => {
-        if (discussions?.[0]) {
-          return sendMessage({
-            id: Date.now().toString(),
-            contenu: text,
-            cip: myCip,
-            discussionId: discussions[0].discussionId,
-            date: new Date(),
-          });
-        }
-      })
-      .catch(err => console.error('Failed to send message:', err));
+      const updatedMessages = await getMessages(discussionId, 50, 0);
+      const transformed = (updatedMessages || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
+        const msgDate = new Date(m.date);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        let day = null;
+        if (msgDate.toDateString() === today.toDateString()) day = 'Today';
+        else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
+        return {
+          id: m.id,
+          from: m.cip,
+          day,
+          text: m.contenu,
+          time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+      });
+      setMessages(transformed);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   }
 
   function handleKeyDown(e) {

@@ -18,7 +18,7 @@ public class DiscussionService {
   // GET /api/discussion  → liste les discussions des utilisateurs donnés
   @GET
   public List<Discussion> getDiscussions(
-          @QueryParam("cip") List<String> usersId,
+          @QueryParam("usersId") String[] usersId,
           @QueryParam("equipeId") String equipeId,
           @QueryParam("discussionId") String discussionId) {
     return discussionMapper.select(usersId, equipeId, discussionId);
