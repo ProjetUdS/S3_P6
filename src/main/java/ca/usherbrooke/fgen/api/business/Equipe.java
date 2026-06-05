@@ -5,4 +5,5 @@ public class Equipe {
     public String equipeId;
     public String administrateur;
     public String nomEquipe;
+    public String discussionId;
 }

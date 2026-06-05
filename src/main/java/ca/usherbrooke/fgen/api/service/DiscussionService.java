@@ -47,11 +47,9 @@ public class DiscussionService {
     if (discussion.discussionId == null) {
       discussion.discussionId = discussionMapper.getNewId();
     }
-    if (discussion.equipeId != null) {
-      discussionMapper.insertDiscussion(discussion);
-    } else {
-      discussionMapper.insertDiscussionNoEquipe(discussion.discussionId);
-    }
+
+    discussionMapper.insertDiscussion(discussion);
+
     if (discussion.members != null && !discussion.members.isEmpty()) {
       discussionMemberMapper.insertMembers(discussion.discussionId, discussion.members);
     }
