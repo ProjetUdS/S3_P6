@@ -1,6 +1,8 @@
 package ca.usherbrooke.fgen.api.service;
 
+import ca.usherbrooke.fgen.api.business.Discussion;
 import ca.usherbrooke.fgen.api.business.Equipe;
+import ca.usherbrooke.fgen.api.mapper.DiscussionMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.record.TeamMember;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
@@ -21,6 +23,9 @@ public class EquipeService {
 
     @Inject
     EquipeMemberMapper equipeMemberMapper;
+
+    @Inject
+    DiscussionMapper discussionMapper;
 
     @GET
     public List<Equipe> select(
@@ -55,6 +60,14 @@ public class EquipeService {
         if (equipe.equipeId == null) {
             equipe.equipeId = UUID.randomUUID().toString().replace("-", "");
         }
+
+        if(equipe.discussionId == null) {
+            Discussion discussion = new Discussion();
+            discussion.discussionId  = UUID.randomUUID().toString().replace("-", "");
+            discussionMapper.insertDiscussion(discussion);
+            equipe.discussionId = discussion.discussionId;
+        }
+
         equipeMapper.insertEquipe(equipe);
 
         for (String cip : membersCip) {

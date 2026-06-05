@@ -10,13 +10,13 @@ fp.cip = any (coalesce( #{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis
         AND d.discussion_id = (coalesce(#{discussionId},d.discussion_id))
 -->
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
-        SELECT d.equipe_id, d.discussion_id
-        FROM app.discussion d
-        WHERE d.equipe_id = (coalesce(#{equipeId}, d.equipe_id))
+        SELECT e.discussion_id, d.discussion_id
+        FROM app.discussion d, app.equipe e
+        WHERE e.discussion_id = d.discussion_id
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Discussion">
-        SELECT discussion_id, equipe_id
+        SELECT discussion_id
         FROM app.discussion
         WHERE discussion_id = #{discussionId}
     </select>
@@ -28,13 +28,13 @@ fp.cip = any (coalesce( #{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis
     </delete>
 
     <insert id="insertDiscussion">
-        INSERT INTO app.discussion(discussion_id, equipe_id)
-        VALUES (#{discussion.discussionId}, #{discussion.equipeId})
+        INSERT INTO app.discussion(discussion_id)
+        VALUES (#{discussion.discussionId})
     </insert>
 
     <insert id="insertDiscussionNoEquipe">
-        INSERT INTO app.discussion(discussion_id, equipe_id)
-        VALUES (#{discussionId}, NULL)
+        INSERT INTO app.discussion(discussion_id)
+        VALUES (#{discussionId})
     </insert>
 
     <select id="getNewId" resultType="String">

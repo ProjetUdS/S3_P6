@@ -22,8 +22,10 @@ INSERT INTO app.contact (cip, cip_contact)
 VALUES ('tura2517', 'daly0396');
 
 -- Equipe
-INSERT INTO app.equipe (equipe_id, administrateur, nom_equipe)
-VALUES ('12345', 'tura2517', 'Equipe test');
+INSERT INTO app.discussion(discussion_id)
+VALUES ('12345');
+INSERT INTO app.equipe (equipe_id, administrateur_cip, nom_equipe, discussion_id)
+VALUES ('12345', 'tura2517', 'Equipe test', '12345');
 
 -- Ajoute gens à équipe
 INSERT INTO app.est_dans (cip, equipe_id)

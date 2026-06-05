@@ -43,27 +43,25 @@ public class DiscussionService {
         return discussionId;
     }
 
-    // POST /api/discussion  → création
-    @POST
-    public String createDiscussion(Discussion discussion) {
-        if (discussion.discussionId == null) {
-            discussion.discussionId = discussionMapper.getNewId();
-        }
-        if (discussion.equipeId != null) {
-            discussionMapper.insertDiscussion(discussion);
-        } else {
-            discussionMapper.insertDiscussionNoEquipe(discussion.discussionId);
-        }
-        if (discussion.members != null && !discussion.members.isEmpty()) {
-            discussionMemberMapper.insertMembers(discussion.discussionId, discussion.members);
-        }
-        return discussion.discussionId;
+  // POST /api/discussion  → création
+  @POST
+  public String createDiscussion(Discussion discussion) {
+    if (discussion.discussionId == null) {
+      discussion.discussionId = discussionMapper.getNewId();
     }
 
-    // GET /api/discussion/nouveauID
-    @GET
-    @Path("/nouveauID")
-    public String getNewId() {
-        return discussionMapper.getNewId();
+    discussionMapper.insertDiscussion(discussion);
+
+    if (discussion.members != null && !discussion.members.isEmpty()) {
+      discussionMemberMapper.insertMembers(discussion.discussionId, discussion.members);
     }
+    return discussion.discussionId;
+  }
+
+  // GET /api/discussion/nouveauID
+  @GET
+  @Path("/nouveauID")
+  public String getNewId() {
+    return discussionMapper.getNewId();
+  }
 }
