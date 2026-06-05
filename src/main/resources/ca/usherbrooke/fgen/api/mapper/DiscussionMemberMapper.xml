@@ -6,18 +6,69 @@
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper">
 
     <insert id="insertMember">
-        INSERT INTO app.fait_parti (cip, discussion_id)
-        VALUES (#{cip}, #{discussionId})
+        INSERT INTO app.fait_parti (cip, discussion_id, etat)
+        VALUES (#{cip}, #{discussionId},'enabled')
         ON CONFLICT DO NOTHING
     </insert>
 
     <insert id="insertMembers">
-        INSERT INTO app.fait_parti (cip, discussion_id)
+        INSERT INTO app.fait_parti (cip, discussion_id, etat)
         VALUES
         <foreach collection="cips" item="cip" separator=",">
-            (#{cip}, #{discussionId})
+            (#{cip}, #{discussionId}, 'active')
         </foreach>
         ON CONFLICT DO NOTHING
     </insert>
+
+    <update id="changeState">
+        UPDATE app.fait_parti
+        SET etat = #{etat}
+        WHERE cip = #{cip}
+          AND discussion_id = #{discussionId}
+    </update>
+
+    <delete id="deleteMember">
+        DELETE
+        FROM app.fait_parti
+        WHERE cip = #{cip}
+    </delete>
+
+  <select id="selectConversations" resultType="ca.usherbrooke.fgen.api.business.DiscussionMemberSummary">
+        SELECT
+            fp.discussion_id     as discussionId,
+            fp2.cip              as cip,
+            u.pseudo             as pseudo,
+            fp.etat              as etat,
+            m.date_              as lastMessageDate
+        FROM app.fait_parti fp
+        JOIN app.fait_parti fp2 ON fp.discussion_id = fp2.discussion_id AND fp2.cip != fp.cip
+        JOIN app.discussion d     ON fp.discussion_id = d.discussion_id
+        JOIN app.utilisateur u    ON fp2.cip = u.cip
+        LEFT JOIN app.message m   ON m.discussion_id = fp.discussion_id
+                                   AND m.date_ = (
+                                       SELECT MAX(m2.date_)
+                                       FROM app.message m2
+                                       WHERE m2.discussion_id = fp.discussion_id
+                                   )
+        WHERE fp.cip = #{cip}
+        UNION ALL
+        SELECT
+            NULL                   as discussionId,
+            c.cip_contact          as cip,
+            u.pseudo               as pseudo,
+            'enabled'              as etat,
+            NULL                   as lastMessageDate
+        FROM app.contact c
+        JOIN app.utilisateur u ON c.cip_contact = u.cip
+        WHERE c.cip = #{cip}
+          AND NOT EXISTS (
+              SELECT 1 FROM app.fait_parti fp
+              WHERE fp.discussion_id IN (
+                  SELECT fp3.discussion_id FROM app.fait_parti fp3 WHERE fp3.cip = #{cip}
+              )
+              AND fp.cip = c.cip_contact
+          )
+        ORDER BY lastMessageDate DESC NULLS LAST
+    </select>
 
 </mapper>

@@ -7,27 +7,26 @@
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Message">
         select message_id    as id,
                date_         as date,
-           contenu,
-           cip,
-           discussion_id as discussionId
+               contenu,
+               cip,
+               discussion_id as discussionId
         from app.message
         where (discussion_id,
-            cip,
-            message_id) =
-            (coalesce(#{discussionId}, discussion_id),
-            coalesce(#{cip}, cip),
-            coalesce(#{messageId}, message_id))
+               cip,
+               message_id) =
+              (coalesce(#{discussionId}, discussion_id),
+               coalesce(#{cip}, cip),
+               coalesce(#{messageId}, message_id))
         order by date_ ASC
-            limit #{limite}
-        offset #{decalage}
+        limit #{limite} offset #{decalage}
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Message">
         select message_id    as id,
                date_         as date,
-           contenu,
-           cip,
-           discussion_id as discussionId
+               contenu,
+               cip,
+               discussion_id as discussionId
         from app.message
         where message_id = #{messageId}
     </select>
@@ -40,10 +39,10 @@
 
     <insert id="insertMessage">
         insert into app.message(message_id,
-                                       date_,
-                                       contenu,
-                                       cip,
-                                       discussion_id)
+                                date_,
+                                contenu,
+                                cip,
+                                discussion_id)
         values (#{message.id},
                 #{message.date},
                 #{message.contenu},
@@ -60,20 +59,24 @@
         SELECT DISTINCT discussion_id
         FROM app.message
         WHERE cip = #{cip}
-          AND discussion_id IS NOT NULL
     </select>
 
     <select id="getFriendConversation" resultType="ca.usherbrooke.fgen.api.business.Message">
-        SELECT message_id    as id,
-               date_         as date,
-               contenu,
-               cip,
-               discussion_id as discussionId
-        FROM app.message
-        WHERE cip = #{cip1} OR cip = #{cip2}
+        SELECT m.message_id    as id,
+               m.date_         as date,
+               m.contenu,
+               m.cip,
+               m.discussion_id as discussionId
+        FROM app.message m
+                 JOIN app.discussion disc ON m.discussion_id = disc.discussion_id
+        WHERE disc.equipe_id IS NULL
+          AND m.discussion_id IN (SELECT fp.discussion_id
+                                  FROM app.fait_parti fp
+                                  GROUP BY fp.discussion_id
+                                  HAVING COUNT(DISTINCT fp.cip) = 2
+                                     AND BOOL_AND(fp.cip IN (#{cip1}, #{cip2})))
         ORDER BY date_ ASC
-        LIMIT #{limite}
-        OFFSET #{decalage}
+        LIMIT #{limite} OFFSET #{decalage}
     </select>
 
 </mapper>

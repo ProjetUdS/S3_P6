@@ -161,4 +161,19 @@ export async function addTeamMember(equipeId, memberCip) {
   return response.data;
 }
 
+export async function removeDiscussionMember(discussionId, cip) {
+  const response = await api.delete('/discussionMember', { params: { discussionId, cip } });
+  return response.data;
+}
+
+export async function changeDiscussionMemberState(discussionId, cip, etat) {
+  const response = await api.post(`/discussionMember/${discussionId}`, undefined, { params: { cip, etat } });
+  return response.data;
+}
+
+export async function getConversations(cip) {
+  const response = await api.get('/discussionMember/conversations', { params: { cip } });
+  return response.data;
+}
+
 export default api;

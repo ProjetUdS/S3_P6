@@ -36,16 +36,39 @@ export function gradientForCip(cip) {
 
 /**
  * Generate initials from a user record.
- * Prefers pseudo, falls back to prenom + nom initials.
+ * Checks multiple field sources: API user fields and Keycloak token fields.
  */
 export function initialsFromUser(user) {
+  if (!user) return '?';
+
+  // API user fields
   if (user?.pseudo && user.pseudo.length >= 2) {
     return user.pseudo.substring(0, 2).toUpperCase();
   }
-  const parts = [];
-  if (user?.prenom) parts.push(user.prenom.charAt(0));
-  if (user?.nom) parts.push(user.nom.charAt(0));
-  return parts.length > 0 ? parts.join('').toUpperCase() : '?';
+
+  // Keycloak token fields
+  if (user?.preferred_username && user.preferred_username.length >= 2) {
+    return user.preferred_username.substring(0, 2).toUpperCase();
+  }
+
+  // Name initials from API fields
+  const apiParts = [];
+  if (user?.prenom) apiParts.push(user.prenom.charAt(0));
+  if (user?.nom) apiParts.push(user.nom.charAt(0));
+  if (apiParts.length > 0) return apiParts.join('').toUpperCase();
+
+  // Name initials from Keycloak fields
+  const kcParts = [];
+  if (user?.given_name) kcParts.push(user.given_name.charAt(0));
+  if (user?.family_name) kcParts.push(user.family_name.charAt(0));
+  if (kcParts.length > 0) return kcParts.join('').toUpperCase();
+
+  // Fallback to nickname
+  if (user?.nickname && user.nickname.length >= 2) {
+    return user.nickname.substring(0, 2).toUpperCase();
+  }
+
+  return '?';
 }
 
 /**

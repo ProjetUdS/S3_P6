@@ -6,7 +6,7 @@ import FriendsPanel from './components/friends/FriendsPanel';
 import ChatView from './components/chat/ChatView';
 import TeamsPanel from './components/teams/TeamsPanel';
 import TeamArea from './components/teams/TeamArea';
-import { getContacts } from './services/api';
+import { getContacts, getConversations } from './services/api';
 import { gradientForCip, initialsFromUser } from './utils/gradient';
 
 import './styles/globals.css';
@@ -18,29 +18,50 @@ export default function App() {
   const [view, setView] = useState('messages');
   const [activeFriend, setActiveFriend] = useState(null);
   const [activeTeam, setActiveTeam] = useState(null);
-  const [friends, setFriends] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [expandedSections, setExpandedSections] = useState({ active: true, archived: false, blocked: false });
 
-  function loadContacts() {
+  function loadConversations() {
     if (!user?.cip) return;
-    getContacts(user.cip)
+    getConversations(user.cip)
       .then(data => {
         const transformed = (data || []).map(c => ({
           id: c.cip,
           cip: c.cip,
-          name: `${c.prenom || ''} ${c.nom || ''}`.trim() || c.pseudo,
-          initials: initialsFromUser(c),
+          name: c.pseudo,
+          initials: initialsFromPseudo(c.pseudo),
           status: 'online',
           sub: 'Active now',
           gradient: gradientForCip(c.cip),
+          etat: c.etat,
+          discussionId: c.discussionId || null,
         }));
-        setFriends(transformed);
+        setConversations(transformed);
+
+        if (activeFriend?.cip) {
+          const updated = transformed.find(c => c.cip === activeFriend.cip);
+          if (updated) {
+            setActiveFriend(updated);
+          }
+        }
       })
-      .catch(err => console.error('Failed to load contacts:', err));
+      .catch(err => console.error('Failed to load conversations:', err));
+  }
+
+  function initialsFromPseudo(pseudo) {
+    if (!pseudo) return '?';
+    const parts = pseudo.split(/[\s_]+/).filter(Boolean);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  function toggleSection(section) {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   }
 
   useEffect(() => {
     if (authenticated && user?.cip) {
-      loadContacts();
+      loadConversations();
     }
   }, [authenticated, user?.cip]);
 
@@ -79,12 +100,14 @@ export default function App() {
           <FriendsPanel
             activeFriendId={activeFriend?.id}
             onSelectFriend={setActiveFriend}
-            friends={friends}
-            existingCips={friends.map(f => f.id)}
-            onFriendAdded={loadContacts}
+            conversations={conversations}
+            expandedSections={expandedSections}
+            onToggleSection={toggleSection}
+            existingCips={conversations.map(c => c.cip)}
+            onFriendAdded={loadConversations}
           />
-          {activeFriend
-            ? <ChatView friend={activeFriend} key={activeFriend.id} />
+             {activeFriend
+            ? <ChatView friend={activeFriend} key={activeFriend.id} conversations={conversations} discussionId={activeFriend.discussionId} onDeleteConversation={() => setActiveFriend(null)} onStateChanged={loadConversations} />
             : (
               <div className="main-area">
                 <div className="empty-state">
