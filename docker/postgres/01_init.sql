@@ -128,7 +128,7 @@ CREATE TABLE app.Fait_parti
 (
     cip           VARCHAR(50),
     discussion_id VARCHAR(50),
-    etat          VARCHAR(50) NOT NULL,
+    etat          VARCHAR(50),
     PRIMARY KEY (cip, discussion_id),
     FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip),
     FOREIGN KEY (discussion_id) REFERENCES app.Discussion (discussion_id)
