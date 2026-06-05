@@ -13,7 +13,7 @@
                                      prenom,
                                      photo_de_profil_id)
         values (#{cip},
-                #{username},
+                #{pseudo},
                 #{courriel},
                 #{nom},
                 #{prenom},
@@ -26,24 +26,24 @@
             photo_de_profil_id = excluded.photo_de_profil_id
     </insert>
 
-<!--    TODO: add and fix the remaining conditions
-(#{cip} IS NULL OR cip = #{cip})
-          AND (#{nom} IS NULL OR nom ILIKE CONCAT(#{nom}, '%'))
-          AND (#{prenom} IS NULL OR prenom ILIKE CONCAT(#{prenom}, '%'))
-          AND
-          -->
+
   <select id="select" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
-        SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
-        FROM app.utilisateur
-        WHERE (#{username} IS NULL OR pseudo ILIKE CONCAT(#{username}, '%'))
-    </select>
+      SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
+      FROM app.utilisateur
+      WHERE ((#{cip, jdbcType=VARCHAR} IS NULL) OR (cip ILIKE CONCAT(#{cip, jdbcType=VARCHAR}, '%')))
+        AND ((#{pseudo, jdbcType=VARCHAR} IS NULL) OR (pseudo ILIKE CONCAT(#{pseudo, jdbcType=VARCHAR}, '%')))
+        AND ((#{courriel, jdbcType=VARCHAR} IS NULL) OR (courriel ILIKE CONCAT(#{courriel, jdbcType=VARCHAR}, '%')))
+        AND ((#{nom, jdbcType=VARCHAR} IS NULL) OR (nom ILIKE CONCAT(#{nom, jdbcType=VARCHAR}, '%')))
+        AND ((#{prenom, jdbcType=VARCHAR} IS NULL) OR (prenom ILIKE CONCAT(#{prenom, jdbcType=VARCHAR}, '%')))
+  </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
         SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
         FROM app.utilisateur
-        WHERE cip = #{cip}
-          AND pseudo = #{username}
-          AND courriel = #{courriel}
+        WHERE cip = coalesce(#{cip}, cip)
+          AND pseudo = coalesce(#{pseudo}, pseudo)
+          AND courriel = coalesce(#{courriel}, courriel)
+          AND (#{cip} IS NOT NULL OR #{pseudo} IS NOT NULL OR #{courriel} IS NOT NULL)
     </select>
 
     <delete id="deleteOne">
@@ -54,7 +54,7 @@
 
     <insert id="insertContact">
         INSERT INTO app.contact (cip, cip_contact)
-        VALUES (#{cip}, #{contact})
+        VALUES (#{cip}, #{cip_contact})
     </insert>
 
     <select id="getContacts" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
