@@ -69,7 +69,11 @@
                m.discussion_id as discussionId
         FROM app.message m
                  JOIN app.discussion disc ON m.discussion_id = disc.discussion_id
-        WHERE disc.equipe_id IS NULL
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM app.equipe e
+            WHERE e.discussion_id = disc.discussion_id
+        )
           AND m.discussion_id IN (SELECT fp.discussion_id
                                   FROM app.fait_parti fp
                                   GROUP BY fp.discussion_id
