@@ -20,12 +20,8 @@ scope=openid%20profile%20email
 
 
 
-GET http://{{base_url}}/api/student
-Authorization: Bearer {{auth_token}}
-###
-
-# Test api professeur
-GET http://{{base_url}}/api/teacher
+# Test api user
+GET {{base_url}}/api/utilisateur
 Authorization: Bearer {{auth_token}}
 ###
 
