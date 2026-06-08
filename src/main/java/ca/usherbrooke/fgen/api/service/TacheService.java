@@ -28,6 +28,12 @@ public class TacheService {
     }
 
     @GET
+    @Path("/deadlines")
+    public List<Tache> getDeadlines(@QueryParam("equipeId") String equipeId) {
+        return tacheMapper.deadlines(equipeId);
+    }
+
+    @GET
     @Path("/{tacheId}")
     public Tache getTache(@PathParam("tacheId") String tacheId) {
         return tacheMapper.selectOne(tacheId);

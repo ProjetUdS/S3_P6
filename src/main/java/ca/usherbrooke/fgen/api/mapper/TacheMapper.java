@@ -19,6 +19,8 @@ public interface TacheMapper {
 
   List<Tache> allTasksByUser(@Param("userId") String userId);
 
+  List<Tache> deadlines(@Param("equipeId") String equipeId);
+
   Tache selectOne(@Param("tacheId") String tacheId);
 
   void deleteOne(@Param("tacheId") String tacheId);
