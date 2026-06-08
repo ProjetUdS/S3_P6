@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 @Path("/api/tache")
 @Produces(MediaType.APPLICATION_JSON)
@@ -25,6 +26,14 @@ public class TacheService {
             @QueryParam("dateCreation") Date dateCreation,
             @QueryParam("nomTache") String nomTache) {
         return tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
+    }
+
+    @GET
+    @Path("/calendrier")
+    public List<Tache> getCalendrier(@QueryParam("equipeId") String equipeId,
+                                     @QueryParam("dateMin") LocalDate dateMin,
+                                     @QueryParam("dateMax") LocalDate dateMax) {
+        return tacheMapper.calendrierEquipe(equipeId, dateMin, dateMax);
     }
 
     @GET

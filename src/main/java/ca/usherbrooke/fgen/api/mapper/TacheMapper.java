@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
+import java.time.LocalDate;
 
 @Mapper
 public interface TacheMapper {
@@ -18,6 +19,10 @@ public interface TacheMapper {
   List<Tache> allTasksByTeam(@Param("equipeId") String equipeId);
 
   List<Tache> allTasksByUser(@Param("userId") String userId);
+
+  List<Tache> calendrierEquipe(@Param("equipeId") String equipeId,
+                               @Param("dateMin") LocalDate dateMin,
+                               @Param("dateMax") LocalDate dateMax);
 
   Tache selectOne(@Param("tacheId") String tacheId);
 
