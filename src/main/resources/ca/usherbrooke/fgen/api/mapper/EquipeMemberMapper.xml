@@ -8,4 +8,18 @@
         INSERT INTO app.est_dans(equipe_id, cip)
         VALUES (#{equipeId}, #{memberCip})
     </insert>
+
+    <delete id="deleteMember">
+        DELETE FROM app.est_dans
+        WHERE equipe_id = #{equipeId}
+          AND cip = #{memberCip}
+    </delete>
+
+    <select id="selectMembers" resultType="ca.usherbrooke.fgen.api.record.TeamMember">
+        SELECT u.cip, u.pseudo, u.nom, u.prenom,
+               null as status
+        FROM app.est_dans ed
+                 INNER JOIN app.utilisateur u ON u.cip = ed.cip
+        WHERE ed.equipe_id = #{equipeId}
+    </select>
 </mapper>
