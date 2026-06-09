@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
+
 # Git passes: old-ref new-ref branch-checkout-flag
 # Only act on branch checkouts (flag == 1), not file checkouts (flag == 0)
 if [ "$3" != "1" ]; then
@@ -67,9 +68,21 @@ if [ "$need_decrypt" = "true" ]; then
     echo "Detected tracked encrypted secrets — decrypting..." >&2
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-    if python3 "$PROJECT_ROOT/python/sops_manage.py" decrypt 2>/dev/null; then
+    # find a python launcher
+    for _py in python3 python py; do
+        if command -v "$_py" >/dev/null 2>&1; then
+            PYCMD="$_py"
+            break
+        fi
+    done
+    if [ -z "$PYCMD" ]; then
+        echo "Warning: no Python found in PATH; cannot decrypt. Install Python or run the decrypt command manually." >&2
+        exit 1
+    fi
+
+    if "$PYCMD" "$PROJECT_ROOT/python/sops_manage.py" decrypt 2>/dev/null; then
         echo "Post-checkout: secrets decrypted." >&2
     else
-        echo "Warning: decryption failed. Encrypted files are in git; run 'python3 python/sops_manage.py decrypt' manually." >&2
+        echo "Warning: decryption failed. Encrypted files are in git; run '$PYCMD python/sops_manage.py decrypt' manually." >&2
     fi
 fi

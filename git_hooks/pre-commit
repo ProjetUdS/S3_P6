@@ -39,7 +39,20 @@ get_config_values "plaintext" > "$tmpdir/plaintext"
 # --- Run encryption ---
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-if ! python3 "$PROJECT_ROOT/python/sops_manage.py" encrypt; then
+
+# find a python launcher
+for _py in python3 python py; do
+    if command -v "$_py" >/dev/null 2>&1; then
+        PYCMD="$_py"
+        break
+    fi
+done
+if [ -z "$PYCMD" ]; then
+    echo "Error: no Python found in PATH; cannot encrypt. Install Python or run the encrypt command manually." >&2
+    exit 1
+fi
+
+if ! "$PYCMD" "$PROJECT_ROOT/python/sops_manage.py" encrypt; then
     echo "Error: encryption failed. Commit aborted." >&2
     exit 1
 fi
