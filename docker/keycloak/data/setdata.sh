@@ -37,6 +37,12 @@ echo "keycloak est ready. Beginning of finalisation ...."
 /opt/keycloak/bin/kcadm.sh create clients -r "$KC_REALM_NAME" -f /var/tmp/frontend.json
 /opt/keycloak/bin/kcadm.sh create clients -r "$KC_REALM_NAME" -f /var/tmp/backend.json
 
+# Create users in client
+/opt/keycloak/bin/kcadm.sh create partialImport \
+    -r "$KC_REALM_NAME" \
+    -s ifResourceExists=SKIP \
+    -f /var/tmp/users.json
+
 echo -e -n "\r"
 echo "server running ...."
 
