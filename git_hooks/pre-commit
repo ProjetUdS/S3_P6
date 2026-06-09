@@ -1,0 +1,72 @@
+#!/usr/bin/env sh
+set -euo pipefail
+
+# --- Read shared config ---
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/.hooks-config"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: hooks config not found at $CONFIG_FILE" >&2
+    exit 1
+fi
+
+# Parse a config section into stdout (one value per line)
+get_config_values() {
+    section=""
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        [ -z "$line" ] && continue
+        case "$line" in
+            \#*) continue ;;
+        esac
+        if echo "$line" | grep -qE '^\[.*\]$'; then
+            section="${line#\[}"
+            section="${section%\]}"
+            continue
+        fi
+        if [ "$section" = "$1" ]; then
+            echo "$line"
+        fi
+    done < "$CONFIG_FILE"
+}
+
+# Build file lists using temp files (POSIX sh compatible)
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+
+get_config_values "encrypted" > "$tmpdir/encrypted"
+get_config_values "plaintext" > "$tmpdir/plaintext"
+
+# --- Run encryption ---
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if ! python3 "$PROJECT_ROOT/python/sops_manage.py" encrypt; then
+    echo "Error: encryption failed. Commit aborted." >&2
+    exit 1
+fi
+
+# --- Conditionally stage only changed encrypted files ---
+# Iterate directly from temp file (handles filenames with spaces)
+while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if ! git diff --cached --quiet -- "$f" 2>/dev/null; then
+        # Working-tree differs from staged — stage it
+        git add -- "$f"
+    elif ! git ls-files -- "$f" 2>/dev/null | grep -q .; then
+        # File is untracked (newly created by encryption)
+        git add -- "$f"
+    fi
+done < "$tmpdir/encrypted"
+
+# --- Check for plaintext secret files staged ---
+# Collect staged names into a temp file for exact matching, ok
+git diff --cached --name-only > "$tmpdir/staged" 2>/dev/null || true
+
+while IFS= read -r plaintext_file; do
+    [ -z "$plaintext_file" ] && continue
+    if grep -qxF "$plaintext_file" "$tmpdir/staged"; then
+        echo "Error: plaintext secret '$plaintext_file' is staged. Unstage it and commit only ${plaintext_file}.enc files." >&2
+        exit 1
+    fi
+done < "$tmpdir/plaintext"
+
+echo "Pre-commit: secrets encrypted and staged."

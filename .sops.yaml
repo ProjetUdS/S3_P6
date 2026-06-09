@@ -1,0 +1,8 @@
+creation_rules:
+  - filename_regex: '.*'
+    key_groups:
+      - age:
+          - age1e3t3m9vs9fyreact9jvy4qry2n9qgz9k629hnnsun2r8lrd0g54s03h9h6 #Adam
+          - age1ujfummyn2rxcrnfqt5fkrazunewre2erru62m6llavetzwlwzgwqnduhku #Xavier Benoit
+          - age1g6untvsuz98h7v5xmstlwhhd8zrr0zac4qlpu0d4x9tjf8dqeytqyut0vc #Xavier Belleville
+    encrypted_regex: '^(.*)$'
