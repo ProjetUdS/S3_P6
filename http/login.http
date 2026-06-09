@@ -1,6 +1,6 @@
 
 # ------------------------------------------------------
-# Étape 1: Obtenir le jeton d'accès (Token Acquisition)
+### Étape 1: Obtenir le jeton d'accès (Token Acquisition)
 # ------------------------------------------------------
 POST {{base_login_url}}/realms/{{realm}}/protocol/openid-connect/token
 Content-Type: application/x-www-form-urlencoded
@@ -16,14 +16,7 @@ scope=openid%20profile%20email
     // Save token from response body to global variable
     client.global.set("auth_token", response.body.access_token);
 %}
-###
 
-
-
-# Test api user
-GET {{base_url}}/api/utilisateur
-Authorization: Bearer {{auth_token}}
-###
 
 
 
