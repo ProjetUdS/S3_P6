@@ -1,19 +1,41 @@
 #!/bin/sh
 
-until /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8180/ --realm master --user admin --password admin 2>/dev/null; do
+#  Vérifier que les variables sont là
+if [ -z "$KEYCLOAK_ADMIN" ] || [ -z "$KEYCLOAK_ADMIN_PASSWORD" ] || [ -z "$KC_REALM_NAME" ]; then
+    echo "Error: KEYCLOAK_ADMIN or KEYCLOAK_ADMIN_PASSWORD or KC_REALM_NAME not set in .env"
+    exit 1
+fi
+
+#  Attendre que keycloak soit prêt
+until /opt/keycloak/bin/kcadm.sh config credentials \
+    --server "$KC_SERVER_URL" \
+    --realm master \
+    --user "$KEYCLOAK_ADMIN" \
+    --password "$KEYCLOAK_ADMIN_PASSWORD" 2>/dev/null; do
     echo "Keycloak is still starting, waiting 5 seconds..."
     sleep 5
 done
 
-echo "beginning of finalisation ...."
-/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8180/ --realm master --user admin --password admin
-/opt/keycloak/bin/kcadm.sh create realms -s realm=usager -s enabled=true -o
-/opt/keycloak/bin/kcadm.sh update realms/usager -s registrationAllowed=true
 
-/opt/keycloak/bin/kcadm.sh update realms/usager -s registrationAllowed=true -s loginTheme=customized
+echo "keycloak est ready. Beginning of finalisation ...."
 
-/opt/keycloak/bin/kcadm.sh create clients -r usager -f /var/tmp/frontend.json
-/opt/keycloak/bin/kcadm.sh create clients -r usager -f /var/tmp/backend.json
+# Authentification
+/opt/keycloak/bin/kcadm.sh config credentials \
+    --server "$KC_SERVER_URL" \
+    --realm master \
+    --user "$KEYCLOAK_ADMIN" \
+    --password "$KEYCLOAK_ADMIN_PASSWORD"
+
+# Configure realm
+/opt/keycloak/bin/kcadm.sh create realms -s "realm=$KC_REALM_NAME" -s "enabled=true" -o
+
+# Update realm
+/opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME" -s "registrationAllowed=true"
+/opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME" -s "registrationAllowed=true" -s "loginTheme=customized"
+
+# Create clients
+/opt/keycloak/bin/kcadm.sh create clients -r "$KC_REALM_NAME" -f /var/tmp/frontend.json
+/opt/keycloak/bin/kcadm.sh create clients -r "$KC_REALM_NAME" -f /var/tmp/backend.json
 
 echo -e -n "\r"
 echo "server running ...."

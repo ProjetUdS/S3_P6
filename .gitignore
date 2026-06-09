@@ -12,9 +12,8 @@ build/
 /docs/superpowers/
 opencode.json
 
-# Private
-http-*.private.env.json
-
-#HTTP env
+#Secrets
 http-*.private.env.json
 *.env
+secrets.yaml
+src/main/resources/application.yaml

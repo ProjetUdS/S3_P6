@@ -7,13 +7,22 @@ services:
     pull_policy: never
     container_name: webserver
     ports:
-      - "80:80"
+      - "${PORT}:80"
+    environment:
+      - PORT=${PORT}
+      - KC_PORT=${KC_PORT}
+      - KC_REALM_NAME=${KC_REALM_NAME}
+    volumes:
+      - ./webserver/nginx.template.conf:/etc/nginx/nginx.template.conf:ro
+      - ./webserver/entrypoint.sh:/docker-entrypoint.sh:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       - auth
     networks:
       acad-net:
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
+
 
   auth:
     image: quay.io/keycloak/keycloak:19.0.3
@@ -25,11 +34,14 @@ services:
       - ./keycloak/customized:/opt/keycloak/themes/customized
     entrypoint: sh -c "/init.sh"
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_REALM_NAME: ${KC_REALM_NAME}
+      KC_PORT: ${KC_PORT}
+      KC_SERVER_URL: ${KC_SERVER_URL}
       KC_PROXY: edge
     ports:
-      - "8180:8180"
+      - "${KC_PORT}:${KC_PORT}"
     depends_on:
       - database-keycloak
     networks:
@@ -45,9 +57,10 @@ services:
       - ./postgres/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./postgres/02_setdata.sql:/docker-entrypoint-initdb.d/02_setdata.sql
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DATABASE: postgres
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DATABASE: ${DB_NAME}
+
     networks:
       acad-net:
 
@@ -58,11 +71,12 @@ services:
     ports:
       - "5445:5432"
     environment:
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak-strongPassword
-      POSTGRES_DB: keycloak-users
+      POSTGRES_USER: ${DB_KC_USER}
+      POSTGRES_PASSWORD: ${DB_KC_PASSWORD}
+      POSTGRES_DB: ${DB_KC_DB}
     networks:
       acad-net:
 
 networks:
   acad-net:
+
