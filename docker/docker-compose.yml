@@ -41,7 +41,7 @@ services:
       KC_SERVER_URL: ${KC_SERVER_URL}
       KC_PROXY: edge
     ports:
-      - "${KC_PORT}:${KC_PORT}"
+      - "${KC_PORT}:${KC_PORT:-8080}"
     depends_on:
       - database-keycloak
     networks:
