@@ -7,3 +7,12 @@
 # Fichier de build
 build/
 /out/
+
+# Ai files
+/docs/superpowers/
+opencode.json
+
+#Secrets
+http-*.private.env.json
+*.env
+secrets.yaml

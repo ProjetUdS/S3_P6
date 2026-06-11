@@ -11,27 +11,27 @@
     -->
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Equipe">
         SELECT eq.equipe_id,
-               eq.administrateur,
+               eq.administrateur_cip,
                eq.nom_equipe
         FROM app.equipe as eq
 
-        WHERE (eq.equipe_id, administrateur, nom_equipe) =
+        WHERE (eq.equipe_id, administrateur_cip, nom_equipe) =
               (
                coalesce(#{equipeId}, eq.equipe_id),
-               coalesce(#{administrateur}, eq.administrateur),
+               coalesce(#{administrateur}, eq.administrateur_cip),
                coalesce(#{nomEquipe}, eq.nom_equipe)
                   )
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Equipe">
-        SELECT equipe_id, administrateur, nom_equipe
+        SELECT equipe_id, administrateur_cip, nom_equipe
         FROM app.equipe
         WHERE equipe_id = #{equipeId}
     </select>
 
     <select id="selectMembers" resultType="ca.usherbrooke.fgen.api.record.TeamMember">
         SELECT u.cip, u.pseudo, u.nom, u.prenom,
-               CASE WHEN u.cip = e.administrateur THEN 'Admin' ELSE 'Member' END as role,
+               CASE WHEN u.cip = e.administrateur_cip THEN 'Admin' ELSE 'Member' END as role,
                null as status
         FROM app.equipe e
         INNER JOIN app.est_dans ed ON ed.equipe_id = e.equipe_id
@@ -47,10 +47,10 @@
     </delete>
 
     <insert id="insertEquipe">
-        INSERT INTO app.equipe(equipe_id, administrateur, nom_equipe)
-        VALUES (#{equipe.equipeId}, #{equipe.administrateur}, #{equipe.nomEquipe})
+        INSERT INTO app.equipe(equipe_id, administrateur_cip, nom_equipe, discussion_id)
+        VALUES (#{equipe.equipeId}, #{equipe.administrateur}, #{equipe.nomEquipe}, #{equipe.discussionId})
         ON CONFLICT (equipe_id) DO UPDATE SET
-            administrateur = excluded.administrateur,
+            administrateur_cip = excluded.administrateur_cip,
             nom_equipe = excluded.nom_equipe
     </insert>
 

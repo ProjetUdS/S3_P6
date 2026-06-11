@@ -3,24 +3,54 @@ import React, { useState } from 'react';
 import { Avatar } from '../shared/Avatar';
 import AddFriendModal from './AddFriendModal';
 
-/**
- * FriendsPanel  — left panel showing the friends list + "Add friend" button.
- *
- * Props:
- *   activeFriendId  {string|null}  – id of currently selected friend
- *   onSelectFriend  (friend) => void
- *   friends         {Array}        – friends data from API
- *   existingCips    {Array}        – cip values of current friends (to filter from search)
- *   onFriendAdded   {Function}     – callback to reload contacts after adding a friend
- */
-export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: friendsProp, existingCips, onFriendAdded }) {
+export default function FriendsPanel({ activeFriendId, onSelectFriend, conversations: conversationsProp, expandedSections, onToggleSection, existingCips, onFriendAdded }) {
   const [showModal, setShowModal] = useState(false);
-  const [query, setQuery]         = useState('');
+  const [query, setQuery] = useState('');
 
-  const friends = friendsProp || [];
-  const filtered = query
-    ? friends.filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
-    : friends;
+  const conversations = conversationsProp || [];
+  const active = conversations.filter(c => ['enabled', 'active'].includes(c.etat));
+  const archived = conversations.filter(c => ['archived', 'disabled'].includes(c.etat));
+  const blocked = conversations.filter(c => c.etat === 'blocked');
+
+  function renderSection(title, data, sectionKey) {
+    const isExpanded = expandedSections[sectionKey];
+    return (
+      <>
+        <div className="panel-section">
+          <span className="panel-section-title">{title}</span>
+          <span className="panel-section-count">{data.length}</span>
+          <button className="panel-section-toggle" onClick={() => onToggleSection(sectionKey)} aria-label={isExpanded ? 'Réduire' : 'Développer'}>
+            {isExpanded ? '▾' : '▸'}
+          </button>
+        </div>
+        {isExpanded && data.map(convo => (
+          <div
+            key={convo.id}
+            className={`list-item ${activeFriendId === convo.id ? 'active' : ''} ${convo.etat === 'archived' ? 'archived' : convo.etat === 'disabled' ? 'disabled-state' : convo.etat === 'blocked' ? 'blocked' : convo.etat === 'active' ? 'active-state' : ''}`}
+            onClick={() => onSelectFriend(convo)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => e.key === 'Enter' && onSelectFriend(convo)}
+            aria-current={activeFriendId === convo.id}
+          >
+            <Avatar
+              initials={convo.initials}
+              gradient={convo.gradient}
+              size="md"
+              status={convo.status}
+            />
+            <div className="list-item-info">
+              <div className="list-item-name">{convo.name}</div>
+              <div className="list-item-sub">{convo.sub}</div>
+            </div>
+            <span className={`conversation-badge ${convo.etat}`}>
+              {convo.etat === 'archived' ? '📦' : convo.etat === 'disabled' ? '⏸️' : convo.etat === 'blocked' ? '🚫' : convo.etat === 'active' ? '🔵' : ''}
+            </span>
+          </div>
+        ))}
+      </>
+    );
+  }
 
   return (
     <>
@@ -42,40 +72,14 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: 
 
         {/* List */}
         <div className="panel-list">
-          <div className="panel-section">Friends</div>
+          {renderSection('Conversations actives', active, 'active')}
+          {renderSection('Archivées', archived, 'archived')}
+          {renderSection('Bloquées', blocked, 'blocked')}
 
           <button className="panel-add-btn" onClick={() => setShowModal(true)}>
             <span aria-hidden="true">➕</span>
             Add a friend
           </button>
-
-          {filtered.map(friend => (
-            <div
-              key={friend.id}
-              className={`list-item ${activeFriendId === friend.id ? 'active' : ''}`}
-              onClick={() => onSelectFriend(friend)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && onSelectFriend(friend)}
-              aria-current={activeFriendId === friend.id}
-            >
-              <Avatar
-                initials={friend.initials}
-                gradient={friend.gradient}
-                size="md"
-                status={friend.status}
-              />
-              <div className="list-item-info">
-                <div className="list-item-name">{friend.name}</div>
-                <div className="list-item-sub">{friend.sub}</div>
-              </div>
-              {friend.unread > 0 && (
-                <span className="badge" aria-label={`${friend.unread} unread messages`}>
-                  {friend.unread}
-                </span>
-              )}
-            </div>
-          ))}
         </div>
       </div>
 

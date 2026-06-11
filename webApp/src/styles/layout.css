@@ -174,6 +174,12 @@
 }
 .list-item:hover { background: var(--bg-primary); }
 .list-item.active { background: var(--bg-primary); }
+.list-item.active.archived,
+.list-item.active.blocked,
+.list-item.active.disabled-state,
+.list-item.active.active-state {
+  background: var(--bg-primary) !important;
+}
 
 .list-item-info { flex: 1; min-width: 0; }
 .list-item-name {
@@ -250,6 +256,50 @@
 }
 .topbar-btn:hover { background: var(--bg-secondary); }
 
+.topbar-dropdown {
+  position: relative;
+}
+
+.topbar-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 180px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+.topbar-menu-item {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.1s;
+  line-height: 1.4;
+}
+
+.topbar-menu-item:hover {
+  background: var(--bg-secondary);
+}
+
+.topbar-menu-item.archive-item {
+  color: var(--text-primary);
+}
+
+.topbar-menu-item.archive-item:hover {
+  background: var(--bg-secondary);
+}
+
 /* ─── Messages Area ───────────────────────────────────────────── */
 .messages-area {
   flex: 1;
@@ -301,6 +351,8 @@
   font-size: 10px;
   color: var(--text-tertiary);
   padding: 0 4px;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .bubble {
@@ -320,6 +372,97 @@
   color: white;
   border-bottom-left-radius: 14px;
   border-bottom-right-radius: 4px;
+}
+
+/* ── Bubble wrapper with hover actions ─────────────────────────── */
+.bubble-wrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.bubble-actions {
+  position: absolute;
+  top: -16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+}
+
+.bubble-actions.own {
+  right: auto;
+  left: -28px;
+}
+
+.bubble-actions:not(.own) {
+  right: -28px;
+}
+
+.bubble-menu-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-tertiary);
+  background: var(--bg-primary);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.1s, color 0.1s, border-color 0.1s;
+  padding: 0;
+}
+
+.bubble-wrapper:hover .bubble-menu-btn {
+  opacity: 1;
+  border-color: var(--text-tertiary);
+  color: var(--text-secondary);
+}
+
+.bubble-menu-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.delete-menu {
+  position: absolute;
+  top: 24px;
+  z-index: 10;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  min-width: 70px;
+}
+
+.bubble-actions:not(.own) .delete-menu {
+  left: 0;
+}
+
+.bubble-actions.own .delete-menu {
+  right: 0;
+}
+
+.delete-menu-item {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--red);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.1s;
+}
+
+.delete-menu-item:hover {
+  background: rgba(220, 38, 38, 0.08);
 }
 
 /* Media attachments */
@@ -451,3 +594,110 @@
 }
 .empty-state-icon { font-size: 44px; opacity: 0.35; }
 .empty-state-text { font-size: 14px; font-weight: 500; }
+
+/* ─── Conversation Sections ───────────────────────────────────── */
+.panel-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 10px 14px 4px;
+  user-select: none;
+}
+
+.panel-section-title { flex: 1; }
+
+.panel-section-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 1px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.panel-section-toggle {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px;
+  line-height: 1;
+  transition: color 0.1s;
+}
+
+.panel-section-toggle:hover {
+  color: var(--text-primary);
+}
+
+.conversation-badge {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.conversation-badge.archived,
+.conversation-badge.blocked {
+  opacity: 0.7;
+}
+
+.list-item.archived {
+  background: var(--bg-secondary);
+}
+
+.list-item.blocked {
+  background: rgba(220, 38, 38, 0.04);
+}
+
+.list-item.active-state {
+  background: rgba(0, 123, 255, 0.03);
+}
+
+.list-item.disabled-state {
+  background: rgba(108, 117, 125, 0.04);
+}
+
+.topbar-menu-item.unarchive-item {
+  color: var(--purple);
+}
+
+.topbar-menu-item.unarchive-item:hover {
+  background: var(--purple-bg);
+}
+
+.topbar-menu-item.unblock-item {
+  color: var(--text-primary);
+}
+
+.topbar-menu-item.unblock-item:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.topbar-menu-item.block-item {
+  color: var(--amber);
+}
+
+.topbar-menu-item.block-item:hover {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.conversation-action-btn {
+  margin: 0 auto;
+  padding: 9px 24px;
+  background: var(--purple);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.conversation-action-btn:hover {
+  opacity: 0.88;
+}

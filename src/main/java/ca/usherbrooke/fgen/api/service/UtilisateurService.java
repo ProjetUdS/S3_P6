@@ -56,35 +56,32 @@ public class UtilisateurService {
             @QueryParam("pseudo") String pseudo,
             @QueryParam("courriel") String courriel,
             @QueryParam("nom") String nom,
-            @QueryParam("prenom") String prenom,
-            @QueryParam("photoProfilId") String photoProfilId) {
+            @QueryParam("prenom") String prenom) {
         // Todo : implement and add the correct path
-        return utilisateurMapper.select(cip,pseudo,nom,prenom);
+        return utilisateurMapper.select(cip, pseudo, courriel, nom, prenom);
     }
 
     @GET
-    @Path("/{cip}")
+    @Path("/get")
     public Utilisateur getUtilisateur(
-            @PathParam("cip") String cip,
+            @QueryParam("cip") String cip,
             @QueryParam("pseudo") String pseudo,
-            @QueryParam("nom") String nom,
-            @QueryParam("prenom") String prenom) {
-        // Todo : implement and add the correct path
-        return null;
+            @QueryParam("courriel") String courriel) {
+        return utilisateurMapper.selectOne(cip, pseudo, courriel);
     }
 
     @DELETE
     @Path("/{cip}")
     public String deleteUtilisateur(@PathParam("cip") String cip) {
-        // Todo : implement and add the correct path
-        return null;
+    utilisateurMapper.deleteOne(cip);
+        return "Deleted (200)";
     }
 
     @POST
     @Path("/{cip}/contact/{contact_cip}")
-    public String ajouteContact(@PathParam("cip") String cip, @PathParam("contact_cip") String contact) {
+    public String ajouteContact(@PathParam("cip") String cip, @PathParam("contact_cip") String cip_contact) {
         // Todo : Vérification et conditions?
-        utilisateurMapper.insertContact(cip, contact);
+        utilisateurMapper.insertContact(cip, cip_contact);
         return "200";
     }
 

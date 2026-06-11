@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="message-dev">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/build/message-dev.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

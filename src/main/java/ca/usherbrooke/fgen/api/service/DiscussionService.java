@@ -14,32 +14,34 @@ import java.util.List;
 @Consumes(MediaType.APPLICATION_JSON)
 public class DiscussionService {
 
-  @Inject DiscussionMapper discussionMapper;
-  @Inject DiscussionMemberMapper discussionMemberMapper;
+    @Inject
+    DiscussionMapper discussionMapper;
+    @Inject
+    DiscussionMemberMapper discussionMemberMapper;
 
-  // GET /api/discussion  → liste les discussions des utilisateurs donnés
-  @GET
-  public List<Discussion> getDiscussions(
-          @QueryParam("usersId") String[] usersId,
-          @QueryParam("equipeId") String equipeId,
-          @QueryParam("discussionId") String discussionId) {
-    return discussionMapper.select(usersId, equipeId, discussionId);
-  }
+    // GET /api/discussion  → liste les discussions des utilisateurs donnés
+    @GET
+    public List<Discussion> getDiscussions(
+            @QueryParam("usersId") String[] usersId,
+            @QueryParam("equipeId") String equipeId,
+            @QueryParam("discussionId") String discussionId) {
+        return discussionMapper.select(usersId, equipeId, discussionId);
+    }
 
-  // GET /api/discussion/{discussionId}
-  @GET
-  @Path("/{discussionId}")
-  public Discussion getDiscussion(@PathParam("discussionId") String discussionId) {
-    return discussionMapper.selectOne(discussionId);
-  }
+    // GET /api/discussion/{discussionId}
+    @GET
+    @Path("/{discussionId}")
+    public Discussion getDiscussion(@PathParam("discussionId") String discussionId) {
+        return discussionMapper.selectOne(discussionId);
+    }
 
-  // DELETE /api/discussion/{discussionId}
-  @DELETE
-  @Path("/{discussionId}")
-  public String deleteDiscussion(@PathParam("discussionId") String discussionId) {
-    discussionMapper.deleteOne(discussionId);
-    return discussionId;
-  }
+    // DELETE /api/discussion/{discussionId}
+    @DELETE
+    @Path("/{discussionId}")
+    public String deleteDiscussion(@PathParam("discussionId") String discussionId) {
+        discussionMapper.deleteOne(discussionId);
+        return discussionId;
+    }
 
   // POST /api/discussion  → création
   @POST
@@ -47,11 +49,9 @@ public class DiscussionService {
     if (discussion.discussionId == null) {
       discussion.discussionId = discussionMapper.getNewId();
     }
-    if (discussion.equipeId != null) {
-      discussionMapper.insertDiscussion(discussion);
-    } else {
-      discussionMapper.insertDiscussionNoEquipe(discussion.discussionId);
-    }
+
+    discussionMapper.insertDiscussion(discussion);
+
     if (discussion.members != null && !discussion.members.isEmpty()) {
       discussionMemberMapper.insertMembers(discussion.discussionId, discussion.members);
     }
