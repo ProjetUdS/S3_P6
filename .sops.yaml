@@ -6,4 +6,5 @@ creation_rules:
           - age1ujfummyn2rxcrnfqt5fkrazunewre2erru62m6llavetzwlwzgwqnduhku #Xavier Benoit
           - age1ldh3zw9557g0tnlq8yp5xfxt4mwlkcf6vg82ue3uppjaeppp0fcswn3faw #Xavier Belleville
           - age1d79mg6mlf0pl5x5h7f2renpjq80vf456nfc873yfnldqsgl6hfdquufew8 #Tristan
+          - age1pqeh4af842u8uxul5z4fhdaudvc9v0u99qzfgczcmlwysszqn96qrhwy8w #Yohan
     encrypted_regex: '^(.*)$'
