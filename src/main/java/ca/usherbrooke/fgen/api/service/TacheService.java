@@ -46,6 +46,13 @@ public class TacheService {
         tacheMapper.insertTache(tache);
     }
 
+    @POST
+    @Path("/assign{tacheId}")
+    public void  assignTache(String tacheId, String cip) {
+        Tache tache = tacheMapper.selectOne(tacheId);
+        tache.cip = cip;
+    }
+
     @GET
     @Path("/nouveauID")
     public String getNewId() {

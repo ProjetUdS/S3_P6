@@ -92,6 +92,12 @@
                                           description = excluded.description
     </insert>
 
+    <update id="assignTache">
+        update app.tache
+        set cip = #{cip}
+        where tache_id = #{tacheId}
+    </update>
+
     <select id="getNewId" resultType="String">
         select gen_random_uuid()
     </select>
