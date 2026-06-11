@@ -1,0 +1,88 @@
+#!/usr/bin/env sh
+set -euo pipefail
+
+
+# Git passes: old-ref new-ref branch-checkout-flag
+# Only act on branch checkouts (flag == 1), not file checkouts (flag == 0)
+if [ "$3" != "1" ]; then
+    exit 0
+fi
+
+# --- Read shared config ---
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/.hooks-config"
+if [ ! -f "$CONFIG_FILE" ]; then
+    exit 0
+fi
+
+# Parse a config section into stdout (one value per line)
+get_config_values() {
+    section=""
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        [ -z "$line" ] && continue
+        case "$line" in
+            \#*) continue ;;
+        esac
+        case "$line" in
+            \[*\])
+                section="${line#\[}"
+                section="${section%\]}"
+                continue
+                ;;
+        esac
+        if [ "$section" = "$1" ]; then
+            printf '%s\n' "$line"
+        fi
+    done < "$CONFIG_FILE"
+}
+
+# Build temp dir (portable: uses mktemp if available, otherwise fallback)
+tmpdir=""
+if command -v mktemp >/dev/null 2>&1; then
+    tmpdir=$(mktemp -d)
+else
+    tmpdir="${TMPDIR:-/tmp}/post-checkout-$$"
+    mkdir -p "$tmpdir"
+fi
+trap 'rm -rf "$tmpdir"' EXIT
+
+# Get encrypted files from config, ok
+get_config_values "encrypted" > "$tmpdir/encrypted"
+
+# Get all tracked files in HEAD once (avoid repeated git calls)
+git ls-tree -r --name-only HEAD > "$tmpdir/head_files" 2>/dev/null || true
+
+# Check if any encrypted file is tracked in HEAD
+need_decrypt=false
+while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if grep -qxF "$f" "$tmpdir/head_files" 2>/dev/null; then
+        need_decrypt=true
+        break
+    fi
+done < "$tmpdir/encrypted"
+
+# If any tracked encrypted file exists, run decryption (non-fatal)
+if [ "$need_decrypt" = "true" ]; then
+    echo "Detected tracked encrypted secrets — decrypting..." >&2
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    # find a python launcher
+    for _py in python3 python py; do
+        if command -v "$_py" >/dev/null 2>&1; then
+            PYCMD="$_py"
+            break
+        fi
+    done
+    if [ -z "$PYCMD" ]; then
+        echo "Warning: no Python found in PATH; cannot decrypt. Install Python or run the decrypt command manually." >&2
+        exit 1
+    fi
+
+    if "$PYCMD" "$PROJECT_ROOT/python/sops_manage.py" decrypt 2>/dev/null; then
+        echo "Post-checkout: secrets decrypted." >&2
+    else
+        echo "Warning: decryption failed. Encrypted files are in git; run '$PYCMD python/sops_manage.py decrypt' manually." >&2
+    fi
+fi

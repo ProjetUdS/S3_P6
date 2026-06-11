@@ -1,5 +1,8 @@
 -- Users
 INSERT INTO app.utilisateur (cip, pseudo, courriel, nom, prenom, photo_de_profil_id)
+VALUES ('test1234', 'test', 'test@usherbrooke.ca', 'Test', 'Le', null);
+
+INSERT INTO app.utilisateur (cip, pseudo, courriel, nom, prenom, photo_de_profil_id)
 VALUES ('tura2517', 'tura2517', 'tura2517@usherbrooke.ca', 'Turcotte', 'Adam', null);
 
 INSERT INTO app.utilisateur(cip, pseudo, courriel, nom, prenom, photo_de_profil_id)
