@@ -46,6 +46,13 @@ public class TacheService {
         tacheMapper.insertTache(tache);
     }
 
+    @POST
+    @Path("/set{tacheId}")
+    public void setTacheStatus(@PathParam("tacheId") String tacheId, @QueryParam("status") String status) {
+        Tache tache = tacheMapper.selectOne(tacheId);
+        tache.status = status;
+    }
+
     @GET
     @Path("/nouveauID")
     public String getNewId() {

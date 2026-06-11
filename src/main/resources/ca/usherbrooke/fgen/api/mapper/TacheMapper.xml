@@ -92,6 +92,12 @@
                                           description = excluded.description
     </insert>
 
+    <update id="setStatus">
+        update app.tache
+        set status = #{status}
+        where tache_id = #{tacheId}
+    </update>
+
     <select id="getNewId" resultType="String">
         select gen_random_uuid()
     </select>
