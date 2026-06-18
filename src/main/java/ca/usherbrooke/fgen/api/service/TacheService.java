@@ -46,6 +46,29 @@ public class TacheService {
         tacheMapper.insertTache(tache);
     }
 
+    @POST
+    @Path("/assign/{tacheId}")
+    public void  assignTache(@PathParam("tacheId") String tachedId, @QueryParam("cip") String cip) {
+        Tache tache = tacheMapper.selectOne(tachedId);
+        if(tache == null) {
+            return;
+        }
+
+        if(!tacheMapper.isAlreadyAssignedToCip(tachedId, cip)) {
+            tacheMapper.assignTache(tachedId, cip);
+        }
+    }
+
+    @POST
+    @Path("/set/{tacheId}")
+    public void setTacheStatus(@PathParam("tacheId") String tacheId, @QueryParam("status") String status) {
+        Tache tache = tacheMapper.selectOne(tacheId);
+        if(tache == null) {
+            return;
+        }
+        tacheMapper.setStatus(tacheId, status);
+    }
+
     @GET
     @Path("/nouveauID")
     public String getNewId() {

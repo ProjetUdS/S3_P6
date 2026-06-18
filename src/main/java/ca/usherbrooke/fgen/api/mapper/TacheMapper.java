@@ -1,6 +1,7 @@
 package ca.usherbrooke.fgen.api.mapper;
 
 import ca.usherbrooke.fgen.api.business.Tache;
+import jakarta.ws.rs.QueryParam;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -21,9 +22,15 @@ public interface TacheMapper {
 
   Tache selectOne(@Param("tacheId") String tacheId);
 
+  void setStatus(@Param("tacheId") String tacheId, @Param("status") String status);
+
   void deleteOne(@Param("tacheId") String tacheId);
 
   void insertTache(@Param("tache") Tache tache);
+
+  void assignTache(@Param("tacheId") String tacheId, @QueryParam("cip") String cip);
+
+  boolean isAlreadyAssignedToCip(@Param("tacheId") String tacheId, @QueryParam("cip") String cip);
 
   void updateTache(@Param("tache") Tache tache);
 

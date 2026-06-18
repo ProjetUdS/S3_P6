@@ -1,5 +1,8 @@
 -- Users
 INSERT INTO app.utilisateur (cip, pseudo, courriel, nom, prenom, photo_de_profil_id)
+VALUES ('test1234', 'test', 'test@usherbrooke.ca', 'Test', 'Le', null);
+
+INSERT INTO app.utilisateur (cip, pseudo, courriel, nom, prenom, photo_de_profil_id)
 VALUES ('tura2517', 'tura2517', 'tura2517@usherbrooke.ca', 'Turcotte', 'Adam', null);
 
 INSERT INTO app.utilisateur(cip, pseudo, courriel, nom, prenom, photo_de_profil_id)
@@ -19,7 +22,7 @@ INSERT INTO app.contact (cip, cip_contact)
 VALUES ('tura2517', 'grae3425');
 
 INSERT INTO app.contact (cip, cip_contact)
-VALUES ('tura2517', 'daly0396');
+VALUES ('tura2517', 'daly0386');
 
 -- Equipe
 INSERT INTO app.discussion(discussion_id)

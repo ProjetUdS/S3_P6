@@ -1,0 +1,10 @@
+creation_rules:
+  - filename_regex: '.*'
+    key_groups:
+      - age:
+          - age1e3t3m9vs9fyreact9jvy4qry2n9qgz9k629hnnsun2r8lrd0g54s03h9h6 #Adam
+          - age1ujfummyn2rxcrnfqt5fkrazunewre2erru62m6llavetzwlwzgwqnduhku #Xavier Benoit
+          - age1ldh3zw9557g0tnlq8yp5xfxt4mwlkcf6vg82ue3uppjaeppp0fcswn3faw #Xavier Belleville
+          - age1d79mg6mlf0pl5x5h7f2renpjq80vf456nfc873yfnldqsgl6hfdquufew8 #Tristan
+          - age1pqeh4af842u8uxul5z4fhdaudvc9v0u99qzfgczcmlwysszqn96qrhwy8w #Yohan
+    encrypted_regex: '(?i)(password|secret|admin|id)$'
