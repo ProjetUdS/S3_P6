@@ -52,7 +52,7 @@ quarkus:
       enabled: false
 
     db-kind: postgresql
-    username: ${DB_PASSWORD}
+    username: ${DB_USER}
     password: ${DB_PASSWORD}
     jdbc:
       url: "jdbc:postgresql://localhost:5444/postgres"

@@ -22,7 +22,7 @@ INSERT INTO app.contact (cip, cip_contact)
 VALUES ('tura2517', 'grae3425');
 
 INSERT INTO app.contact (cip, cip_contact)
-VALUES ('tura2517', 'daly0396');
+VALUES ('tura2517', 'daly0386');
 
 -- Equipe
 INSERT INTO app.discussion(discussion_id)
