@@ -93,10 +93,18 @@
     </insert>
 
     <update id="assignTache">
-        update app.tache
+        update app.assignee
         set cip = #{cip}
         where tache_id = #{tacheId}
     </update>
+
+    <select id="isAlreadyAssigned" resultType="boolean" parameterType="map">
+        select exists(
+            select 1 from app.assignee
+            where cip = #{cip}
+              and tache_id = #{tacheId}
+        )
+    </select>
 
     <select id="getNewId" resultType="String">
         select gen_random_uuid()

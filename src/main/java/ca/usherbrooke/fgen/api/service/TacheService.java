@@ -47,10 +47,16 @@ public class TacheService {
     }
 
     @POST
-    @Path("/assign{tacheId}")
-    public void  assignTache(String tacheId, String cip) {
-        Tache tache = tacheMapper.selectOne(tacheId);
-        tache.cip = cip;
+    @Path("/assign/{tacheId}")
+    public void  assignTache(@PathParam("tacheId") String tachedId, @QueryParam("cip") String cip) {
+        Tache tache = tacheMapper.selectOne(tachedId);
+        if(tache == null) {
+            return;
+        }
+
+        if(!tacheMapper.isAlreadyAssigned(tachedId, cip)) {
+            tacheMapper.assignTache(tachedId, cip);
+        }
     }
 
     @GET

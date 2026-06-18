@@ -28,5 +28,7 @@ public interface TacheMapper {
 
   void assignTache(@Param("tacheId") String tacheId, @QueryParam("cip") String cip);
 
+  boolean isAlreadyAssigned(@Param("tacheId") String tacheId, @QueryParam("cip") String cip);
+
   String getNewId();
 }
