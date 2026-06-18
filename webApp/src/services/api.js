@@ -123,6 +123,11 @@ export async function createTache(tache) {
   return response.data;
 }
 
+export async function updateTache(tacheId, tache) {
+  const response = await api.put(`/tache/${tacheId}`, tache);
+  return response.data;
+}
+
 export async function deleteTache(tacheId) {
   const response = await api.delete(`/tache/${tacheId}`);
   return response.data;
