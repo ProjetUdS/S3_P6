@@ -22,6 +22,8 @@ public interface TacheMapper {
 
   Tache selectOne(@Param("tacheId") String tacheId);
 
+  void setStatus(@Param("tacheId") String tacheId, @Param("status") String status);
+
   void deleteOne(@Param("tacheId") String tacheId);
 
   void insertTache(@Param("tache") Tache tache);

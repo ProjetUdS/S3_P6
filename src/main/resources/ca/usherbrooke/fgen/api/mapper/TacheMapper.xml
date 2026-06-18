@@ -92,6 +92,12 @@
                                           description = excluded.description
     </insert>
 
+    <update id="setStatus">
+        update app.tache
+        set status = #{status}
+        where tache_id = #{tacheId}
+    </update>
+
     <update id="assignTache">
         update app.assignee
         set cip = #{cip}
