@@ -54,7 +54,7 @@ public class TacheService {
             return;
         }
 
-        if(!tacheMapper.isAlreadyAssigned(tachedId, cip)) {
+        if(!tacheMapper.isAlreadyAssignedToCip(tachedId, cip)) {
             tacheMapper.assignTache(tachedId, cip);
         }
     }
