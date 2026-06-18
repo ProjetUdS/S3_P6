@@ -98,7 +98,7 @@
         where tache_id = #{tacheId}
     </update>
 
-    <select id="isAlreadyAssigned" resultType="boolean" parameterType="map">
+    <select id="isAlreadyAssignedToCip" resultType="boolean" parameterType="map">
         select exists(
             select 1 from app.assignee
             where cip = #{cip}
