@@ -28,10 +28,6 @@ public interface TacheMapper {
 
   void insertTache(@Param("tache") Tache tache);
 
-  void assignTache(@Param("tacheId") String tacheId, @QueryParam("cip") String cip);
-
-  boolean isAlreadyAssignedToCip(@Param("tacheId") String tacheId, @QueryParam("cip") String cip);
-
   void updateTache(@Param("tache") Tache tache);
 
   String getNewId();

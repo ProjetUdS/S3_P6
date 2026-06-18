@@ -98,20 +98,6 @@
         where tache_id = #{tacheId}
     </update>
 
-    <update id="assignTache">
-        update app.assignee
-        set cip = #{cip}
-        where tache_id = #{tacheId}
-    </update>
-
-    <select id="isAlreadyAssignedToCip" resultType="boolean" parameterType="map">
-        select exists(
-            select 1 from app.assignee
-            where cip = #{cip}
-              and tache_id = #{tacheId}
-        )
-    </select>
-
     <update id="updateTache">
         UPDATE app.Tache
         SET nom_tache   = coalesce(#{tache.nomTache}, nom_tache),
