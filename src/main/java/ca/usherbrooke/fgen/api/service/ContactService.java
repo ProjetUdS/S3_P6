@@ -20,15 +20,10 @@ public class ContactService {
         return contactMapper.selectContacts(cip);
     }
 
-    @POST
-    public String insertContact(@QueryParam("cip") String cip, @QueryParam("cipContact") String cipContact) {
-        contactMapper.insertContact(cip, cipContact);
-        return cipContact;
-    }
-
     @DELETE
     public String deleteContact(@QueryParam("cip") String cip, @QueryParam("cipContact") String cipContact) {
         contactMapper.deleteContact(cip, cipContact);
+        contactMapper.deleteContact(cipContact, cip); // bidirectionnel
         return cipContact;
     }
 }

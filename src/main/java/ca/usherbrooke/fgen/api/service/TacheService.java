@@ -64,8 +64,13 @@ public class TacheService {
 
     @PUT
     @Path("/{tacheId}")
-    public void updateTache(@PathParam("tacheId") String tacheId, Tache tache) {
-        tache.id = tacheId;
-        tacheMapper.updateTache(tache);
+    public void updateTache(
+            @PathParam("tacheId") String tacheId,
+            @QueryParam("nomTache") String nomTache,
+            @QueryParam("status") String status,
+            @QueryParam("description") String description,
+            @QueryParam("dateDebut") Date dateDebut,
+            @QueryParam("dateFin") Date dateFin) {
+        tacheMapper.updateTache(tacheId, nomTache, status, description, dateDebut, dateFin);
     }
 }
