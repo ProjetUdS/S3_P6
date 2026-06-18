@@ -25,5 +25,7 @@ public interface TacheMapper {
 
   void insertTache(@Param("tache") Tache tache);
 
+  void updateTache(@Param("tache") Tache tache);
+
   String getNewId();
 }

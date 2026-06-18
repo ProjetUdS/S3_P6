@@ -51,4 +51,11 @@ public class TacheService {
     public String getNewId() {
         return tacheMapper.getNewId();
     }
+
+    @PUT
+    @Path("/{tacheId}")
+    public void updateTache(@PathParam("tacheId") String tacheId, Tache tache) {
+        tache.id = tacheId;
+        tacheMapper.updateTache(tache);
+    }
 }
