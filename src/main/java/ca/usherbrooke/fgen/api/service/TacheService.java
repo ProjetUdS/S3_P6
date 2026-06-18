@@ -47,10 +47,13 @@ public class TacheService {
     }
 
     @POST
-    @Path("/set{tacheId}")
+    @Path("/set/{tacheId}")
     public void setTacheStatus(@PathParam("tacheId") String tacheId, @QueryParam("status") String status) {
         Tache tache = tacheMapper.selectOne(tacheId);
-        tache.status = status;
+        if(tache == null) {
+            return;
+        }
+        tacheMapper.setStatus(tacheId, status);
     }
 
     @GET
