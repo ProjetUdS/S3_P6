@@ -2,12 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { MEETINGS, CALENDAR, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches, createTache } from '../../services/api';
+import { getTeamMembers, getTaches, createTache, updateTache } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
 /**
- * TeamPlanning  — Planning tab: tasks, upcoming meetings, calendar, right sidebar.
+ * TeamPlanning  — Planning tab: Kanban board, meetings, calendar, right sidebar.
  *
  * Props:
  *   team  – team object with equipeId, nomEquipe, etc.
@@ -20,6 +20,15 @@ export default function TeamPlanning({ team }) {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [draggedTask, setDraggedTask] = useState(null);
+
+  // Map task status to column state
+  const getTaskStatus = (t) => {
+    const status = t.status?.toLowerCase() || '';
+    if (status === 'termine' || status === 'done') return 'done';
+    if (status === 'en_cours' || status === 'doing') return 'doing';
+    return 'todo';
+  };
 
   useEffect(() => {
     if (!team?.equipeId) {
@@ -49,8 +58,8 @@ export default function TeamPlanning({ team }) {
         .then(data => {
           const transformed = (data || []).map(t => ({
             id: t.id,
-            done: t.status === 'termine' || t.status === 'done',
             text: t.nomTache,
+            status: getTaskStatus(t),
             assignee: {
               initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
               gradient: gradientForCip(t.cip),
@@ -58,18 +67,13 @@ export default function TeamPlanning({ team }) {
             priority: t.status === 'termine' ? 'done' :
                      t.status === 'urgent' ? 'high' :
                      t.status === 'important' ? 'med' : 'low',
+            originalStatus: t.status,
           }));
           setTasks(transformed);
         })
         .catch(err => console.error('Failed to load tasks:', err)),
     ]).finally(() => setLoading(false));
   }, [team?.equipeId]);
-
-  function toggleTask(id) {
-    setTasks(prev =>
-      prev.map(t => t.id === id ? { ...t, done: !t.done, priority: !t.done ? 'done' : 'med' } : t)
-    );
-  }
 
   async function handleCreateTask() {
     if (!newTaskName.trim() || !team?.equipeId || !user?.cip) return;
@@ -79,15 +83,15 @@ export default function TeamPlanning({ team }) {
         nomTache: newTaskName.trim(),
         equipeId: team.equipeId,
         cip: user.cip,
-        status: 'en_cours',
+        status: 'todo',
       });
       setNewTaskName('');
       setShowTaskForm(false);
       const data = await getTaches(team.equipeId);
       const transformed = (data || []).map(t => ({
         id: t.id,
-        done: t.status === 'termine' || t.status === 'done',
         text: t.nomTache,
+        status: getTaskStatus(t),
         assignee: {
           initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
           gradient: gradientForCip(t.cip),
@@ -95,6 +99,7 @@ export default function TeamPlanning({ team }) {
         priority: t.status === 'termine' ? 'done' :
                  t.status === 'urgent' ? 'high' :
                  t.status === 'important' ? 'med' : 'low',
+        originalStatus: t.status,
       }));
       setTasks(transformed);
     } catch (err) {
@@ -109,72 +114,197 @@ export default function TeamPlanning({ team }) {
     if (e.key === 'Escape') { setShowTaskForm(false); setNewTaskName(''); }
   }
 
+  function handleDragStart(task) {
+    setDraggedTask(task);
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
+
+  async function handleDrop(targetStatus) {
+    if (!draggedTask || draggedTask.status === targetStatus) {
+      setDraggedTask(null);
+      return;
+    }
+
+    // Update task status locally first
+    setTasks(prev => prev.map(t =>
+      t.id === draggedTask.id ? { ...t, status: targetStatus } : t
+    ));
+
+    // Update status mapping for API
+    const statusMap = {
+      'todo': 'todo',
+      'doing': 'en_cours',
+      'done': 'termine',
+    };
+
+    try {
+      await updateTache(draggedTask.id, { status: statusMap[targetStatus] });
+    } catch (err) {
+      console.error('Failed to update task status:', err);
+      // Revert on error
+      setTasks(prev => prev.map(t =>
+        t.id === draggedTask.id ? draggedTask : t
+      ));
+    }
+
+    setDraggedTask(null);
+  }
+
+  const columns = {
+    todo: tasks.filter(t => t.status === 'todo'),
+    doing: tasks.filter(t => t.status === 'doing'),
+    done: tasks.filter(t => t.status === 'done'),
+  };
+
   return (
     <div className="planning-layout">
       {/* ── Main scrollable area ── */}
       <div className="planning-main">
 
-        {/* Tasks */}
-        <section aria-labelledby="tasks-heading">
+        {/* Kanban Board */}
+        <section aria-labelledby="kanban-heading">
           <div className="plan-section-header">
-            <div className="plan-section-title" id="tasks-heading">Tasks</div>
-            <button className="plan-add-btn" aria-label="Create new task" onClick={() => setShowTaskForm(true)}>➕ New task</button>
+            <div className="plan-section-title" id="kanban-heading">Board</div>
           </div>
-          <ul className="task-list" aria-label="Task list">
-            {tasks.map(task => (
-              <li key={task.id} className="task-item">
-                <button
-                  className={`task-check ${task.done ? 'done' : ''}`}
-                  onClick={() => toggleTask(task.id)}
-                  aria-label={task.done ? 'Mark incomplete' : 'Mark complete'}
-                  aria-pressed={task.done}
-                >
-                  {task.done && '✓'}
-                </button>
-                <span className={`task-text ${task.done ? 'done' : ''}`}>{task.text}</span>
-                <div className="task-meta">
-                  <Avatar
-                    initials={task.assignee.initials}
-                    gradient={task.assignee.gradient}
-                    size="sm"
-                  />
-                  <PriorityTag priority={task.priority} />
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          {showTaskForm && (
-            <form className="task-create-form" onSubmit={e => { e.preventDefault(); handleCreateTask(); }}>
-              <input
-                className="task-create-input"
-                type="text"
-                placeholder="Task name..."
-                value={newTaskName}
-                onChange={e => setNewTaskName(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoFocus
-                aria-label="New task name"
-              />
-              <div className="task-create-actions">
-                <button
-                  type="submit"
-                  className="task-create-btn"
-                  disabled={!newTaskName.trim() || creating}
-                  style={{ opacity: (!newTaskName.trim() || creating) ? 0.5 : 1 }}
-                >
-                  {creating ? 'Creating...' : 'Create'}
-                </button>
-                <button
-                  type="button"
-                  className="task-create-cancel"
-                  onClick={() => { setShowTaskForm(false); setNewTaskName(''); }}
-                >
-                  Cancel
-                </button>
+          <div className="kanban-board">
+            {/* Todo Column */}
+            <div
+              className="kanban-column"
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop('todo')}
+            >
+              <div className="kanban-column-header">
+                <h3>📝 Todo</h3>
+                <span className="kanban-count">{columns.todo.length}</span>
               </div>
-            </form>
-          )}
+              <div className="kanban-tasks">
+                {columns.todo.map(task => (
+                  <div
+                    key={task.id}
+                    className="kanban-card"
+                    draggable
+                    onDragStart={() => handleDragStart(task)}
+                  >
+                    <span className="kanban-task-text">{task.text}</span>
+                    <div className="kanban-task-meta">
+                      <Avatar
+                        initials={task.assignee.initials}
+                        gradient={task.assignee.gradient}
+                        size="sm"
+                      />
+                      <PriorityTag priority={task.priority} />
+                    </div>
+                  </div>
+                ))}
+                {showTaskForm && (
+                  <form className="kanban-task-form" onSubmit={e => { e.preventDefault(); handleCreateTask(); }}>
+                    <input
+                      className="kanban-task-input"
+                      type="text"
+                      placeholder="Task name..."
+                      value={newTaskName}
+                      onChange={e => setNewTaskName(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      autoFocus
+                      aria-label="New task name"
+                    />
+                    <div className="kanban-task-actions">
+                      <button
+                        type="submit"
+                        className="kanban-task-btn"
+                        disabled={!newTaskName.trim() || creating}
+                      >
+                        {creating ? 'Creating...' : 'Create'}
+                      </button>
+                      <button
+                        type="button"
+                        className="kanban-task-cancel"
+                        onClick={() => { setShowTaskForm(false); setNewTaskName(''); }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+                {!showTaskForm && (
+                  <button
+                    className="kanban-add-btn"
+                    onClick={() => setShowTaskForm(true)}
+                    aria-label="Create new task"
+                  >
+                    ➕ New task
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Doing Column */}
+            <div
+              className="kanban-column"
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop('doing')}
+            >
+              <div className="kanban-column-header">
+                <h3>⚙️ Doing</h3>
+                <span className="kanban-count">{columns.doing.length}</span>
+              </div>
+              <div className="kanban-tasks">
+                {columns.doing.map(task => (
+                  <div
+                    key={task.id}
+                    className="kanban-card"
+                    draggable
+                    onDragStart={() => handleDragStart(task)}
+                  >
+                    <span className="kanban-task-text">{task.text}</span>
+                    <div className="kanban-task-meta">
+                      <Avatar
+                        initials={task.assignee.initials}
+                        gradient={task.assignee.gradient}
+                        size="sm"
+                      />
+                      <PriorityTag priority={task.priority} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Done Column */}
+            <div
+              className="kanban-column"
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop('done')}
+            >
+              <div className="kanban-column-header">
+                <h3>✅ Done</h3>
+                <span className="kanban-count">{columns.done.length}</span>
+              </div>
+              <div className="kanban-tasks">
+                {columns.done.map(task => (
+                  <div
+                    key={task.id}
+                    className="kanban-card done"
+                    draggable
+                    onDragStart={() => handleDragStart(task)}
+                  >
+                    <span className="kanban-task-text">{task.text}</span>
+                    <div className="kanban-task-meta">
+                      <Avatar
+                        initials={task.assignee.initials}
+                        gradient={task.assignee.gradient}
+                        size="sm"
+                      />
+                      <PriorityTag priority={task.priority} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Upcoming meetings */}
@@ -259,21 +389,25 @@ export default function TeamPlanning({ team }) {
         <div className="ps-divider" />
 
         {/* Quick stats */}
-        <div>
-          <div className="ps-section-title">Quick Stats</div>
-          <div className="stat-row">
-            <span className="stat-label">Tasks open</span>
-            <span className="stat-value">{tasks.filter(t => !t.done).length}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">Completed</span>
-            <span className="stat-value green">{tasks.filter(t => t.done).length}</span>
-          </div>
-          <div className="stat-row">
-            <span className="stat-label">Total members</span>
-            <span className="stat-value">{members.length}</span>
-          </div>
-        </div>
+         <div>
+           <div className="ps-section-title">Quick Stats</div>
+           <div className="stat-row">
+             <span className="stat-label">To Do</span>
+             <span className="stat-value">{columns.todo.length}</span>
+           </div>
+           <div className="stat-row">
+             <span className="stat-label">In Progress</span>
+             <span className="stat-value">{columns.doing.length}</span>
+           </div>
+           <div className="stat-row">
+             <span className="stat-label">Completed</span>
+             <span className="stat-value green">{columns.done.length}</span>
+           </div>
+           <div className="stat-row">
+             <span className="stat-label">Total members</span>
+             <span className="stat-value">{members.length}</span>
+           </div>
+         </div>
       </aside>
     </div>
   );

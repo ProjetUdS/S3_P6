@@ -109,6 +109,22 @@
                                           description = excluded.description
     </insert>
 
+    <update id="setStatus">
+        update app.tache
+        set status = #{status}
+        where tache_id = #{tacheId}
+    </update>
+
+    <update id="updateTache">
+        UPDATE app.Tache
+        SET nom_tache   = coalesce(#{nomTache}, nom_tache),
+            status      = coalesce(#{status}, status),
+            description = coalesce(#{description}, description),
+            date_debut  = coalesce(#{dateDebut}, date_debut),
+            date_fin    = coalesce(#{dateFin}, date_fin)
+        WHERE tache_id = #{tacheId}
+    </update>
+
     <select id="getNewId" resultType="String">
         select gen_random_uuid()
     </select>

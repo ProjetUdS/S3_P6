@@ -9,13 +9,19 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+     toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
 }
 
 
 dependencies {
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+
+    // Config avec yaml
+    implementation("io.quarkus:quarkus-config-yaml")
 
     // Sécurité / OIDC
     implementation("io.quarkus:quarkus-oidc")
@@ -36,6 +42,7 @@ dependencies {
     implementation("io.quarkiverse.mybatis:quarkus-mybatis:$quarkusMybatisVersion")
 
     // JDBC (PostgreSQL ou autre)
+    implementation("io.quarkus:quarkus-agroal")
     implementation("io.quarkus:quarkus-jdbc-postgresql") // adapte selon ton SGBD
 
     // https://mvnrepository.com/artifact/org.jsoup/jsoup
