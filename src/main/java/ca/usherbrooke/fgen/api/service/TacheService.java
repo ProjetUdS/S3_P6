@@ -52,9 +52,31 @@ public class TacheService {
         tacheMapper.insertTache(tache);
     }
 
+    @POST
+    @Path("/set/{tacheId}")
+    public void setTacheStatus(@PathParam("tacheId") String tacheId, @QueryParam("status") String status) {
+        Tache tache = tacheMapper.selectOne(tacheId);
+        if(tache == null) {
+            return;
+        }
+        tacheMapper.setStatus(tacheId, status);
+    }
+
     @GET
     @Path("/nouveauID")
     public String getNewId() {
         return tacheMapper.getNewId();
+    }
+
+    @PUT
+    @Path("/{tacheId}")
+    public void updateTache(
+            @PathParam("tacheId") String tacheId,
+            @QueryParam("nomTache") String nomTache,
+            @QueryParam("status") String status,
+            @QueryParam("description") String description,
+            @QueryParam("dateDebut") Date dateDebut,
+            @QueryParam("dateFin") Date dateFin) {
+        tacheMapper.updateTache(tacheId, nomTache, status, description, dateDebut, dateFin);
     }
 }
