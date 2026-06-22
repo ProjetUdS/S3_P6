@@ -27,6 +27,13 @@ public class TacheService {
         return tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
     }
 
+    /**
+     * Récupère les tâches d'une équipe ayant une échéance, triées par date de fin croissante.
+     *
+     * @param equipeId l'identifiant de l'équipe dont on veut les échéances
+     * @return la liste des tâches de l'équipe possédant une date de fin,
+     *         ordonnées de l'échéance la plus proche à la plus lointaine
+     */
     @GET
     @Path("/deadlines")
     public List<Tache> getDeadlines(@QueryParam("equipeId") String equipeId) {
