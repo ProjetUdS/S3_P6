@@ -28,6 +28,15 @@ public class TacheService {
         return tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
     }
 
+    /**
+     * Récupère les tâches d'une équipe qui chevauchent une plage de dates donnée,
+     * pour un affichage de type calendrier.
+     *
+     * @param equipeId l'identifiant de l'équipe
+     * @param dateMin borne inférieure de la plage (peut être nulle pour ne pas filtrer)
+     * @param dateMax borne supérieure de la plage (peut être nulle pour ne pas filtrer)
+     * @return la liste des tâches de l'équipe dont la période recoupe l'intervalle demandé
+     */
     @GET
     @Path("/calendrier")
     public List<Tache> getCalendrier(@QueryParam("equipeId") String equipeId,
