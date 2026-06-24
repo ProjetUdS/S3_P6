@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 @Path("/api/tache")
 @Produces(MediaType.APPLICATION_JSON)
@@ -38,6 +39,23 @@ public class TacheService {
     @Path("/deadlines")
     public List<Tache> getDeadlines(@QueryParam("equipeId") String equipeId) {
         return tacheMapper.deadlines(equipeId);
+    }
+
+    /**
+     * Récupère les tâches d'une équipe qui chevauchent une plage de dates donnée,
+     * pour un affichage de type calendrier.
+     *
+     * @param equipeId l'identifiant de l'équipe
+     * @param dateMin borne inférieure de la plage (peut être nulle pour ne pas filtrer)
+     * @param dateMax borne supérieure de la plage (peut être nulle pour ne pas filtrer)
+     * @return la liste des tâches de l'équipe dont la période recoupe l'intervalle demandé
+     */
+    @GET
+    @Path("/calendrier")
+    public List<Tache> getCalendrier(@QueryParam("equipeId") String equipeId,
+                                     @QueryParam("dateMin") LocalDate dateMin,
+                                     @QueryParam("dateMax") LocalDate dateMax) {
+        return tacheMapper.calendrierEquipe(equipeId, dateMin, dateMax);
     }
 
     @GET

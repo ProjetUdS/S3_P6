@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
+import java.time.LocalDate;
 
 @Mapper
 public interface TacheMapper {
@@ -28,6 +29,19 @@ public interface TacheMapper {
    * @return la liste des tâches avec échéance, ordonnées par date de fin
    */
   List<Tache> deadlines(@Param("equipeId") String equipeId);
+
+  /**
+   * Sélectionne les tâches d'une équipe dont la période [dateDebut, dateFin]
+   * chevauche l'intervalle [dateMin, dateMax]. Les bornes nulles ne filtrent pas.
+   *
+   * @param equipeId l'identifiant de l'équipe
+   * @param dateMin borne inférieure de l'intervalle, ou null
+   * @param dateMax borne supérieure de l'intervalle, ou null
+   * @return la liste des tâches chevauchant l'intervalle, triées par date de début
+   */
+  List<Tache> calendrierEquipe(@Param("equipeId") String equipeId,
+                               @Param("dateMin") LocalDate dateMin,
+                               @Param("dateMax") LocalDate dateMax);
 
   Tache selectOne(@Param("tacheId") String tacheId);
 
