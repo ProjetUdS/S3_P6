@@ -48,6 +48,23 @@
         where cip = #{userId}
     </select>
 
+    <select id="calendrierEquipe" resultType="ca.usherbrooke.fgen.api.business.Tache">
+        select tache_id      as id,
+               nom_tache     as nomTache,
+               status,
+               description,
+               date_creation as dateCreation,
+               date_debut    as dateDebut,
+               date_fin      as dateFin,
+               equipe_id     as equipeId,
+               cip
+        from app.Tache
+        where equipe_id = #{equipeId}
+          and date_debut &lt;= coalesce(#{dateMax}, date_debut)
+          and date_fin   &gt;= coalesce(#{dateMin}, date_fin)
+        order by date_debut asc
+    </select>
+
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Tache">
         select tache_id      as id,
                nom_tache     as nomTache,

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -114,6 +115,26 @@ public class DatabaseTacheTest {
             mapper.insertTache(tache);
             verify(mapper).insertTache(tache);
             var result = mapper.selectOne("1234");
+            assert result != null;
+    }
+    @Test
+    public void testCalendrierEquipe() {
+            TacheMapper mapper = Mockito.mock(TacheMapper.class);
+            Tache tache = new Tache();
+            tache.id = "1234";
+            tache.nomTache = "Faire Un Test";
+            tache.status = "en cours";
+            tache.description = "Je suis une description inutile";
+            tache.dateCreation = new Date();
+            tache.dateFin = new Date();
+            tache.dateDebut = new Date();
+            tache.equipeId = "4321";tache.cip = "belx8646";
+            mapper.insertTache(tache);
+            verify(mapper).insertTache(tache);
+
+            LocalDate dateMin = LocalDate.of(2026, 6, 1);
+            LocalDate dateMax = LocalDate.of(2026, 6, 30);when(mapper.calendrierEquipe("4321", dateMin, dateMax)).thenReturn(Arrays.asList(tache));
+            var result = mapper.calendrierEquipe("4321", dateMin, dateMax);
             assert result != null;
     }
 }
