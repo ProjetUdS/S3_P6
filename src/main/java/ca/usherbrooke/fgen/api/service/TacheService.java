@@ -29,6 +29,19 @@ public class TacheService {
     }
 
     /**
+     * Récupère les tâches d'une équipe ayant une échéance, triées par date de fin croissante.
+     *
+     * @param equipeId l'identifiant de l'équipe dont on veut les échéances
+     * @return la liste des tâches de l'équipe possédant une date de fin,
+     *         ordonnées de l'échéance la plus proche à la plus lointaine
+     */
+    @GET
+    @Path("/deadlines")
+    public List<Tache> getDeadlines(@QueryParam("equipeId") String equipeId) {
+        return tacheMapper.deadlines(equipeId);
+    }
+
+    /**
      * Récupère les tâches d'une équipe qui chevauchent une plage de dates donnée,
      * pour un affichage de type calendrier.
      *

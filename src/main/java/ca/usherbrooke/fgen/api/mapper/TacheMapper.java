@@ -22,6 +22,15 @@ public interface TacheMapper {
   List<Tache> allTasksByUser(@Param("userId") String userId);
 
   /**
+   * Sélectionne les tâches d'une équipe qui ont une date de fin définie,
+   * triées par échéance croissante (date de fin la plus proche en premier).
+   *
+   * @param equipeId l'identifiant de l'équipe
+   * @return la liste des tâches avec échéance, ordonnées par date de fin
+   */
+  List<Tache> deadlines(@Param("equipeId") String equipeId);
+
+  /**
    * Sélectionne les tâches d'une équipe dont la période [dateDebut, dateFin]
    * chevauche l'intervalle [dateMin, dateMax]. Les bornes nulles ne filtrent pas.
    *
