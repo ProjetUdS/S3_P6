@@ -17,7 +17,7 @@ docker-compose:
 
   container_name: auth
   volumes:
-    - ./keycloak/data:/var/tmp
+    - ./keycloak/data:/var/tmp/configs:ro
     - ./keycloak/startup-scripts/init.sh:/init.sh
     - ./keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf
     - ./keycloak/customized:/opt/keycloak/themes/customized

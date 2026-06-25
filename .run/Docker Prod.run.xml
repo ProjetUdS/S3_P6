@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Docker webDev" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
+  <configuration default="false" name="Docker Prod" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
     <deployment type="docker-compose.yml">
       <settings>
         <option name="envFilePath" value="$PROJECT_DIR$/.env" />
@@ -11,6 +11,7 @@
         <option name="commandLineOptions" value="--build" />
         <option name="services">
           <list>
+            <option value="app" />
             <option value="auth" />
             <option value="database" />
             <option value="database-keycloak" />
@@ -23,7 +24,7 @@
       </settings>
     </deployment>
     <method v="2">
-      <option name="RunConfigurationTask" enabled="true" run_configuration_name="sync-env webApp" run_configuration_type="PythonConfigurationType" />
+      <option name="RunConfigurationTask" enabled="false" run_configuration_name="sync-env webApp" run_configuration_type="PythonConfigurationType" />
     </method>
   </configuration>
 </component>

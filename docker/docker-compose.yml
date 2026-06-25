@@ -10,7 +10,7 @@ services:
     container_name: devlocal_traefik
     ports:
       - "80:80"
-      - "443:443"
+      - "${SERVER_PORT}:443"
       - "8081:8080"
     extra_hosts:
       - "external-ip:host-gateway"

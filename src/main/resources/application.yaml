@@ -42,7 +42,7 @@ quarkus:
         - Accept
   # --- OIDC (OpenID Connect) Configuration ---
   oidc:
-    auth-server-url: ${HTTP_TYPE}://${SERVER_IP}${KEYCLOAK_PATH}/realms/usager
+    auth-server-url: "${{HTTP_TYPE}://${SERVER_IP}:${SERVER_PORT}${KEYCLOAK_PATH}/realms/usager"
     client-id: ${OIDC_CLIENT_ID}
     credentials:
       secret: ${OIDC_SECRET}

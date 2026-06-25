@@ -8,6 +8,16 @@
             <option value="$PROJECT_DIR$/.env" />
           </list>
         </option>
+        <option name="services">
+          <list>
+            <option value="auth" />
+            <option value="database" />
+            <option value="database-keycloak" />
+            <option value="dozzle" />
+            <option value="traefik" />
+            <option value="webserver" />
+          </list>
+        </option>
         <option name="sourceFilePath" value="docker/docker-compose.yml" />
       </settings>
     </deployment>
