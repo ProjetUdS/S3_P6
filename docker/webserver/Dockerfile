@@ -2,9 +2,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 RUN npm install -g pnpm
-COPY ./webApp/package.json ./
-RUN pnpm install
-COPY webApp/ .
+
+COPY ./webApp/package.json ./webApp/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY ./webApp/ ./
 RUN pnpm run build
 
 # Stage 2: Serve with Nginx
