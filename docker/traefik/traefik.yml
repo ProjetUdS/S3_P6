@@ -1,0 +1,31 @@
+# Configuration Traefik principale
+api:
+  dashboard: true
+  insecure: true
+
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+
+
+ping: {}
+
+log:
+  level: DEBUG
+accessLogsFile: /etc/traefik/access.log

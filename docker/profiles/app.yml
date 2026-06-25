@@ -1,0 +1,35 @@
+# ============================================
+# INFORMATIONS DU SERVICE
+# ============================================
+name: app
+description: "Application Quarkus"
+enabled: true
+always_active: false  # Si true, démarré automatiquement sans --profile
+docker_profile: app  # Nom du profil Docker (ou null si always_active)
+keep_port_mapping: false
+
+
+docker-compose:
+
+  image: hello-world
+
+  container_name: app
+
+
+
+# ============================================
+# CONFIGURATION TRAEFIK
+# ============================================
+traefik:
+  enabled: true
+  prefix: /api
+  strip_prefix: false
+  docker_port: 8888
+  local_port: 8888
+  health_path: /q/health
+  priority: 10
+
+metadata:
+  category: app
+  tags:
+    - app

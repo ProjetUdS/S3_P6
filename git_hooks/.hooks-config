@@ -2,9 +2,11 @@
 # Encrypted files to stage after running python sops_manage.py
 [encrypted]
 .env.enc
+webApp/.env.enc
 http/http-client.private.env.json.enc
 
 # Plaintext secret files that must NOT be staged
 [plaintext]
 .env
+webApp/.env
 http/http-client.private.env.json
