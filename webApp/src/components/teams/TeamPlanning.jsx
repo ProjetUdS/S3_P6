@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks } from '../../services/api';
+import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
@@ -21,6 +21,7 @@ export default function TeamPlanning({ team }) {
   const [newTaskName, setNewTaskName] = useState('');
   const [creating, setCreating] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
+  const [todayDeadlines, setTodayDeadlines] = useState([]);
 
   // Map task status to column state
   const getTaskStatus = (t) => {
@@ -72,6 +73,25 @@ export default function TeamPlanning({ team }) {
           setTasks(transformed);
         })
         .catch(err => console.error('Failed to load tasks:', err)),
+      getDeadlines(team.equipeId)
+        .then(data => {
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const deadlines = (data || [])
+            .filter(t => {
+              const fin = new Date(t.dateFin);
+              const finStr = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`;
+              return finStr === todayStr;
+            })
+            .map(t => ({
+              id: t.id,
+              nomTache: t.nomTache,
+              status: t.status,
+              dateFin: new Date(t.dateFin),
+            }));
+          setTodayDeadlines(deadlines);
+        })
+        .catch(err => console.error('Failed to load deadlines:', err)),
     ]).finally(() => setLoading(false));
   }, [team?.equipeId]);
 
@@ -336,6 +356,30 @@ export default function TeamPlanning({ team }) {
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* Today's Deadlines */}
+        <section aria-labelledby="deadlines-heading">
+          <div className="plan-section-header">
+            <div className="plan-section-title" id="deadlines-heading">Today's Deadlines</div>
+          </div>
+          {todayDeadlines.length === 0 ? (
+            <div className="deadlines-empty">None</div>
+          ) : (
+            <ul className="deadline-list" aria-label="Today's deadlines">
+              {todayDeadlines.map(d => (
+                <li
+                  key={d.id}
+                  className="deadline-item"
+                >
+                  <span className="deadline-item-name">{d.nomTache}</span>
+                  <span className="deadline-item-status">
+                    {d.status || 'todo'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         {/* Mini Calendar */}
