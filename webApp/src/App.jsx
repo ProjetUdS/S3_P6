@@ -6,7 +6,7 @@ import FriendsPanel from './components/friends/FriendsPanel';
 import ChatView from './components/chat/ChatView';
 import TeamsPanel from './components/teams/TeamsPanel';
 import TeamArea from './components/teams/TeamArea';
-import { getContacts, getConversations } from './services/api';
+import { getContacts, getConversations, getEquipes } from './services/api';
 import { gradientForCip, initialsFromUser } from './utils/gradient';
 
 import './styles/globals.css';
@@ -18,6 +18,7 @@ export default function App() {
   const [view, setView] = useState('messages');
   const [activeFriend, setActiveFriend] = useState(null);
   const [activeTeam, setActiveTeam] = useState(null);
+  const [teams, setTeams] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [expandedSections, setExpandedSections] = useState({ active: true, archived: false, blocked: false });
 
@@ -59,11 +60,34 @@ export default function App() {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   }
 
+  function loadTeams() {
+    if (!user?.cip) return;
+    getEquipes(user.cip)
+      .then(data => {
+        setTeams(data || []);
+      })
+      .catch(err => console.error('Failed to load teams:', err));
+  }
+
+  function handleTeamDeleted(deletedId) {
+    loadTeams();
+    if (activeTeam?.equipeId === deletedId) {
+      setActiveTeam(null);
+    }
+  }
+
   useEffect(() => {
     if (authenticated && user?.cip) {
       loadConversations();
+      loadTeams();
     }
   }, [authenticated, user?.cip]);
+
+  useEffect(() => {
+    if (teams.length > 0 && !activeTeam) {
+      setActiveTeam(teams[0]);
+    }
+  }, [teams]);
 
   if (loading) {
     return (
@@ -123,8 +147,11 @@ export default function App() {
       {view === 'teams' && (
         <>
           <TeamsPanel
-            activeTeamId={activeTeam?.id}
+            activeTeamId={activeTeam?.equipeId}
+            teams={teams}
             onSelectTeam={setActiveTeam}
+            onTeamDeleted={handleTeamDeleted}
+            onTeamCreated={loadTeams}
           />
           {activeTeam
             ? <TeamArea team={activeTeam} key={activeTeam.id} />

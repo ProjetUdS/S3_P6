@@ -1,34 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { TeamIcon } from '../shared/Avatar';
-import { getEquipes } from '../../services/api';
+import { deleteEquipe } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+
 import CreateTeamModal from './CreateTeamModal';
 
-export default function TeamsPanel({ activeTeamId, onSelectTeam }) {
+export default function TeamsPanel({ activeTeamId, teams: teamsProp, onSelectTeam, onTeamDeleted, onTeamCreated }) {
   const { user } = useAuth();
-  const userRef = useRef(user);
-  const [teams, setTeams] = useState([]);
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [deleteConfirmEquipeId, setDeleteConfirmEquipeId] = useState(null);
 
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
-
-  useEffect(() => {
-    if (user?.cip) {
-      getEquipes(user.cip)
-        .then(data => { setTeams(data || []); setLoading(false); })
-        .catch(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+  const teams = teamsProp || [];
 
   const filtered = teams.filter(t =>
     t.nomEquipe.toLowerCase().includes(search.toLowerCase())
   );
+
+  async function handleDeleteEquipe(equipeId) {
+    try {
+      await deleteEquipe(equipeId);
+      if (onTeamDeleted) {
+        onTeamDeleted(equipeId);
+      }
+    } catch (err) {
+      console.error('Failed to delete team:', err);
+    } finally {
+      setDeleteConfirmEquipeId(null);
+    }
+  }
 
   return (
     <aside className="left-panel" aria-label="Teams">
@@ -52,9 +52,7 @@ export default function TeamsPanel({ activeTeamId, onSelectTeam }) {
         + Nouvelle équipe
       </button>
 
-      {loading ? (
-        <div className="loading-spinner" style={{ margin: '40px auto' }} />
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="panel-section">Aucune équipe</div>
       ) : (
         <ul className="panel-list" role="listbox">
@@ -73,10 +71,34 @@ export default function TeamsPanel({ activeTeamId, onSelectTeam }) {
                 <div className="list-item-info">
                   <div className="list-item-name">{team.nomEquipe}</div>
                 </div>
+                {user?.cip === team.administrateurCip && (
+                  <button
+                    className="list-item-delete"
+                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmEquipeId(team.equipeId); }}
+                    aria-label="Delete team"
+                    title="Delete team"
+                  >
+                    ×
+                  </button>
+                )}
               </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Delete team confirmation modal */}
+      {deleteConfirmEquipeId && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmEquipeId(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Delete team</div>
+            <div className="modal-subtitle">Are you sure you want to delete this team? This action cannot be undone.</div>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setDeleteConfirmEquipeId(null)}>Cancel</button>
+              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => handleDeleteEquipe(deleteConfirmEquipeId)}>Delete</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showCreateModal && (
@@ -84,7 +106,7 @@ export default function TeamsPanel({ activeTeamId, onSelectTeam }) {
           onClose={() => setShowCreateModal(false)}
           onCreated={() => {
             setShowCreateModal(false);
-            getEquipes(userRef.current.cip).then(data => setTeams(data || []));
+            if (onTeamCreated) onTeamCreated();
           }}
         />
       )}

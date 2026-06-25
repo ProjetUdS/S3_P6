@@ -98,10 +98,15 @@ export async function getEquipe(equipeId) {
   return response.data;
 }
 
+export async function deleteEquipe(equipeId) {
+  const response = await api.delete(`/equipes/${equipeId}`);
+  return response.data;
+}
+
 export async function createEquipe(teamName, adminCip, memberCips = []) {
   const idRes = await api.get('/equipes/nouveauID');
   const equipeId = idRes.data;
-  const equipe = { equipeId, administrateur: adminCip, nomEquipe: teamName };
+  const equipe = { equipeId, administrateurCip: adminCip, nomEquipe: teamName };
   const params = new URLSearchParams();
   memberCips.forEach(c => params.append('membersCip', c));
   const response = await api.post(`/equipes?${params.toString()}`, equipe);

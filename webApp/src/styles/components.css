@@ -673,6 +673,36 @@
   opacity: 0.7;
 }
 
+.kanban-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s;
+}
+.kanban-card:hover .kanban-delete-btn {
+  opacity: 1;
+}
+.kanban-delete-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.kanban-card {
+  position: relative;
+}
+
 .kanban-task-text {
   font-size: 13px;
   color: var(--text-primary);

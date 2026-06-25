@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines } from '../../services/api';
+import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
@@ -22,6 +22,7 @@ export default function TeamPlanning({ team }) {
   const [creating, setCreating] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
   const [todayDeadlines, setTodayDeadlines] = useState([]);
+  const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState(null);
 
   // Map task status to column state
   const getTaskStatus = (t) => {
@@ -173,6 +174,18 @@ export default function TeamPlanning({ team }) {
     setDraggedTask(null);
   }
 
+  async function handleDeleteTask(taskId) {
+    try {
+      await deleteTache(taskId);
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      setTodayDeadlines(prev => prev.filter(d => d.id !== taskId));
+    } catch (err) {
+      console.error('Failed to delete task:', err);
+    } finally {
+      setDeleteConfirmTaskId(null);
+    }
+  }
+
   const columns = {
     todo: tasks.filter(t => t.status === 'todo'),
     doing: tasks.filter(t => t.status === 'doing'),
@@ -208,6 +221,14 @@ export default function TeamPlanning({ team }) {
                     draggable
                     onDragStart={() => handleDragStart(task)}
                   >
+                    <button
+                      className="kanban-delete-btn"
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmTaskId(task.id); }}
+                      aria-label="Delete task"
+                      title="Delete task"
+                    >
+                      ×
+                    </button>
                     <span className="kanban-task-text">{task.text}</span>
                     <div className="kanban-task-meta">
                       <Avatar
@@ -279,6 +300,14 @@ export default function TeamPlanning({ team }) {
                     draggable
                     onDragStart={() => handleDragStart(task)}
                   >
+                    <button
+                      className="kanban-delete-btn"
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmTaskId(task.id); }}
+                      aria-label="Delete task"
+                      title="Delete task"
+                    >
+                      ×
+                    </button>
                     <span className="kanban-task-text">{task.text}</span>
                     <div className="kanban-task-meta">
                       <Avatar
@@ -311,6 +340,14 @@ export default function TeamPlanning({ team }) {
                     draggable
                     onDragStart={() => handleDragStart(task)}
                   >
+                    <button
+                      className="kanban-delete-btn"
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmTaskId(task.id); }}
+                      aria-label="Delete task"
+                      title="Delete task"
+                    >
+                      ×
+                    </button>
                     <span className="kanban-task-text">{task.text}</span>
                     <div className="kanban-task-meta">
                       <Avatar
@@ -452,10 +489,24 @@ export default function TeamPlanning({ team }) {
              <span className="stat-value">{members.length}</span>
            </div>
          </div>
-      </aside>
-    </div>
-  );
-}
+       </aside>
+
+       {/* Delete task confirmation modal */}
+       {deleteConfirmTaskId && (
+         <div className="modal-overlay" onClick={() => setDeleteConfirmTaskId(null)}>
+           <div className="modal" onClick={e => e.stopPropagation()}>
+             <div className="modal-title">Delete task</div>
+             <div className="modal-subtitle">Are you sure you want to delete this task? This action cannot be undone.</div>
+             <div className="modal-actions">
+               <button className="btn-cancel" onClick={() => setDeleteConfirmTaskId(null)}>Cancel</button>
+               <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => handleDeleteTask(deleteConfirmTaskId)}>Delete</button>
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   );
+ }
 
 // ── PriorityTag ──────────────────────────────────────────────────────────────
 function PriorityTag({ priority }) {
