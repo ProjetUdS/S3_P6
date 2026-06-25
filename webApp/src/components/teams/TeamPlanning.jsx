@@ -1,8 +1,8 @@
 // src/components/teams/TeamPlanning.jsx
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { MEETINGS, CALENDAR, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches, createTache, updateTache } from '../../services/api';
+import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
+import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
@@ -343,7 +343,7 @@ export default function TeamPlanning({ team }) {
           <div className="plan-section-header">
             <div className="plan-section-title" id="calendar-heading">Calendar</div>
           </div>
-          <MiniCalendar />
+          <MiniCalendar equipeId={team.equipeId} />
         </section>
       </div>
 
@@ -426,46 +426,182 @@ function PriorityTag({ priority }) {
 }
 
 // ── MiniCalendar ─────────────────────────────────────────────────────────────
-function MiniCalendar() {
-  const { month, grid, today, eventDays } = CALENDAR;
+function MiniCalendar({ equipeId }) {
   const DAY_NAMES = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  const [viewDate, setViewDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [tasks, setTasks] = useState([]);
+  const [hoveredDay, setHoveredDay] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!equipeId) {
+      setLoading(false);
+      setTasks([]);
+      return;
+    }
+
+    setLoading(true);
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const dateMin = new Date(year, month, 1);
+    const dateMax = new Date(year, month + 1, 0);
+
+    const minStr = formatDate(dateMin);
+    const maxStr = formatDate(dateMax);
+
+    getCalendrierTasks(equipeId, minStr, maxStr)
+      .then(data => {
+        const transformed = (data || []).map(t => ({
+          id: t.id,
+          nomTache: t.nomTache,
+          dateDebut: new Date(t.dateDebut),
+          dateFin: new Date(t.dateFin),
+          status: t.status,
+        }));
+        setTasks(transformed);
+      })
+      .catch(err => console.error('Failed to load calendar tasks:', err))
+      .finally(() => setLoading(false));
+  }, [equipeId, viewDate]);
+
+  function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthLabel = `${monthNames[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
+
+  const today = new Date();
+  const todayDay = today.getDate();
+  const todayMonth = today.getMonth();
+
+  // Generate calendar grid for the current month
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+  // Convert Sunday=0 to Monday=0 format: JS getDay() has Sun=0, we want Mon=0
+  const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Build grid: null = padding, number = day
+  const grid = [];
+  for (let i = 0; i < startOffset; i++) {
+    grid.push(null);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    grid.push(d);
+  }
+
+  // Build a map: day -> list of tasks active on that day
+  const tasksByDay = {};
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayDate = new Date(year, month, d);
+    dayDate.setHours(0, 0, 0, 0);
+    const dayTasks = tasks.filter(t => {
+      const debut = new Date(t.dateDebut);
+      debut.setHours(0, 0, 0, 0);
+      const fin = new Date(t.dateFin);
+      fin.setHours(0, 0, 0, 0);
+      return dayDate >= debut && dayDate <= fin;
+    });
+    if (dayTasks.length > 0) {
+      tasksByDay[d] = dayTasks;
+    }
+  }
+
+  function goToPrevMonth() {
+    setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  }
+
+  function goToNextMonth() {
+    setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  }
+
+  function truncate(str, maxLen) {
+    if (!str) return '';
+    return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+  }
 
   return (
     <div className="mini-calendar">
-      <div className="cal-header">
-        <button className="cal-nav" aria-label="Previous month">‹</button>
-        <div className="cal-month">{month}</div>
-        <button className="cal-nav" aria-label="Next month">›</button>
-      </div>
-      <div className="cal-grid" role="grid" aria-label={month}>
-        {/* Day name headers */}
-        {DAY_NAMES.map(d => (
-          <div key={d} className="cal-day-name" role="columnheader">{d}</div>
-        ))}
-        {/* Days */}
-        {grid.map((day, i) => {
-          if (day === null) {
-            return <div key={`pad-${i}`} className="cal-day other-month" aria-hidden="true" />;
-          }
-          const isToday   = day === today;
-          const hasEvent  = eventDays.includes(day);
-          return (
-            <div
-              key={day}
-              role="gridcell"
-              className={[
-                'cal-day',
-                isToday  ? 'today'     : '',
-                hasEvent ? 'has-event' : '',
-              ].join(' ')}
-              aria-label={`${day}${hasEvent ? ', has event' : ''}${isToday ? ', today' : ''}`}
-              aria-current={isToday ? 'date' : undefined}
-            >
-              {day}
-            </div>
-          );
-        })}
-      </div>
+      {loading && (
+        <div className="cal-loading" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+          Loading...
+        </div>
+      )}
+      {!loading && (
+        <>
+          <div className="cal-header">
+            <button className="cal-nav" onClick={goToPrevMonth} aria-label="Previous month">‹</button>
+            <div className="cal-month">{monthLabel}</div>
+            <button className="cal-nav" onClick={goToNextMonth} aria-label="Next month">›</button>
+          </div>
+          <div className="cal-grid" role="grid" aria-label={monthLabel}>
+            {DAY_NAMES.map(d => (
+              <div key={d} className="cal-day-name" role="columnheader">{d}</div>
+            ))}
+            {grid.map((day, i) => {
+              if (day === null) {
+                return <div key={`pad-${i}`} className="cal-day other-month" aria-hidden="true" />;
+              }
+              const isToday = (year === today.getFullYear() && month === todayMonth && day === todayDay);
+              const dayTasks = tasksByDay[day] || [];
+              const hasTasks = dayTasks.length > 0;
+
+              return (
+                <div
+                  key={day}
+                  role="gridcell"
+                  className={[
+                    'cal-day',
+                    'cal-day-cell',
+                    isToday ? 'today' : '',
+                    hasTasks ? 'has-tasks' : '',
+                  ].join(' ')}
+                  aria-label={`${day}${hasTasks ? `, ${dayTasks.length} tasks` : ''}${isToday ? ', today' : ''}`}
+                  aria-current={isToday ? 'date' : undefined}
+                  onMouseEnter={() => hasTasks && setHoveredDay(day)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                >
+                  {hasTasks && hoveredDay === day && (
+                    <div className="cal-tooltip">
+                      {dayTasks.map(t => (
+                        <div key={t.id} className="cal-tooltip-item">
+                          <span className="cal-tooltip-dot" />
+                          <span>{t.nomTache}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <span className="cal-day-number">{day}</span>
+                  {hasTasks && (
+                    <div className="cal-task-list">
+                      <div className="cal-task-item cal-task-first">
+                        {truncate(dayTasks[0].nomTache, 12)}
+                      </div>
+                      {dayTasks.length > 1 && (
+                        <div className="cal-task-more">
+                          +{dayTasks.length - 1}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+
+        </>
+      )}
     </div>
   );
 }

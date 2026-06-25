@@ -156,6 +156,11 @@ export async function getFriendConversation(userCip, friendCip, limit, offset) {
   return response.data;
 }
 
+export async function getCalendrierTasks(equipeId, dateMin, dateMax) {
+  const response = await api.get('/tache/calendrier', { params: { equipeId, dateMin, dateMax } });
+  return response.data;
+}
+
 export async function getTeamMembers(equipeId) {
   const response = await api.get(`/equipes/${equipeId}/members`);
   return response.data;
