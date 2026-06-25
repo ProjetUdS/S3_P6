@@ -198,6 +198,30 @@
   text-overflow: ellipsis;
 }
 
+.list-item-delete {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.list-item:hover .list-item-delete {
+  opacity: 1;
+}
+.list-item-delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .badge {
   font-size: 10px;
   font-weight: 700;

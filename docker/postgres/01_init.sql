@@ -102,7 +102,7 @@ CREATE TABLE app.Tache
     equipe_id     VARCHAR(50) NOT NULL,
     cip           VARCHAR(50) NOT NULL,
     PRIMARY KEY (tache_id),
-    FOREIGN KEY (equipe_id) REFERENCES app.Equipe (equipe_id),
+    FOREIGN KEY (equipe_id) REFERENCES app.Equipe (equipe_id) ON DELETE CASCADE,
     FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip)
 );
 
@@ -111,8 +111,8 @@ CREATE TABLE app.Est_dans
     cip       VARCHAR(50),
     equipe_id VARCHAR(50),
     PRIMARY KEY (cip, equipe_id),
-    FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip),
-    FOREIGN KEY (equipe_id) REFERENCES app.Equipe (equipe_id)
+    FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip) ,
+    FOREIGN KEY (equipe_id) REFERENCES app.Equipe (equipe_id) ON DELETE CASCADE
 );
 
 CREATE TABLE app.Assignee
@@ -121,7 +121,7 @@ CREATE TABLE app.Assignee
     tache_id VARCHAR(50),
     PRIMARY KEY (cip, tache_id),
     FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip),
-    FOREIGN KEY (tache_id) REFERENCES app.Tache (tache_id)
+    FOREIGN KEY (tache_id) REFERENCES app.Tache (tache_id) ON DELETE CASCADE
 );
 
 CREATE TABLE app.Fait_parti(
