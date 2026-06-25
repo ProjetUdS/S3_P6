@@ -3,5 +3,5 @@
 echo "beginning of installation of keycloak"
 
 # Start Keycloak in background
-/var/tmp/setdata.sh &
+/var/tmp/configs/setdata.sh &
 /opt/keycloak/bin/kc.sh start-dev

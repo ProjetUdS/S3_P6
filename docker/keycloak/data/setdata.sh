@@ -26,12 +26,12 @@ echo "keycloak est ready. Beginning of finalisation ...."
 /opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME" -s "registrationAllowed=true" -s "loginTheme=customized"
 
 # Configure acceptable variables
-/opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME/users/profile" -f /var/tmp/declarative-user-profile.json
+/opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME/users/profile" -f /var/tmp/configs/declarative-user-profile.json
 
 # Substitute env vars in JSON templates before importing
-sed "s|\${KC_SERVER_URL}|${KC_SERVER_URL}|g" /var/tmp/frontend.json > /tmp/frontend-sub.json
+sed "s|\${KC_SERVER_URL}|${KC_SERVER_URL}|g" /var/tmp/configs/frontend.json > /tmp/frontend-sub.json
 sed -e "s|\${KC_SERVER_URL}|${KC_SERVER_URL}|g" -e 's|\$(OIDC_SECRET)|'"${OIDC_SECRET}"'|g' \
-    /var/tmp/backend.json > /tmp/backend-sub.json
+    /var/tmp/configs/backend.json > /tmp/backend-sub.json
 
 # Create clients
 /opt/keycloak/bin/kcadm.sh create clients -r "$KC_REALM_NAME" -f /tmp/frontend-sub.json
@@ -45,7 +45,7 @@ rm -f /tmp/frontend-sub.json /tmp/backend-sub.json
 /opt/keycloak/bin/kcadm.sh create partialImport \
     -r "$KC_REALM_NAME" \
     -s ifResourceExists=SKIP \
-    -f /var/tmp/users.json
+    -f /var/tmp/configs/users.json
 
 echo -e -n "\r"
 echo "server running ...."
