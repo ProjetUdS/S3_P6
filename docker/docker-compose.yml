@@ -77,6 +77,22 @@ services:
     networks:
       acad-net:
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio-storage
+    restart: always
+    ports:
+      - "9000:9000"   # S3 API port
+      - "9001:9001"   # Web UI console port
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-local_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-local_password}
+    volumes:
+      - ./minio/data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      acad-net:
+
 networks:
   acad-net:
 

@@ -63,3 +63,12 @@ quarkus:
     xmlconfig:
       enable: false
     map-underscore-to-camel-case: true
+
+  minio:
+    url: "http://localhost:9000"
+    access:
+      key: "local_admin"
+    secret:
+      key: "local_password"
+    bucket:
+      name: "chat-media"
