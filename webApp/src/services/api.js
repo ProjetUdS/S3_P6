@@ -108,6 +108,11 @@ export async function createEquipe(teamName, adminCip, memberCips = []) {
   return response.data;
 }
 
+export async function getDeadlines(equipeId) {
+  const response = await api.get('/tache/deadlines', { params: { equipeId } });
+  return response.data;
+}
+
 export async function getTaches(equipeId) {
   const response = await api.get('/tache', { params: { equipeId } });
   return response.data;
