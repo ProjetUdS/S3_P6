@@ -160,4 +160,25 @@ public class DatabaseTacheTest {
         var result = mapper.calendrierEquipe("4321", dateMin, dateMax);
         assert result != null;
     }
+
+    @Test
+    public void testUpdateTache() {
+        TacheMapper mapper = Mockito.mock(TacheMapper.class);
+        Tache tache = new Tache();
+        tache.id = "1234";
+        tache.nomTache = "Faire Un Test";
+        tache.status = "en cours";
+        tache.description = "Je suis une description inutile";
+        tache.dateCreation = new Date();
+        tache.dateFin = new Date();
+        tache.dateDebut = new Date();
+        tache.equipeId = "4321";
+        tache.cip = "belx8646";
+        mapper.insertTache(tache);
+        verify(mapper).insertTache(tache);
+
+        doNothing().when(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", tache.dateDebut, tache.dateFin);
+        mapper.updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", tache.dateDebut, tache.dateFin);
+        verify(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", tache.dateDebut, tache.dateFin);
+    }
 }
