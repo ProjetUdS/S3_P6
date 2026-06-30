@@ -1,6 +1,8 @@
 package ca.usherbrooke.fgen.api.service;
 
+import ca.usherbrooke.fgen.api.business.FichierJoint;
 import ca.usherbrooke.fgen.api.business.Message;
+import ca.usherbrooke.fgen.api.mapper.FichierJointMapper;
 import ca.usherbrooke.fgen.api.mapper.MessageMapper;
 
 import jakarta.inject.Inject;
@@ -17,6 +19,9 @@ public class MessageService {
 
     @Inject
     MessageMapper messageMapper;
+
+    @Inject
+    FichierJointMapper  fichierJointMapper;
 
     @GET
     public List<Message> getMessages(@QueryParam("discussionId") String discussionId, @QueryParam("limite") Integer limit, @QueryParam("decalage") Integer offset, @QueryParam("cip") String cip, @QueryParam("messageId") String messageId) {
@@ -40,6 +45,16 @@ public class MessageService {
         message.id = UUID.randomUUID().toString();
         message.date = new java.util.Date();
         messageMapper.insertMessage(message);
+
+        if(message.fichiers != null && !message.fichiers.isEmpty()) {
+            for (FichierJoint fichier:message.fichiers) {
+                fichier.messageId = message.id;
+                fichier.cip = message.cip;
+                fichier.dateAjout = new java.util.Date();
+
+                fichierJointMapper.insertFichier(fichier);
+            }
+        }
     }
 
     @GET
