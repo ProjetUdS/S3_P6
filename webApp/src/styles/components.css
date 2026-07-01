@@ -79,7 +79,7 @@
   color: var(--text-primary);
   margin-bottom: 12px;
 }
-.modal-input:focus { border-color: var(--purple); outline: none; }
+.modal-input:focus { border-color: var(--blue); outline: none; }
 
 .suggestion-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .suggestion-item {
@@ -94,8 +94,8 @@
   transition: all 0.15s;
 }
 .suggestion-item:hover {
-  border-color: var(--purple);
-  background: var(--purple-bg);
+  border-color: var(--blue);
+  background: var(--blue-bg);
 }
 .suggestion-info { flex: 1; }
 .suggestion-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
@@ -103,7 +103,7 @@
 .suggestion-add {
   font-size: 12px;
   font-weight: 500;
-  color: var(--purple);
+  color: var(--blue);
   display: flex;
   align-items: center;
   gap: 3px;
@@ -127,7 +127,7 @@
 .btn-primary {
   padding: 8px 18px;
   border-radius: var(--radius-sm);
-  background: var(--purple);
+  background: var(--blue);
   font-size: 13px;
   font-weight: 600;
   color: white;
@@ -155,8 +155,8 @@
 }
 .tab:hover { color: var(--text-primary); }
 .tab.active {
-  color: var(--purple);
-  border-bottom-color: var(--purple);
+  color: var(--blue);
+  border-bottom-color: var(--blue);
 }
 
 /* ─── Planning Area ───────────────────────────────────────────── */
@@ -201,7 +201,7 @@
 .plan-add-btn {
   font-size: 11px;
   font-weight: 500;
-  color: var(--purple);
+  color: var(--blue);
   display: flex;
   align-items: center;
   gap: 3px;
@@ -242,7 +242,7 @@
   color: white;
 }
 .task-check:not(.done):hover {
-  border-color: var(--purple);
+  border-color: var(--blue);
 }
 .task-text {
   flex: 1;
@@ -276,7 +276,7 @@
   transition: border-color 0.15s;
 }
 .task-create-input::placeholder { color: var(--text-tertiary); }
-.task-create-input:focus { border-color: var(--purple); }
+.task-create-input:focus { border-color: var(--blue); }
 .task-create-actions {
   display: flex;
   justify-content: flex-end;
@@ -287,7 +287,7 @@
   font-weight: 600;
   padding: 6px 16px;
   border-radius: var(--radius-sm);
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   border: none;
   cursor: pointer;
@@ -444,7 +444,7 @@
 }
 .cal-day:hover { background: var(--bg-secondary); }
 .cal-day.today {
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   font-weight: 700;
 }
@@ -489,20 +489,20 @@
   text-overflow: ellipsis;
   cursor: default;
   color: var(--text-primary);
-  background: rgba(124, 106, 247, 0.12);
+  background: rgba(59, 130, 246, 0.12);
 }
 .cal-task-item.cal-task-first {
   font-weight: 600;
   color: var(--text-primary);
 }
 .cal-task-item.cal-task-more {
-  background: rgba(124, 106, 247, 0.08);
+  background: rgba(59, 130, 246, 0.08);
   color: var(--text-secondary);
 }
 .cal-task-more {
   font-size: 8px;
   font-weight: 600;
-  color: var(--purple);
+  color: var(--blue);
   cursor: default;
 }
 .cal-day.today .cal-task-item,
@@ -544,7 +544,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--purple);
+  background: var(--blue);
   flex-shrink: 0;
 }
 
@@ -630,7 +630,7 @@
 .kanban-count {
   font-size: 12px;
   font-weight: 600;
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -661,7 +661,7 @@
 
 .kanban-card:hover {
   box-shadow: var(--shadow-sm);
-  border-color: var(--purple);
+  border-color: var(--blue);
 }
 
 .kanban-card:active {
@@ -748,7 +748,7 @@
 }
 
 .kanban-task-input:focus {
-  border-color: var(--purple);
+  border-color: var(--blue);
 }
 
 .kanban-task-actions {
@@ -762,11 +762,14 @@
   font-weight: 600;
   padding: 6px 14px;
   border-radius: var(--radius-sm);
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   border: none;
   cursor: pointer;
   transition: opacity 0.15s;
+}
+.kanban-task-btn:hover {
+  opacity: 0.85;
 }
 
 .kanban-task-btn:hover {
@@ -796,7 +799,7 @@
 .kanban-add-btn {
   font-size: 12px;
   font-weight: 500;
-  color: var(--purple);
+  color: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -810,8 +813,8 @@
 }
 
 .kanban-add-btn:hover {
-  border-color: var(--purple);
-  background: rgba(124, 106, 247, 0.05);
+  border-color: var(--blue);
+  background: rgba(59, 130, 246, 0.05);
 }
 
 /* Responsive Kanban board */

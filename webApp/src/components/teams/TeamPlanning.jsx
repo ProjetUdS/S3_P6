@@ -499,7 +499,7 @@ export default function TeamPlanning({ team }) {
              <div className="modal-subtitle">Are you sure you want to delete this task? This action cannot be undone.</div>
              <div className="modal-actions">
                <button className="btn-cancel" onClick={() => setDeleteConfirmTaskId(null)}>Cancel</button>
-               <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => handleDeleteTask(deleteConfirmTaskId)}>Delete</button>
+               <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleDeleteTask(deleteConfirmTaskId)}>Delete</button>
              </div>
            </div>
          </div>

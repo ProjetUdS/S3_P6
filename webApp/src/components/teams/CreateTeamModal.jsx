@@ -61,15 +61,15 @@ export default function CreateTeamModal({ onClose, onCreated }) {
               onClick={() => toggleContact(c.cip)}
               className="suggestion-item"
               style={{
-                background: selectedCips.has(c.cip) ? 'var(--purple-bg)' : 'var(--bg-secondary)',
-                borderColor: selectedCips.has(c.cip) ? 'var(--purple)' : 'var(--border)',
+                background: selectedCips.has(c.cip) ? 'var(--blue-bg)' : 'var(--bg-secondary)',
+                borderColor: selectedCips.has(c.cip) ? 'var(--blue)' : 'var(--border)',
               }}
             >
               <div style={{
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                border: `2px solid ${selectedCips.has(c.cip) ? 'var(--purple)' : 'var(--border)'}`,
+                border: `2px solid ${selectedCips.has(c.cip) ? 'var(--blue)' : 'var(--border)'}`,
                 flexShrink: 0,
               }} />
               <Avatar initials={c.pseudo?.substring(0, 2).toUpperCase() || '?'} gradient="var(--grad-sr)" size="sm" />

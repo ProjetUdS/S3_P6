@@ -202,7 +202,7 @@ export default function TeamChat({ team }) {
             <div className="modal-subtitle">Are you sure you want to delete this message? This action cannot be undone.</div>
             <div className="modal-actions">
               <button className="btn-cancel" onClick={cancelDelete}>Cancel</button>
-              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={confirmDeleteMessage}>Delete</button>
+              <button className="btn-primary" style={{ background: '#ef4444' }} onClick={confirmDeleteMessage}>Delete</button>
             </div>
           </div>
         </div>

@@ -40,31 +40,62 @@
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(15, 23, 42, 0.55);
   transition: all 0.15s ease;
   position: relative;
 }
 .sidebar-icon:hover {
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.7);
+  background: rgba(59,130,246,0.06);
+  color: rgba(15, 23, 42, 0.8);
 }
 .sidebar-icon.active {
-  background: rgba(124,106,247,0.2);
-  color: var(--purple-light);
+  background: var(--blue);
+  color: white;
 }
+.sidebar-icon.active img {
+  filter: brightness(1.1);
+}
+.sidebar-icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: brightness(0.85);
+}
+
 .sidebar-icon .notif-dot {
   position: absolute;
-  top: 6px; right: 6px;
-  width: 7px; height: 7px;
+  top: 5px; right: 5px;
+  width: 9px; height: 9px;
   border-radius: 50%;
   background: var(--red);
-  border: 1.5px solid var(--sidebar-bg);
+  border: 2px solid var(--sidebar-bg);
+  box-shadow: 0 0 0 1px var(--red), 0 2px 4px rgba(239,68,68,0.3);
+  animation: notif-pulse 2s ease-in-out infinite;
+}
+
+@keyframes notif-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
 }
 
 .sidebar-spacer { flex: 1; }
 
 .sidebar-avatar-wrap {
   margin-top: 8px;
+}
+
+.sidebar-attribution {
+  padding: 8px 4px;
+  font-size: 8px;
+  color: rgba(15, 23, 42, 0.25);
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.3;
+  transition: color 0.15s;
+  margin-top: auto;
+}
+.sidebar-attribution:hover {
+  color: rgba(15, 23, 42, 0.5);
 }
 
 /* ─── Left Panel ──────────────────────────────────────────────── */
@@ -138,9 +169,9 @@
   transition: all 0.15s;
 }
 .panel-add-btn:hover {
-  border-color: var(--purple);
-  color: var(--purple);
-  background: var(--purple-bg);
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-bg);
 }
 .panel-create-team-btn {
   display: flex;
@@ -148,16 +179,16 @@
   gap: 8px;
   margin: 6px 12px;
   padding: 9px 12px;
-  border: 1px solid var(--purple-border);
+  border: 1px solid var(--blue-border);
   border-radius: var(--radius-sm);
-  background: var(--purple-bg);
+  background: var(--blue-bg);
   font-size: 12px;
-  color: var(--purple);
+  color: var(--blue);
   width: calc(100% - 24px);
   transition: all 0.15s;
 }
 .panel-create-team-btn:hover {
-  background: rgba(124,106,247,0.14);
+  background: rgba(59,130,246,0.14);
 }
 
 /* List items */
@@ -225,7 +256,7 @@
 .badge {
   font-size: 10px;
   font-weight: 700;
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   border-radius: 10px;
   padding: 2px 6px;
@@ -391,8 +422,8 @@
   word-break: break-word;
 }
 .bubble.own {
-  background: var(--purple);
-  border-color: var(--purple);
+  background: var(--blue);
+  border-color: var(--blue);
   color: white;
   border-bottom-left-radius: 14px;
   border-bottom-right-radius: 4px;
@@ -504,14 +535,14 @@
 .img-placeholder {
   width: 220px;
   height: 140px;
-  background: linear-gradient(135deg, #ddd6fe, #c4b5fd, #a78bfa);
+  background: linear-gradient(135deg, #dbeafe, #93c5fd, #60a5fa);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
   font-size: 11px;
-  color: #5b21b6;
+  color: #1e40af;
 }
 .img-placeholder-icon { font-size: 30px; opacity: 0.6; }
 
@@ -576,7 +607,7 @@
 }
 .action-btn:hover {
   background: var(--bg-secondary);
-  color: var(--purple);
+  color: var(--blue);
 }
 .chat-text-input {
   flex: 1;
@@ -588,13 +619,13 @@
   color: var(--text-primary);
   transition: border-color 0.15s;
 }
-.chat-text-input:focus { border-color: var(--purple); }
+.chat-text-input:focus { border-color: var(--blue); }
 .chat-text-input::placeholder { color: var(--text-tertiary); }
 .send-btn {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
-  background: var(--purple);
+  background: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -688,11 +719,11 @@
 }
 
 .topbar-menu-item.unarchive-item {
-  color: var(--purple);
+  color: var(--blue);
 }
 
 .topbar-menu-item.unarchive-item:hover {
-  background: var(--purple-bg);
+  background: var(--blue-bg);
 }
 
 .topbar-menu-item.unblock-item {
@@ -714,7 +745,7 @@
 .conversation-action-btn {
   margin: 0 auto;
   padding: 9px 24px;
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   border-radius: var(--radius-sm);
   font-size: 13px;
