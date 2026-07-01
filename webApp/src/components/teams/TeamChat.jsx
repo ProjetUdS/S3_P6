@@ -1,7 +1,8 @@
 // src/components/teams/TeamChat.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Avatar } from '../shared/Avatar';
-import { TeamIcon } from '../shared/Avatar';
+import { Avatar, TeamIcon } from '../shared/Avatar';
+import { ChatMessagesList } from '../shared/ChatMessagesList';
+import { useChatMessages } from '../shared/useChatMessages';
 import { useAuth } from '../../context/AuthContext';
 import { getTeamMembers, getDiscussions, getMessages, sendMessage, createDiscussion } from '../../services/api';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
@@ -10,10 +11,25 @@ export default function TeamChat({ team }) {
   const { user } = useAuth();
   const myCip = user?.cip;
   const [members, setMembers] = useState([]);
-  const [messages, setMessages] = useState([]);
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(true);
   const bottomRef = useRef(null);
+
+  const {
+    messages,
+    setMessages,
+    hoveredMsgId,
+    setHoveredMsgId,
+    menuMsgId,
+    setMenuMsgId,
+    confirmDelete,
+    isOwn,
+    getRelativeTime,
+    transformMessages,
+    handleDelete,
+    confirmDeleteMessage,
+    cancelDelete,
+  } = useChatMessages(myCip);
 
   useEffect(() => {
     if (!team?.equipeId) {
@@ -46,25 +62,7 @@ export default function TeamChat({ team }) {
           const discussionId = discussions[0].discussionId;
           return getMessages(discussionId, 50, 0)
             .then(data => {
-              const transformed = (data || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
-                const msgDate = new Date(m.date);
-                const today = new Date();
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-
-                let day = null;
-                if (msgDate.toDateString() === today.toDateString()) day = 'Today';
-                else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
-
-                return {
-                  id: m.id,
-                  from: m.cip,
-                  day,
-                  text: m.contenu,
-                  time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                };
-              });
-              setMessages(transformed);
+              setMessages(transformMessages(data));
               setLoading(false);
             })
             .catch(err => {
@@ -114,23 +112,7 @@ export default function TeamChat({ team }) {
       setInput('');
 
       const updatedMessages = await getMessages(discussionId, 50, 0);
-      const transformed = (updatedMessages || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
-        const msgDate = new Date(m.date);
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        let day = null;
-        if (msgDate.toDateString() === today.toDateString()) day = 'Today';
-        else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
-        return {
-          id: m.id,
-          from: m.cip,
-          day,
-          text: m.contenu,
-          time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-      });
-      setMessages(transformed);
+      setMessages(transformMessages(updatedMessages));
     } catch (err) {
       console.error('Failed to send message:', err);
     }
@@ -141,6 +123,18 @@ export default function TeamChat({ team }) {
   }
 
   const MEMBER_MAP = Object.fromEntries(members.map(m => [m.id, m]));
+
+  function getSender(msg) {
+    if (isOwn(msg)) {
+      return { initials: initialsFromUser(user), gradient: gradientForCip(myCip) };
+    }
+    const member = MEMBER_MAP[msg.from];
+    return {
+      initials: member?.initials || '?',
+      gradient: member?.gradient || '#ccc',
+      name: member?.name,
+    };
+  }
 
   return (
     <>
@@ -160,32 +154,24 @@ export default function TeamChat({ team }) {
 
       {/* Messages */}
       <div className="messages-area" role="log" aria-live="polite">
-        {loading && messages.length === 0 ? (
-          <div className="loading-spinner" style={{ margin: '40px auto' }} />
-        ) : messages.length === 0 ? (
-          <div className="empty-state" style={{ margin: '40px auto' }}>
-            <span className="empty-state-icon">💬</span>
-            <span className="empty-state-text">No messages yet</span>
-          </div>
-        ) : (
-          messages.map(msg => {
-            const member = MEMBER_MAP[msg.from];
-            const own = msg.from === myCip;
-            return (
-              <React.Fragment key={msg.id}>
-                {msg.day && <div className="day-divider">{msg.day}</div>}
-                <div className={`msg-group ${own ? 'own' : ''}`}>
-                  <Avatar initials={member?.initials || '?'} gradient={member?.gradient || '#ccc'} size="sm" />
-                  <div className="msg-content">
-                    {!own && <div className="msg-sender">{member?.name}</div>}
-                    <div className={`bubble ${own ? 'own' : ''}`}>{msg.text}</div>
-                    <div className="msg-time">{msg.time}</div>
-                  </div>
-                </div>
-              </React.Fragment>
-            );
-          })
-        )}
+        <ChatMessagesList
+          messages={messages}
+          isOwn={isOwn}
+          getRelativeTime={getRelativeTime}
+          hoveredMsgId={hoveredMsgId}
+          setHoveredMsgId={setHoveredMsgId}
+          menuMsgId={menuMsgId}
+          setMenuMsgId={setMenuMsgId}
+          handleDelete={handleDelete}
+          getSender={getSender}
+          isLoading={loading}
+          emptyState={
+            <div className="empty-state" style={{ margin: '40px auto' }}>
+              <span className="empty-state-icon">💬</span>
+              <span className="empty-state-text">No messages yet</span>
+            </div>
+          }
+        />
         <div ref={bottomRef} />
       </div>
 
@@ -208,6 +194,19 @@ export default function TeamChat({ team }) {
         />
         <button className="send-btn" onClick={handleSend} aria-label="Send">➤</button>
       </div>
+
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Delete message</div>
+            <div className="modal-subtitle">Are you sure you want to delete this message? This action cannot be undone.</div>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={cancelDelete}>Cancel</button>
+              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={confirmDeleteMessage}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
