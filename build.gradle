@@ -23,9 +23,13 @@ dependencies {
     // Config avec yaml
     implementation("io.quarkus:quarkus-config-yaml")
 
+    // Santé
+    implementation("io.quarkus:quarkus-smallrye-health")
+
     // Sécurité / OIDC
     implementation("io.quarkus:quarkus-oidc")
     implementation("io.quarkus:quarkus-security")
+    implementation("io.quarkus:quarkus-tls-registry")
 
     // Client REST
     implementation 'io.quarkus:quarkus-rest'

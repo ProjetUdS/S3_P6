@@ -2,10 +2,12 @@
 import React from 'react';
 import { Avatar } from './shared/Avatar';
 import { useAuth } from '../context/AuthContext';
+import teamIcon from '../assets/icons/team.png';
+import settingIcon from '../assets/icons/setting.png';
 
 const NAV_ITEMS = [
   { key: 'messages', icon: '💬', label: 'Messages' },
-  { key: 'teams',    icon: '👥', label: 'Teams'    },
+  { key: 'teams',    icon: teamIcon, label: 'Teams', isImage: true },
   { key: 'notifs',   icon: '🔔', label: 'Notifications', badge: true },
 ];
 
@@ -16,13 +18,13 @@ export default function Sidebar({ activeView, onNav }) {
     ? user.preferred_username.substring(0, 2).toUpperCase()
     : 'JD';
 
-  const gradient = 'linear-gradient(135deg, #7c6af7, #a78bfa)';
+  const gradient = 'linear-gradient(135deg, #3b82f6, #60a5fa)';
 
   return (
     <aside className="sidebar">
       <div className="sidebar-logo" aria-label="App logo">⚡</div>
 
-      {NAV_ITEMS.map(({ key, icon, label, badge }) => (
+      {NAV_ITEMS.map(({ key, icon, label, badge, isImage }) => (
         <button
           key={key}
           className={`sidebar-icon ${activeView === key ? 'active' : ''}`}
@@ -30,23 +32,35 @@ export default function Sidebar({ activeView, onNav }) {
           aria-label={label}
           title={label}
         >
-          {icon}
+          {isImage ? <img src={icon} alt="" /> : icon}
           {badge && <span className="notif-dot" aria-hidden="true" />}
         </button>
       ))}
 
       <div className="sidebar-spacer" />
 
-      <button className="sidebar-icon" aria-label="Settings" title="Settings">⚙️</button>
+      <button className="sidebar-icon" aria-label="Settings" title="Settings">
+        <img src={settingIcon} alt="" />
+      </button>
 
       <div className="sidebar-avatar-wrap">
         <Avatar
           initials={initials}
           gradient={gradient}
           size="sm"
-          style={{ border: '2px solid rgba(255,255,255,0.15)' }}
+          style={{ border: '2px solid rgba(15,23,42,0.1)' }}
         />
       </div>
+
+      <a
+        href="https://www.flaticon.com/free-icons/people"
+        title="People icons"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="sidebar-attribution"
+      >
+        Icons by Freepik - Flaticon
+      </a>
     </aside>
   );
 }

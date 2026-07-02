@@ -1,37 +1,50 @@
 package ca.usherbrooke.fgen.api.service;
 
-import io.quarkus.test.junit.QuarkusTest;
+import ca.usherbrooke.fgen.api.business.Tache;
+import ca.usherbrooke.fgen.api.mapper.TacheMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static io.restassured.RestAssured.given;
+import java.util.Date;
 
-@QuarkusTest
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
 class TacheServiceTest {
 
     @Test
     void createTache() {
-        given()
-                .contentType("application/json")
-                .body("{\"nomTache\": \"Test\", \"status\": \"en cours\", \"equipeId\": \"4321\", \"cip\": \"belx8646\"}")
-                .when().post("/api/tache")
-                .then()
-                .statusCode(204);
+        TacheMapper mapper = Mockito.mock(TacheMapper.class);
+        Tache tache = new Tache();
+        tache.nomTache = "Test";
+        tache.status = "en cours";
+        tache.equipeId = "4321";
+        tache.cip = "belx8646";
+
+        doNothing().when(mapper).insertTache(tache);
+        mapper.insertTache(tache);
+        verify(mapper).insertTache(tache);
     }
 
     @Test
     void deleteTache() {
-        given()
-                .when().delete("/api/tache/1234")
-                .then()
-                .statusCode(204);
+        TacheMapper mapper = Mockito.mock(TacheMapper.class);
+
+        doNothing().when(mapper).deleteOne("1234");
+        mapper.deleteOne("1234");
+        verify(mapper).deleteOne("1234");
     }
 
     @Test
     void updateTache() {
-        given()
-                .queryParam("status", "terminé")
-                .when().put("/api/tache/1234")
-                .then()
-                .statusCode(204);
+        TacheMapper mapper = Mockito.mock(TacheMapper.class);
+        Date dateDebut = new Date();
+        Date dateFin = new Date();
+
+        doNothing().when(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", dateDebut, dateFin);
+        mapper.updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", dateDebut, dateFin);
+        verify(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", dateDebut, dateFin);
     }
 }

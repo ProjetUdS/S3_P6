@@ -134,7 +134,13 @@ export async function createTache(tache) {
 }
 
 export async function updateTache(tacheId, tache) {
-  const response = await api.put(`/tache/${tacheId}`, tache);
+  const params = new URLSearchParams();
+  if (tache.nomTache != null) params.set('nomTache', tache.nomTache);
+  if (tache.status != null) params.set('status', tache.status);
+  if (tache.description != null) params.set('description', tache.description);
+  if (tache.dateDebut != null) params.set('dateDebut', tache.dateDebut);
+  if (tache.dateFin != null) params.set('dateFin', tache.dateFin);
+  const response = await api.put(`/tache/${tacheId}?${params.toString()}`);
   return response.data;
 }
 
@@ -175,8 +181,7 @@ export async function getUploadUrl(nomFichier) {
 // Upload directly to the presigned URL returned by the backend. We use the global axios
 // instance so requests to the full URL work without the API baseURL interfering.
 export async function uploadToUrl(uploadUrl, file) {
-  const response = await axios.put(uploadUrl, file, { headers: { 'Content-Type': file.type || 'application/octet-stream' } });
-  return response;
+  return await axios.put(uploadUrl, file, {headers: {'Content-Type': file.type || 'application/octet-stream'}});
 }
 
 export async function getDownloadUrl(fichierId) {

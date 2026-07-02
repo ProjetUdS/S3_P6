@@ -1,7 +1,10 @@
 // src/components/teams/TeamChat.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Avatar } from '../shared/Avatar';
-import { TeamIcon } from '../shared/Avatar';
+import { Avatar, TeamIcon } from '../shared/Avatar';
+import { ChatMessagesList } from '../shared/ChatMessagesList';
+import { useChatMessages } from '../shared/useChatMessages';
+import EmojiPicker from '../shared/EmojiPicker';
+import ChatInput from '../shared/ChatInput';
 import { useAuth } from '../../context/AuthContext';
 import { getTeamMembers, getDiscussions, getMessages, sendMessage, createDiscussion } from '../../services/api';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
@@ -10,10 +13,25 @@ export default function TeamChat({ team }) {
   const { user } = useAuth();
   const myCip = user?.cip;
   const [members, setMembers] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(true);
-  const bottomRef = useRef(null);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const messagesAreaRef = useRef(null);
+
+  const {
+    messages,
+    setMessages,
+    hoveredMsgId,
+    setHoveredMsgId,
+    menuMsgId,
+    setMenuMsgId,
+    confirmDelete,
+    isOwn,
+    getRelativeTime,
+    transformMessages,
+    handleDelete,
+    confirmDeleteMessage,
+    cancelDelete,
+  } = useChatMessages(myCip, messagesAreaRef);
 
   useEffect(() => {
     if (!team?.equipeId) {
@@ -46,25 +64,7 @@ export default function TeamChat({ team }) {
           const discussionId = discussions[0].discussionId;
           return getMessages(discussionId, 50, 0)
             .then(data => {
-              const transformed = (data || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
-                const msgDate = new Date(m.date);
-                const today = new Date();
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-
-                let day = null;
-                if (msgDate.toDateString() === today.toDateString()) day = 'Today';
-                else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
-
-                return {
-                  id: m.id,
-                  from: m.cip,
-                  day,
-                  text: m.contenu,
-                  time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                };
-              });
-              setMessages(transformed);
+              setMessages(transformMessages(data));
               setLoading(false);
             })
             .catch(err => {
@@ -76,13 +76,11 @@ export default function TeamChat({ team }) {
     ]);
   }, [team?.equipeId]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  async function handleSend(text, attachments) {
+    if (!myCip || !team?.equipeId) return;
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || !myCip || !team?.equipeId) return;
+    const hasUploaded = (attachments || []).some(a => a.uploaded && a.fichierId);
+    if (!text && !hasUploaded) return;
 
     let discussionId = null;
     const discussions = await getDiscussions(null, team.equipeId).catch(err => {
@@ -105,42 +103,59 @@ export default function TeamChat({ team }) {
 
     if (!discussionId) return;
 
+    const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
+      fichierId: a.fichierId,
+      nomOriginal: a.file.name,
+      typeMime: a.file.type,
+      tailleOctets: a.file.size,
+      cip: myCip,
+    }));
+
     try {
       await sendMessage({
         contenu: text,
         cip: myCip,
         discussionId,
+        fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
-      setInput('');
 
       const updatedMessages = await getMessages(discussionId, 50, 0);
-      const transformed = (updatedMessages || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
-        const msgDate = new Date(m.date);
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        let day = null;
-        if (msgDate.toDateString() === today.toDateString()) day = 'Today';
-        else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
-        return {
-          id: m.id,
-          from: m.cip,
-          day,
-          text: m.contenu,
-          time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-      });
-      setMessages(transformed);
+      setMessages(transformMessages(updatedMessages));
     } catch (err) {
       console.error('Failed to send message:', err);
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  function handleEmojiSelect(emoji) {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = input;
+    
+    setInput(text.substring(0, start) + emoji + text.substring(end));
+    
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = start + emoji.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
   }
 
   const MEMBER_MAP = Object.fromEntries(members.map(m => [m.id, m]));
+
+  function getSender(msg) {
+    if (isOwn(msg)) {
+      return { initials: initialsFromUser(user), gradient: gradientForCip(myCip) };
+    }
+    const member = MEMBER_MAP[msg.from];
+    return {
+      initials: member?.initials || '?',
+      gradient: member?.gradient || '#ccc',
+      name: member?.name,
+    };
+  }
 
   return (
     <>
@@ -159,55 +174,53 @@ export default function TeamChat({ team }) {
       </div>
 
       {/* Messages */}
-      <div className="messages-area" role="log" aria-live="polite">
-        {loading && messages.length === 0 ? (
-          <div className="loading-spinner" style={{ margin: '40px auto' }} />
-        ) : messages.length === 0 ? (
-          <div className="empty-state" style={{ margin: '40px auto' }}>
-            <span className="empty-state-icon">💬</span>
-            <span className="empty-state-text">No messages yet</span>
-          </div>
-        ) : (
-          messages.map(msg => {
-            const member = MEMBER_MAP[msg.from];
-            const own = msg.from === myCip;
-            return (
-              <React.Fragment key={msg.id}>
-                {msg.day && <div className="day-divider">{msg.day}</div>}
-                <div className={`msg-group ${own ? 'own' : ''}`}>
-                  <Avatar initials={member?.initials || '?'} gradient={member?.gradient || '#ccc'} size="sm" />
-                  <div className="msg-content">
-                    {!own && <div className="msg-sender">{member?.name}</div>}
-                    <div className={`bubble ${own ? 'own' : ''}`}>{msg.text}</div>
-                    <div className="msg-time">{msg.time}</div>
-                  </div>
-                </div>
-              </React.Fragment>
-            );
-          })
-        )}
-        <div ref={bottomRef} />
+      <div className="messages-area" ref={messagesAreaRef} role="log" aria-live="polite">
+        <ChatMessagesList
+          messages={messages}
+          isOwn={isOwn}
+          getRelativeTime={getRelativeTime}
+          hoveredMsgId={hoveredMsgId}
+          setHoveredMsgId={setHoveredMsgId}
+          menuMsgId={menuMsgId}
+          setMenuMsgId={setMenuMsgId}
+          handleDelete={handleDelete}
+          getSender={getSender}
+          isLoading={loading}
+          emptyState={
+            <div className="empty-state" style={{ margin: '40px auto' }}>
+              <span className="empty-state-icon">💬</span>
+              <span className="empty-state-text">No messages yet</span>
+            </div>
+          }
+        />
       </div>
 
-      {/* Input */}
-      <div className="chat-input-bar">
-        <div className="input-actions">
-          <button className="action-btn" aria-label="Image">🖼️</button>
-          <button className="action-btn" aria-label="Video">🎬</button>
-          <button className="action-btn" aria-label="Attach">📎</button>
-          <button className="action-btn" aria-label="Emoji">😊</button>
+      {/* Emoji Picker */}
+      {emojiPickerOpen && (
+        <div className="emoji-picker-container">
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
         </div>
-        <input
-          className="chat-text-input"
-          type="text"
-          placeholder={`Message ${team?.nomEquipe || 'team'}…`}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          aria-label="Team message input"
-        />
-        <button className="send-btn" onClick={handleSend} aria-label="Send">➤</button>
-      </div>
+      )}
+
+      {/* Input */}
+      <ChatInput
+        onSend={handleSend}
+        placeholder={`Message ${team?.nomEquipe || 'team'}…`}
+        onEmojiClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
+      />
+
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Delete message</div>
+            <div className="modal-subtitle">Are you sure you want to delete this message? This action cannot be undone.</div>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={cancelDelete}>Cancel</button>
+              <button className="btn-primary" style={{ background: '#ef4444' }} onClick={confirmDeleteMessage}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

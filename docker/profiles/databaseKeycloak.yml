@@ -1,0 +1,62 @@
+# ============================================
+# INFORMATIONS DU SERVICE
+# ============================================
+name: database-keycloak
+description: "Database pour keycloak"
+enabled: true # false pour désactiver le service sans supprimer le profil
+always_active: true  # Si true, démarré automatiquement sans --profile
+docker_profile: null  # Nom du profil Docker (ou null si always_active)
+keep_port_mapping: false
+
+# ============================================
+# CONFIGURATION DOCKER
+# ============================================
+docker-compose:
+
+  image: postgres:18
+  
+  # Option 3 : Décomposition complète (maximum de flexibilité)
+  # image: ${EXAMPLE_REGISTRY:-docker.io}/${EXAMPLE_IMAGE:-nginx}:${EXAMPLE_TAG:-latest}
+  
+  container_name: database-keycloak
+  ports:
+    - "5445:5432"
+  environment:
+    - POSTGRES_USER=${DB_KC_USER}
+    - POSTGRES_PASSWORD=${DB_KC_PASSWORD}
+    - POSTGRES_DB=${DB_KC_DB}
+
+
+# ============================================
+# CONFIGURATION TRAEFIK
+# ============================================
+traefik:
+  # Activer l'intégration Traefik
+  enabled: false
+
+secrets:
+  - name: DB_KC_VERSION
+    description: "Version de la db postgres utilisé par keycloak"
+    default: "18"
+  - name: DB_KC_USER
+    default: "postgres"
+  - name: DB_KC_PASSWORD
+    default: "postgres"
+  - name: DB_KC_NAME
+    default: "postgres"
+
+
+# ============================================
+# MÉTADONNÉES (optionnel)
+# ============================================
+metadata:
+  # Catégorie du service
+  category: db
+  
+  # Tags pour filtrage
+  tags:
+    - db
+
+  # Documentation
+  docs_url: https://www.postgresql.org/docs/
+

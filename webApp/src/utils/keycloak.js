@@ -1,9 +1,9 @@
 import Keycloak from 'keycloak-js';
 
 const KEYCLOAC_CONFIG = {
-  url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180',
-  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'usager',
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'frontend',
+  url: import.meta.env.VITE_KC_SERVER_URL,
+  realm: import.meta.env.VITE_KC_REALM_NAME,
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_NAME,
 };
 
 let keycloak = null;

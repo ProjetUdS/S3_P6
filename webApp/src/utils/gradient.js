@@ -6,11 +6,11 @@
  */
 
 const GRADIENTS = [
-  'linear-gradient(135deg, #7c6af7, #a78bfa)',
-  'linear-gradient(135deg, #f093fb, #f5576c)',
-  'linear-gradient(135deg, #43e97b, #38f9d7)',
-  'linear-gradient(135deg, #f59e0b, #ef4444)',
-  'linear-gradient(135deg, #667eea, #764ba2)',
+  'linear-gradient(135deg, #3b82f6, #60a5fa)',
+  'linear-gradient(135deg, #ec4899, #f43f5e)',
+  'linear-gradient(135deg, #10b981, #14b8a6)',
+  'linear-gradient(135deg, #f59e0b, #f97316)',
+  'linear-gradient(135deg, #8b5cf6, #a78bfa)',
   'linear-gradient(135deg, #fa709a, #fee140)',
   'linear-gradient(135deg, #a18cd1, #fbc9eb)',
   'linear-gradient(135deg, #ffecd2, #fcb69f)',

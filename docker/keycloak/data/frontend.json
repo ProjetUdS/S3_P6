@@ -1,9 +1,9 @@
 {
   "clientId": "frontend",
   "name": "Authorisation de connection à une page web",
-  "rootUrl": "http://localhost:8180/",
-  "adminUrl": "",
-  "baseUrl": "/",
+  "rootUrl": "${KC_SERVER_URL}",
+  "adminUrl": "${KC_SERVER_URL}",
+  "baseUrl": "/auth",
   "surrogateAuthRequired": false,
   "enabled": true,
   "alwaysDisplayInConsole": false,
