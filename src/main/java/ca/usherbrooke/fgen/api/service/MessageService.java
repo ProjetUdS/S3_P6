@@ -6,6 +6,7 @@ import ca.usherbrooke.fgen.api.mapper.FichierJointMapper;
 import ca.usherbrooke.fgen.api.mapper.MessageMapper;
 
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
@@ -16,6 +17,8 @@ import java.util.UUID;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class MessageService {
+
+    private static final Logger log = Logger.getLogger(MessageService.class);
 
     @Inject
     MessageMapper messageMapper;
@@ -54,6 +57,7 @@ public class MessageService {
 
                 fichierJointMapper.insertFichier(fichier);
             }
+            log.infof("Saved %d attached files for message %s", message.fichiers.size(), message.id);
         }
     }
 

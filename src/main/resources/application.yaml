@@ -58,17 +58,18 @@ quarkus:
       url: "jdbc:postgresql://localhost:5444/postgres"
       leak-detection-interval: 5M
 
-  # --- MyBatis Mapping Configuration ---
+   # --- MyBatis Mapping Configuration ---
   mybatis:
     xmlconfig:
       enable: false
     map-underscore-to-camel-case: true
 
-  minio:
-    url: "http://localhost:9000"
-    access:
-      key: "local_admin"
-    secret:
-      key: "local_password"
-    bucket:
-      name: "chat-media"
+# MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
+minio:
+  url: "http://localhost:9000"
+  access:
+    key: "local_admin"
+  secret:
+    key: "local_password"
+  bucket:
+    name: "chat-media"

@@ -1,7 +1,7 @@
 // src/components/chat/ChatView.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { getFriendConversation, sendMessage, createDiscussion, deleteMessage, changeDiscussionMemberState } from '../../services/api';
+import { getFriendConversation, sendMessage, createDiscussion, deleteMessage, changeDiscussionMemberState, getUploadUrl, uploadToUrl, getDownloadUrl, default as api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
@@ -11,6 +11,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [attachments, setAttachments] = useState([]); // {file, uploading, uploaded, fichierId, error}
   const [hoveredMsgId, setHoveredMsgId] = useState(null);
   const [menuMsgId, setMenuMsgId] = useState(null);
   const [localDiscussionId, setLocalDiscussionId] = useState(null);
@@ -21,6 +22,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   const [confirmDelete, setConfirmDelete] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const discussionId = propDiscussionId || localDiscussionId;
 
@@ -55,9 +57,11 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
             text: m.contenu,
             time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             dateStr: m.date,
+            fichiers: m.fichiers || [],
           };
         });
         setMessages(transformed);
+        console.debug('Loaded messages with fichiers:', transformed);
       })
       .catch(err => {
         console.error('Failed to load messages:', err);
@@ -81,7 +85,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
 
   async function handleSend() {
     const text = input.trim();
-    if (!text || !myCip || !friend?.cip) return;
+    if (!myCip || !friend?.cip) return;
     setSending(true);
     let discussionId;
 
@@ -100,12 +104,26 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     if (!discussionId) { setSending(false); return; }
 
     try {
+      // if no text and no uploaded attachments, nothing to send
+      const hasUploadedAttachments = (attachments || []).some(a => a.uploaded && a.fichierId);
+      if (!text && !hasUploadedAttachments) { setSending(false); return; }
+      // prepare fichiers payload if there are uploaded attachments
+      const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
+        fichierId: a.fichierId,
+        nomOriginal: a.file.name,
+        typeMime: a.file.type,
+        tailleOctets: a.file.size,
+        cip: myCip,
+      }));
+
       await sendMessage({
         contenu: text,
         cip: myCip,
         discussionId,
+        fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
       setInput('');
+      setAttachments([]);
       const data = await getFriendConversation(myCip, friend.cip, 100, 0);
       const transformed = (data || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
         const msgDate = new Date(m.date);
@@ -122,9 +140,11 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
           text: m.contenu,
           time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           dateStr: m.date,
+          fichiers: m.fichiers || [],
         };
       });
       setMessages(transformed);
+      console.debug('Refreshed messages after send, fichiers:', transformed);
       setTimeout(() => inputRef.current?.focus(), 0);
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -167,6 +187,45 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     if (isReadOnly) return;
     setMenuMsgId(null);
     setConfirmDelete(msgId);
+  }
+
+  function handleAttachClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleFilesSelected(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const newAttachments = files.map(f => ({ file: f, uploading: true, uploaded: false, fichierId: null, error: null }));
+    setAttachments(prev => [...prev, ...newAttachments]);
+
+    // upload each sequentially (could parallelize)
+    for (const f of files) {
+      try {
+        const presigned = await getUploadUrl(f.name);
+        // presigned should contain { fichierId, uploadUrl }
+        await uploadToUrl(presigned.uploadUrl, f);
+        setAttachments(prev => prev.map(a => {
+          if (a.file === f) return { ...a, uploading: false, uploaded: true, fichierId: presigned.fichierId };
+          return a;
+        }));
+      } catch (err) {
+        console.error('Upload failed for file', f.name, 'Error:', err?.response?.status || err?.message || err);
+        const errorMsg = err?.response?.statusText || err?.message || 'Upload failed';
+        setAttachments(prev => prev.map(a => {
+          if (a.file === f) return { ...a, uploading: false, uploaded: false, error: errorMsg };
+          return a;
+        }));
+      }
+    }
+
+    // reset input so same file can be selected again
+    e.target.value = '';
+  }
+
+  function removeAttachment(file) {
+    setAttachments(prev => prev.filter(a => a.file !== file));
   }
 
   async function confirmDeleteMessage() {
@@ -376,6 +435,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
                 }}
                 onDelete={() => handleDelete(msg.id)}
                 isReadOnly={isReadOnly}
+                fichiers={msg.fichiers}
               />
             );
           })
@@ -405,9 +465,23 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
             <div className="input-actions">
               <button className="action-btn" aria-label="Send image">🖼️</button>
               <button className="action-btn" aria-label="Send video">🎬</button>
-              <button className="action-btn" aria-label="Attach file">📎</button>
+              <button className="action-btn" aria-label="Attach file" onClick={handleAttachClick}>📎</button>
               <button className="action-btn" aria-label="Emoji">😊</button>
+              <input ref={fileInputRef} type="file" style={{ display: 'none' }} multiple onChange={handleFilesSelected} />
             </div>
+
+            {/* Attachments preview */}
+            {attachments.length > 0 && (
+              <div className="attachments-row">
+                {attachments.map((a, i) => (
+                  <div key={i} className="attachment-chip">
+                    <span className="attachment-name">{a.file.name}</span>
+                    <span className="attachment-state">{a.uploading ? 'Uploading…' : a.uploaded ? '✓' : a.error ? '✕' : ''}</span>
+                    <button className="attachment-remove" onClick={() => removeAttachment(a.file)} aria-label="Remove attachment">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
             <input
               ref={inputRef}
               className="chat-text-input"
@@ -419,7 +493,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
               aria-label="Message input"
               disabled={sending || !['enabled', 'active'].includes(etat)}
             />
-            <button className="send-btn" onClick={handleSend} aria-label="Send message" disabled={sending || !input.trim()}>
+            <button className="send-btn" onClick={handleSend} aria-label="Send message" disabled={sending || (!(input.trim()) && !(attachments || []).some(a => a.uploaded && a.fichierId))}>
               ➤
             </button>
           </>
@@ -460,10 +534,83 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
 }
 
 // ── MessageGroup ─────────────────────────────────────────────────────────────
-function MessageGroup({ msg, own, friend, myInitials, myGradient, relativeTime, menuOpen, showDay, onHover, onHoverOut, onMenuToggle, onDelete, isReadOnly }) {
+function MessageGroup({ msg, own, friend, myInitials, myGradient, relativeTime, menuOpen, showDay, onHover, onHoverOut, onMenuToggle, onDelete, isReadOnly, fichiers }) {
   const sender = own
     ? { initials: myInitials, gradient: myGradient }
     : { initials: friend?.initials, gradient: friend?.gradient };
+
+  const [downloadingId, setDownloadingId] = React.useState(null);
+
+  async function handleDownload(fichier) {
+    try {
+      setDownloadingId(fichier.fichierId);
+      const presigned = await getDownloadUrl(fichier.fichierId);
+      // Fetch the file as a blob from the presigned URL then force a download
+      // This prevents the browser from opening text files inline when the
+      // remote server doesn't set Content-Disposition: attachment.
+      // First try to download through the backend proxy to avoid CORS and ensure
+      // authentication headers are sent (same-origin). The proxy sets Content-Disposition
+      // so the browser will download the file.
+      try {
+        const proxyRes = await api.get(`/fichiers/download-proxy/${fichier.fichierId}`, { params: { filename: fichier.nomOriginal }, responseType: 'blob' });
+        const blob = proxyRes.data;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fichier.nomOriginal || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        setDownloadingId(null);
+        return;
+      } catch (proxyErr) {
+        // If proxy fails, fall back to direct presigned URL fetch below
+        console.warn('Proxy download failed, falling back to presigned URL (may fail due to CORS):', proxyErr);
+      }
+
+      // Attempt to fetch the file as a blob (preferred) so we can force a download
+      // Note: this can fail if the presigned URL's host doesn't allow cross-origin requests (CORS).
+      try {
+        const response = await fetch(presigned.uploadUrl, { mode: 'cors', credentials: 'omit' });
+        if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fichier.nomOriginal || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        // release the object URL after a short delay to ensure the download started
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      } catch (fetchErr) {
+        // Fallback: open the presigned URL in a new tab/window. This may cause the browser
+        // to display the file inline (for text/images) instead of downloading, but it will
+        // at least allow the user to save it manually. Often fetch fails due to CORS.
+        console.warn('Fetch download failed, falling back to direct navigation:', fetchErr);
+        try {
+          const a = document.createElement('a');
+          a.href = presigned.uploadUrl;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          // try to hint the browser to download (some browsers ignore this for cross-origin)
+          a.download = fichier.nomOriginal || '';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } catch (navErr) {
+          console.error('Fallback navigation failed:', navErr);
+          // Inform the user
+          alert('Unable to download file automatically. Please check browser console for details.');
+        }
+      }
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   return (
     <>
@@ -477,7 +624,22 @@ function MessageGroup({ msg, own, friend, myInitials, myGradient, relativeTime, 
         <div className="msg-content">
           {!own && <div className="msg-sender">{friend?.name}</div>}
           <div className={`bubble-wrapper ${own ? 'own' : ''}`}>
-            <div className={`bubble ${own ? 'own' : ''}`}>{msg.text}</div>
+            {msg.text && <div className={`bubble ${own ? 'own' : ''}`}>{msg.text}</div>}
+            {fichiers && fichiers.length > 0 && (
+              <div className={`attachment-bubble bubble ${own ? 'own' : ''}`}>
+                {fichiers.map((f, i) => (
+                  <button
+                    key={i}
+                    className="attachment-link"
+                    onClick={() => handleDownload(f)}
+                    disabled={downloadingId === f.fichierId}
+                  >
+                    📎 {f.nomOriginal} ({(f.tailleOctets / 1024).toFixed(1)}KB)
+                    {downloadingId === f.fichierId && '...'}
+                  </button>
+                ))}
+              </div>
+            )}
             {own && !isReadOnly && (
               <div className={`bubble-actions ${own ? 'own' : ''}`}>
                 <div className={`delete-menu ${own ? 'own' : ''}`} style={{ display: menuOpen ? 'block' : 'none' }}>
@@ -494,6 +656,10 @@ function MessageGroup({ msg, own, friend, myInitials, myGradient, relativeTime, 
             )}
           </div>
           <div className="msg-time">{relativeTime}</div>
+          {/* Debug/visibility: show attachment count so we can tell if fichiers are present */}
+          {fichiers && fichiers.length > 0 && (
+            <div className="msg-attachments-count">Attachments: {fichiers.length}</div>
+          )}
         </div>
       </div>
     </>
