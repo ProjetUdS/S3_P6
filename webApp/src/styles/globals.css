@@ -41,6 +41,8 @@ ul     { list-style: none; }
   /* Semantic colors */
   --red:           #ef4444;
   --amber:         #f59e0b;
+  --green:         #10b981;
+  --gray:          #94a3b8;
 
   /* Avatar Gradients */
   --grad-sr: linear-gradient(135deg, #3b82f6, #60a5fa);

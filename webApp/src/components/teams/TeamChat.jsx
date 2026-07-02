@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Avatar, TeamIcon } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
+import EmojiPicker from '../shared/EmojiPicker';
 import { useAuth } from '../../context/AuthContext';
 import { getTeamMembers, getDiscussions, getMessages, sendMessage, createDiscussion } from '../../services/api';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
@@ -13,6 +14,7 @@ export default function TeamChat({ team }) {
   const [members, setMembers] = useState([]);
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(true);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const messagesAreaRef = useRef(null);
 
   const {
@@ -120,6 +122,23 @@ export default function TeamChat({ team }) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   }
 
+  function handleEmojiSelect(emoji) {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = input;
+    
+    setInput(text.substring(0, start) + emoji + text.substring(end));
+    
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = start + emoji.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
+  }
+
   const MEMBER_MAP = Object.fromEntries(members.map(m => [m.id, m]));
 
   function getSender(msg) {
@@ -172,13 +191,20 @@ export default function TeamChat({ team }) {
         />
       </div>
 
+      {/* Emoji Picker */}
+      {emojiPickerOpen && (
+        <div className="emoji-picker-container">
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
+        </div>
+      )}
+
       {/* Input */}
       <div className="chat-input-bar">
         <div className="input-actions">
           <button className="action-btn" aria-label="Image">🖼️</button>
           <button className="action-btn" aria-label="Video">🎬</button>
           <button className="action-btn" aria-label="Attach">📎</button>
-          <button className="action-btn" aria-label="Emoji">😊</button>
+          <button className="action-btn" aria-label="Emoji" onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>😊</button>
         </div>
         <textarea
           ref={inputRef}

@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
+import EmojiPicker from '../shared/EmojiPicker';
 import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
@@ -16,6 +17,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   const [topbarMenuOpen, setTopbarMenuOpen] = useState(false);
   const [confirmDeleteConversation, setConfirmDeleteConversation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const pendingActionRef = useRef(null);
   const messagesAreaRef = useRef(null);
   const inputRef = useRef(null);
@@ -107,6 +109,23 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  }
+
+  function handleEmojiSelect(emoji) {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = input;
+    
+    setInput(text.substring(0, start) + emoji + text.substring(end));
+    
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = start + emoji.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
   }
 
   const isReadOnly = !['enabled', 'active'].includes(etat);
@@ -273,6 +292,13 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         />
       </div>
 
+      {/* Emoji Picker */}
+      {emojiPickerOpen && (
+        <div className="emoji-picker-container">
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
+        </div>
+      )}
+
       {/* Input bar or action button for read-only */}
       <div className="chat-input-bar">
         {isReadOnly ? (
@@ -296,7 +322,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
               <button className="action-btn" aria-label="Send image">🖼️</button>
               <button className="action-btn" aria-label="Send video">🎬</button>
               <button className="action-btn" aria-label="Attach file">📎</button>
-              <button className="action-btn" aria-label="Emoji">😊</button>
+              <button className="action-btn" aria-label="Emoji" onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>😊</button>
             </div>
             <textarea
               ref={inputRef}
