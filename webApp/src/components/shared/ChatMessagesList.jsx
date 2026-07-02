@@ -28,27 +28,32 @@ export function ChatMessagesList({
     );
   }
 
-  return messages.map((msg, i) => {
-    const prevMsg = messages[i - 1];
-    const showDay = i === 0 || msg.day !== prevMsg.day;
-    const sender = getSender?.(msg) || {};
-    return (
-      <MessageGroup
-        key={msg.id}
-        msg={msg}
-        sender={sender}
-        own={isOwn(msg)}
-        relativeTime={getRelativeTime(msg)}
-        menuOpen={menuMsgId === msg.id}
-        showDay={showDay}
-        onHover={() => setHoveredMsgId(msg.id)}
-        onHoverOut={() => setHoveredMsgId(null)}
-        onMenuToggle={(e) => {
-          e.stopPropagation();
-          setMenuMsgId(menuMsgId === msg.id ? null : msg.id);
-        }}
-        onDelete={() => handleDelete(msg.id)}
-      />
-    );
-  });
+  return (
+    <>
+      {messages.map((msg, i) => {
+        const prevMsg = messages[i - 1];
+        const showDay = i === 0 || msg.day !== prevMsg.day;
+        const sender = getSender?.(msg) || {};
+        return (
+          <MessageGroup
+            key={msg.id}
+            msg={msg}
+            sender={sender}
+            own={isOwn(msg)}
+            relativeTime={getRelativeTime(msg)}
+            menuOpen={menuMsgId === msg.id}
+            showDay={showDay}
+            onHover={() => setHoveredMsgId(msg.id)}
+            onHoverOut={() => setHoveredMsgId(null)}
+            onMenuToggle={(e) => {
+              e.stopPropagation();
+              setMenuMsgId(menuMsgId === msg.id ? null : msg.id);
+            }}
+            onDelete={() => handleDelete(msg.id)}
+          />
+        );
+      })}
+      <div className="messages-spacer" />
+    </>
+  );
 }

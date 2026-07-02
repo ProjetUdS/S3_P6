@@ -18,6 +18,7 @@ ul     { list-style: none; }
   --bg-primary:    #ffffff;
   --bg-secondary:  #f1f5f9;
   --bg-tertiary:   #e2e8f0;
+  --bg-2:          #f1f5f9;
 
   /* Sidebar */
   --sidebar-bg:    #f8fafc;
@@ -36,6 +37,10 @@ ul     { list-style: none; }
   /* Borders */
   --border:        #cbd5e1;
   --border-light:  #e2e8f0;
+
+  /* Semantic colors */
+  --red:           #ef4444;
+  --amber:         #f59e0b;
 
   /* Avatar Gradients */
   --grad-sr: linear-gradient(135deg, #3b82f6, #60a5fa);

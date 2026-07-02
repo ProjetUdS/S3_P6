@@ -17,7 +17,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   const [confirmDeleteConversation, setConfirmDeleteConversation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const pendingActionRef = useRef(null);
-  const bottomRef = useRef(null);
+  const messagesAreaRef = useRef(null);
   const inputRef = useRef(null);
 
   const {
@@ -34,7 +34,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     handleDelete,
     confirmDeleteMessage,
     cancelDelete,
-  } = useChatMessages(myCip);
+  } = useChatMessages(myCip, messagesAreaRef);
 
   const discussionId = propDiscussionId || localDiscussionId;
 
@@ -60,10 +60,6 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         console.error('Failed to load messages:', err);
       });
   }, [friend?.cip, myCip]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   useEffect(() => {
     if (!topbarMenuOpen) return;
@@ -255,7 +251,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
       </div>
 
       {/* Messages */}
-      <div className="messages-area" role="log" aria-live="polite" aria-label="Chat messages">
+      <div className="messages-area" ref={messagesAreaRef} role="log" aria-live="polite" aria-label="Chat messages">
         <ChatMessagesList
           messages={messages}
           isOwn={isOwn}
@@ -275,7 +271,6 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
             </div>
           }
         />
-        <div ref={bottomRef} />
       </div>
 
       {/* Input bar or action button for read-only */}
@@ -303,16 +298,21 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
               <button className="action-btn" aria-label="Attach file">📎</button>
               <button className="action-btn" aria-label="Emoji">😊</button>
             </div>
-            <input
+            <textarea
               ref={inputRef}
               className="chat-text-input"
-              type="text"
               placeholder={etat === 'archived' ? 'Conversation archivée — lecture seule' : etat === 'disabled' ? 'Conversation désactivée — lecture seule' : etat === 'blocked' ? 'Conversation bloquée — lecture seule' : `Message ${friend?.name || 'friend'}…`}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               aria-label="Message input"
               disabled={sending || !['enabled', 'active'].includes(etat)}
+              rows={1}
+              onInput={e => {
+                const el = e.target;
+                el.style.height = 'auto';
+                el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+              }}
             />
             <button className="send-btn" onClick={handleSend} aria-label="Send message" disabled={sending || !input.trim()}>
               ➤

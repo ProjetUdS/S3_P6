@@ -13,7 +13,7 @@ export default function TeamChat({ team }) {
   const [members, setMembers] = useState([]);
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(true);
-  const bottomRef = useRef(null);
+  const messagesAreaRef = useRef(null);
 
   const {
     messages,
@@ -29,7 +29,9 @@ export default function TeamChat({ team }) {
     handleDelete,
     confirmDeleteMessage,
     cancelDelete,
-  } = useChatMessages(myCip);
+  } = useChatMessages(myCip, messagesAreaRef);
+
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (!team?.equipeId) {
@@ -73,10 +75,6 @@ export default function TeamChat({ team }) {
         .catch(err => console.error('Failed to load discussions:', err)),
     ]);
   }, [team?.equipeId]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   async function handleSend() {
     const text = input.trim();
@@ -153,7 +151,7 @@ export default function TeamChat({ team }) {
       </div>
 
       {/* Messages */}
-      <div className="messages-area" role="log" aria-live="polite">
+      <div className="messages-area" ref={messagesAreaRef} role="log" aria-live="polite">
         <ChatMessagesList
           messages={messages}
           isOwn={isOwn}
@@ -172,7 +170,6 @@ export default function TeamChat({ team }) {
             </div>
           }
         />
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
@@ -183,14 +180,20 @@ export default function TeamChat({ team }) {
           <button className="action-btn" aria-label="Attach">📎</button>
           <button className="action-btn" aria-label="Emoji">😊</button>
         </div>
-        <input
+        <textarea
+          ref={inputRef}
           className="chat-text-input"
-          type="text"
           placeholder={`Message ${team?.nomEquipe || 'team'}…`}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           aria-label="Team message input"
+          rows={1}
+          onInput={e => {
+            const el = e.target;
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+          }}
         />
         <button className="send-btn" onClick={handleSend} aria-label="Send">➤</button>
       </div>

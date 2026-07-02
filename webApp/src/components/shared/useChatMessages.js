@@ -1,12 +1,25 @@
 // src/components/shared/useChatMessages.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { deleteMessage } from '../../services/api';
 
-export function useChatMessages(myCip) {
+export function useChatMessages(myCip, messagesAreaRef) {
   const [messages, setMessages] = useState([]);
   const [hoveredMsgId, setHoveredMsgId] = useState(null);
   const [menuMsgId, setMenuMsgId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const prevMessagesRef = useRef(0);
+
+  useEffect(() => {
+    if (messagesAreaRef?.current && messages.length !== prevMessagesRef.current) {
+      prevMessagesRef.current = messages.length;
+      setTimeout(() => {
+        const el = messagesAreaRef.current;
+        if (el) {
+          el.scrollTop = el.scrollHeight;
+        }
+      }, 50);
+    }
+  }, [messages, messagesAreaRef]);
 
   useEffect(() => {
     if (!menuMsgId) return;
