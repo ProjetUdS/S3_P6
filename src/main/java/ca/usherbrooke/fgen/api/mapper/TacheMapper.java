@@ -30,6 +30,8 @@ public interface TacheMapper {
    */
   List<Tache> deadlines(@Param("equipeId") String equipeId);
 
+  List<Tache> tachesAvecDeadlineDemain();
+
   /**
    * Sélectionne les tâches d'une équipe dont la période [dateDebut, dateFin]
    * chevauche l'intervalle [dateMin, dateMax]. Les bornes nulles ne filtrent pas.
