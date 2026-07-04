@@ -26,9 +26,10 @@ export default function TeamPlanning({ team }) {
 
   // Map task status to column state
   const getTaskStatus = (t) => {
-    const status = t.status?.toLowerCase() || '';
-    if (status === 'termine' || status === 'done') return 'done';
-    if (status === 'en_cours' || status === 'doing') return 'doing';
+    const raw = (t.status || '').trim().toLowerCase();
+    const normalized = raw.replace(/\s+/g, '_');
+    if (normalized === 'termine' || normalized === 'done') return 'done';
+    if (normalized === 'en_cours' || normalized === 'doing') return 'doing';
     return 'todo';
   };
 
@@ -87,7 +88,7 @@ export default function TeamPlanning({ team }) {
             .map(t => ({
               id: t.id,
               nomTache: t.nomTache,
-              status: t.status,
+              status: getTaskStatus(t),
               dateFin: new Date(t.dateFin),
             }));
           setTodayDeadlines(deadlines);
@@ -499,7 +500,7 @@ export default function TeamPlanning({ team }) {
              <div className="modal-subtitle">Are you sure you want to delete this task? This action cannot be undone.</div>
              <div className="modal-actions">
                <button className="btn-cancel" onClick={() => setDeleteConfirmTaskId(null)}>Cancel</button>
-               <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => handleDeleteTask(deleteConfirmTaskId)}>Delete</button>
+               <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleDeleteTask(deleteConfirmTaskId)}>Delete</button>
              </div>
            </div>
          </div>

@@ -29,7 +29,6 @@ quarkus:
         - http://localhost:8888
         - http://localhost:8180
         - ${HTTP_TYPE}://${SERVER_IP}
-        - "*"
       methods:
         - GET
         - PUT
@@ -42,7 +41,7 @@ quarkus:
         - Accept
   # --- OIDC (OpenID Connect) Configuration ---
   oidc:
-    auth-server-url: "${{HTTP_TYPE}://${SERVER_IP}:${SERVER_PORT}${KEYCLOAK_PATH}/realms/usager"
+    auth-server-url: http://auth:8180/realms/usager
     client-id: ${OIDC_CLIENT_ID}
     credentials:
       secret: ${OIDC_SECRET}
@@ -68,7 +67,7 @@ quarkus:
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     jdbc:
-      url: "jdbc:postgresql://localhost:5444/postgres"
+      url: "jdbc:postgresql://database:5432/postgres"
       leak-detection-interval: 5M
 
   # --- MyBatis Mapping Configuration ---
@@ -76,3 +75,13 @@ quarkus:
     xmlconfig:
       enable: false
     map-underscore-to-camel-case: true
+
+# MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
+minio:
+  url: "http://minio:${MINIO_PORT}"
+  access:
+    key: ${MINIO_USER}
+  secret:
+    key: ${MINIO_PASSWORD}
+  bucket:
+    name: "chat-media"

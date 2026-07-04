@@ -1,5 +1,9 @@
 creation_rules:
-  - filename_regex: '.*'
+  - path_regex: '.*duck(dns)?\.env$'
+    key_groups:
+      - age:
+          - age1e3t3m9vs9fyreact9jvy4qry2n9qgz9k629hnnsun2r8lrd0g54s03h9h6 #Adam
+  - path_regex: '.*'
     key_groups:
       - age:
           - age1e3t3m9vs9fyreact9jvy4qry2n9qgz9k629hnnsun2r8lrd0g54s03h9h6 #Adam

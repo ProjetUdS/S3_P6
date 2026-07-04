@@ -2,24 +2,14 @@
   <configuration default="false" name="Docker Prod" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
     <deployment type="docker-compose.yml">
       <settings>
-        <option name="envFilePath" value="$PROJECT_DIR$/.env" />
+        <option name="envFilePath" value="$PROJECT_DIR$/duckdns.env" />
         <option name="envFilePaths">
           <list>
+            <option value="$PROJECT_DIR$/duckdns.env" />
             <option value="$PROJECT_DIR$/.env" />
           </list>
         </option>
         <option name="commandLineOptions" value="--build" />
-        <option name="services">
-          <list>
-            <option value="app" />
-            <option value="auth" />
-            <option value="database" />
-            <option value="database-keycloak" />
-            <option value="dozzle" />
-            <option value="traefik" />
-            <option value="webserver" />
-          </list>
-        </option>
         <option name="sourceFilePath" value="docker/docker-compose.yml" />
       </settings>
     </deployment>

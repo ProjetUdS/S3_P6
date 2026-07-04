@@ -1,26 +1,40 @@
 // src/components/chat/ChatView.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { getFriendConversation, sendMessage, createDiscussion, deleteMessage, changeDiscussionMemberState } from '../../services/api';
+import { ChatMessagesList } from '../shared/ChatMessagesList';
+import { useChatMessages } from '../shared/useChatMessages';
+import EmojiPicker from '../shared/EmojiPicker';
+import ChatInput from '../shared/ChatInput';
+import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState} from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
 export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged }) {
   const { user } = useAuth();
   const myCip = user?.cip;
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const [hoveredMsgId, setHoveredMsgId] = useState(null);
-  const [menuMsgId, setMenuMsgId] = useState(null);
   const [localDiscussionId, setLocalDiscussionId] = useState(null);
   const [topbarMenuOpen, setTopbarMenuOpen] = useState(false);
   const [confirmDeleteConversation, setConfirmDeleteConversation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const pendingActionRef = useRef(null);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
+  const messagesAreaRef = useRef(null);
+
+  const {
+    messages,
+    setMessages,
+    hoveredMsgId,
+    setHoveredMsgId,
+    menuMsgId,
+    setMenuMsgId,
+    confirmDelete,
+    isOwn,
+    getRelativeTime,
+    transformMessages,
+    handleDelete,
+    confirmDeleteMessage,
+    cancelDelete,
+  } = useChatMessages(myCip, messagesAreaRef);
 
   const discussionId = propDiscussionId || localDiscussionId;
 
@@ -40,24 +54,9 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     }
     getFriendConversation(myCip, friend.cip, 100, 0)
       .then(data => {
-        const transformed = (data || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
-          const msgDate = new Date(m.date);
-          const today = new Date();
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          let day = null;
-          if (msgDate.toDateString() === today.toDateString()) day = 'Today';
-          else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
-          return {
-            id: m.id,
-            from: m.cip,
-            day,
-            text: m.contenu,
-            time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            dateStr: m.date,
-          };
-        });
+        const transformed = transformMessages(data);
         setMessages(transformed);
+        console.debug('Loaded messages with fichiers:', transformed);
       })
       .catch(err => {
         console.error('Failed to load messages:', err);
@@ -65,26 +64,16 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   }, [friend?.cip, myCip]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Close menus when clicking outside
-  useEffect(() => {
-    if (!menuMsgId && !topbarMenuOpen) return;
-    const handler = () => {
-      if (menuMsgId) setMenuMsgId(null);
-      if (topbarMenuOpen) setTopbarMenuOpen(false);
-    };
+    if (!topbarMenuOpen) return;
+    const handler = () => setTopbarMenuOpen(false);
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
-  }, [menuMsgId, topbarMenuOpen]);
+  }, [topbarMenuOpen]);
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || !myCip || !friend?.cip) return;
-    setSending(true);
+  async function handleSend(text, attachments) {
+    if (!myCip || !friend?.cip) return;
+
     let discussionId;
-
     const existing = await getFriendConversation(myCip, friend.cip, 1, 0).catch(() => []);
     if (existing.length > 0) {
       discussionId = existing[0].discussionId;
@@ -97,64 +86,53 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         discussionId = discussionId.discussionId || discussionId;
       }
     }
-    if (!discussionId) { setSending(false); return; }
+    if (!discussionId) return;
+
+    const hasUploadedAttachments = (attachments || []).some(a => a.uploaded && a.fichierId);
+    if (!text && !hasUploadedAttachments) return;
+
+    const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
+      fichierId: a.fichierId,
+      nomOriginal: a.file.name,
+      typeMime: a.file.type,
+      tailleOctets: a.file.size,
+      cip: myCip,
+    }));
 
     try {
       await sendMessage({
         contenu: text,
         cip: myCip,
         discussionId,
+        fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
-      setInput('');
       const data = await getFriendConversation(myCip, friend.cip, 100, 0);
-      const transformed = (data || []).sort((a, b) => new Date(a.date) - new Date(b.date)).map(m => {
-        const msgDate = new Date(m.date);
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        let day = null;
-        if (msgDate.toDateString() === today.toDateString()) day = 'Today';
-        else if (msgDate.toDateString() === yesterday.toDateString()) day = 'Yesterday';
-        return {
-          id: m.id,
-          from: m.cip,
-          day,
-          text: m.contenu,
-          time: msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          dateStr: m.date,
-        };
-      });
+      const transformed = transformMessages(data);
       setMessages(transformed);
-      setTimeout(() => inputRef.current?.focus(), 0);
+      console.debug('Refreshed messages after send, fichiers:', transformed);
+      setTimeout(() => {
+        document.querySelector('.chat-text-input')?.focus();
+      }, 0);
     } catch (err) {
       console.error('Failed to send message:', err);
-    } finally {
-      setSending(false);
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  }
+  function handleEmojiSelect(emoji) {
+    const textarea = document.querySelector('.chat-text-input');
+    if (!textarea) return;
 
-  const isOwn = msg => msg.from === myCip;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
 
-  function getRelativeTime(msg) {
-    const msgDate = new Date(msg.dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    textarea.value = text.substring(0, start) + emoji + text.substring(end);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
 
-    const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    if (msgDate.toDateString() === today.toDateString()) {
-      return timeStr;
-    } else if (msgDate.toDateString() === yesterday.toDateString()) {
-      return `Yesterday, ${timeStr}`;
-    } else {
-      const dateStr = msgDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
-      return `${dateStr}, ${timeStr}`;
-    }
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+    }, 0);
   }
 
   const isReadOnly = !['enabled', 'active'].includes(etat);
@@ -162,27 +140,6 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   const isUnarchiving = ['archived', 'disabled'].includes(etat);
   const isBlocking = etat === 'blocked';
   const isArchiving = ['enabled', 'active'].includes(etat);
-
-  async function handleDelete(msgId) {
-    if (isReadOnly) return;
-    setMenuMsgId(null);
-    setConfirmDelete(msgId);
-  }
-
-  async function confirmDeleteMessage() {
-    if (!confirmDelete) return;
-    try {
-      await deleteMessage(confirmDelete);
-      setMessages(prev => prev.filter(m => m.id !== confirmDelete));
-    } catch (err) {
-      console.error('Failed to delete message:', err);
-    }
-    setConfirmDelete(null);
-  }
-
-  function cancelDelete() {
-    setConfirmDelete(null);
-  }
 
   function getDiscussionState() {
     const action = pendingActionRef.current;
@@ -234,7 +191,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     pendingActionRef.current = null;
   }
 
- function getModalTitle() {
+  function getModalTitle() {
     const action = pendingActionRef.current;
     if (action === 'unarchive') return 'Désarchiver la conversation';
     if (action === 'unblock') return 'Débloquer la conversation';
@@ -244,33 +201,6 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
       : isBlocking ? 'Débloquer la conversation'
       : isArchiving ? 'Archiver la conversation'
       : 'Bloquer l\'utilisateur';
-  }
-
-  function getModalSubtitle() {
-    const action = pendingActionRef.current;
-    if (action === 'block') return 'Voulez-vous vraiment bloquer cet utilisateur ? La conversation sera masquée et vous ne pourrez plus envoyer des messages.';
-    if (action === 'unblock') return 'Voulez-vous vraiment débloquer cette conversation ? Vous pourrez à nouveau envoyer des messages.';
-    if (action === 'unarchive') return 'Voulez-vous vraiment réactiver cette conversation ? Elle réapparaîtra dans vos conversations actives.';
-    if (action === 'archive') return 'Voulez-vous vraiment archiver cette conversation ? Elle sera masquée de votre liste actuelle.';
-    return isUnarchiving
-      ? 'Voulez-vous vraiment réactiver cette conversation ? Elle réapparaîtra dans vos conversations actives.'
-      : isBlocking
-        ? 'Voulez-vous vraiment débloquer cette conversation ? Vous pourrez à nouveau envoyer des messages.'
-        : isArchiving
-          ? 'Voulez-vous vraiment archiver cette conversation ? Elle sera masquée de votre liste actuelle.'
-          : 'Voulez-vous vraiment bloquer cet utilisateur ? La conversation sera masquée et vous ne pourrez plus envoyer des messages.';
-  }
-
-  function getModalButtonText() {
-    const action = pendingActionRef.current;
-    if (action === 'block') return 'Bloquer';
-    if (action === 'unblock') return 'Débloquer';
-    if (action === 'unarchive') return 'Désarchiver';
-    if (action === 'archive') return 'Archiver';
-    return isUnarchiving ? 'Désarchiver'
-      : isBlocking ? 'Débloquer'
-      : isArchiving ? 'Archiver'
-      : 'Bloquer';
   }
 
   function getModalSubtitle() {
@@ -302,6 +232,13 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     if (isUnarchiving) return 'Désarchiver';
     if (isBlocking) return 'Débloquer';
     return 'Réactiver';
+  }
+
+  function getPlaceholder() {
+    if (etat === 'archived') return 'Conversation archivée — lecture seule';
+    if (etat === 'disabled') return 'Conversation désactivée — lecture seule';
+    if (etat === 'blocked') return 'Conversation bloquée — lecture seule';
+    return `Message ${friend?.name || 'friend'}…`;
   }
 
   return (
@@ -347,45 +284,43 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
       </div>
 
       {/* Messages */}
-      <div className="messages-area" role="log" aria-live="polite" aria-label="Chat messages">
-        {messages.length === 0 ? (
-          <div className="empty-state" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="empty-state-icon">💬</span>
-            <span className="empty-state-text">No messages yet</span>
-          </div>
-        )        : (
-          messages.map((msg, i) => {
-            const prevMsg = messages[i - 1];
-            const showDay = i === 0 || msg.day !== prevMsg.day;
-            return (
-              <MessageGroup
-                key={msg.id}
-                msg={msg}
-                own={isOwn(msg)}
-                friend={friend}
-                myInitials={initialsFromUser(user)}
-                myGradient={gradientForCip(myCip)}
-                relativeTime={getRelativeTime(msg)}
-                menuOpen={menuMsgId === msg.id}
-                showDay={showDay}
-                onHover={() => setHoveredMsgId(msg.id)}
-                onHoverOut={() => setHoveredMsgId(null)}
-                onMenuToggle={(e) => {
-                  e.stopPropagation();
-                  setMenuMsgId(menuMsgId === msg.id ? null : msg.id);
-                }}
-                onDelete={() => handleDelete(msg.id)}
-                isReadOnly={isReadOnly}
-              />
-            );
-          })
-        )}
-        <div ref={bottomRef} />
+      <div className="messages-area" ref={messagesAreaRef} role="log" aria-live="polite" aria-label="Chat messages">
+        <ChatMessagesList
+          messages={messages}
+          isOwn={isOwn}
+          getRelativeTime={getRelativeTime}
+          hoveredMsgId={hoveredMsgId}
+          setHoveredMsgId={setHoveredMsgId}
+          menuMsgId={menuMsgId}
+          setMenuMsgId={setMenuMsgId}
+          handleDelete={handleDelete}
+          getSender={(msg) => isOwn(msg)
+            ? { initials: initialsFromUser(user), gradient: gradientForCip(myCip) }
+            : { initials: friend?.initials, gradient: friend?.gradient, name: friend?.name }}
+          emptyState={
+            <div className="empty-state" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="empty-state-icon">💬</span>
+              <span className="empty-state-text">No messages yet</span>
+            </div>
+          }
+        />
       </div>
 
+      {/* Emoji Picker */}
+      {emojiPickerOpen && (
+        <div className="emoji-picker-container">
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
+        </div>
+      )}
+
       {/* Input bar or action button for read-only */}
-      <div className="chat-input-bar">
-        {isReadOnly ? (
+      <ChatInput
+        onSend={handleSend}
+        placeholder={getPlaceholder()}
+        isReadOnly={isReadOnly}
+        onEmojiClick={isReadOnly ? undefined : () => setEmojiPickerOpen(!emojiPickerOpen)}
+      >
+        {isReadOnly && (
           <button
             className="conversation-action-btn"
             onClick={() => {
@@ -400,31 +335,8 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
           >
             {getActionButtonText()}
           </button>
-        ) : (
-          <>
-            <div className="input-actions">
-              <button className="action-btn" aria-label="Send image">🖼️</button>
-              <button className="action-btn" aria-label="Send video">🎬</button>
-              <button className="action-btn" aria-label="Attach file">📎</button>
-              <button className="action-btn" aria-label="Emoji">😊</button>
-            </div>
-            <input
-              ref={inputRef}
-              className="chat-text-input"
-              type="text"
-              placeholder={etat === 'archived' ? 'Conversation archivée — lecture seule' : etat === 'disabled' ? 'Conversation désactivée — lecture seule' : etat === 'blocked' ? 'Conversation bloquée — lecture seule' : `Message ${friend?.name || 'friend'}…`}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              aria-label="Message input"
-              disabled={sending || !['enabled', 'active'].includes(etat)}
-            />
-            <button className="send-btn" onClick={handleSend} aria-label="Send message" disabled={sending || !input.trim()}>
-              ➤
-            </button>
-          </>
         )}
-      </div>
+      </ChatInput>
 
       {/* Delete message confirmation modal */}
       {confirmDelete && (
@@ -456,46 +368,5 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         </div>
       )}
     </div>
-  );
-}
-
-// ── MessageGroup ─────────────────────────────────────────────────────────────
-function MessageGroup({ msg, own, friend, myInitials, myGradient, relativeTime, menuOpen, showDay, onHover, onHoverOut, onMenuToggle, onDelete, isReadOnly }) {
-  const sender = own
-    ? { initials: myInitials, gradient: myGradient }
-    : { initials: friend?.initials, gradient: friend?.gradient };
-
-  return (
-    <>
-      {showDay && msg.day && <div className="day-divider">{msg.day}</div>}
-      <div
-        className={`msg-group ${own ? 'own' : ''}`}
-        onMouseEnter={onHover}
-        onMouseLeave={onHoverOut}
-      >
-        <Avatar initials={sender.initials} gradient={sender.gradient} size="sm" />
-        <div className="msg-content">
-          {!own && <div className="msg-sender">{friend?.name}</div>}
-          <div className={`bubble-wrapper ${own ? 'own' : ''}`}>
-            <div className={`bubble ${own ? 'own' : ''}`}>{msg.text}</div>
-            {own && !isReadOnly && (
-              <div className={`bubble-actions ${own ? 'own' : ''}`}>
-                <div className={`delete-menu ${own ? 'own' : ''}`} style={{ display: menuOpen ? 'block' : 'none' }}>
-                  <button className="delete-menu-item" onClick={onDelete}>Delete</button>
-                </div>
-                <button
-                  className="bubble-menu-btn"
-                  onClick={onMenuToggle}
-                  aria-label="Message options"
-                >
-                  ⋯
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="msg-time">{relativeTime}</div>
-        </div>
-      </div>
-    </>
   );
 }

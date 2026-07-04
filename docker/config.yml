@@ -1,3 +1,6 @@
+# Port HTTPS externe (host:container mapping for 443)
+server_port: 443
+
 # Configuration globale de Dev.Local 2.0
 # Ce fichier permet d'activer/désactiver des services optionnels
 namespace: devlocal

@@ -1,6 +1,6 @@
 # Généré automatiquement par manage-profiles.sh
 # NE PAS ÉDITER MANUELLEMENT - Vos modifications seront écrasées
-# Dernière génération : 2026-06-23 08:47:59
+# Dernière génération : 2026-07-04 09:33:57
 name: devlocal
 
 services:
@@ -8,17 +8,23 @@ services:
   traefik:
     image: traefik:v3.6.4
     container_name: devlocal_traefik
+    env_file:
+      - ../.env
+      - ../duckdns.env
+    command:
+      - "/bin/sh"
+      - "-c"
+      - "exec traefik --certificatesresolvers.duckdns.acme.dnschallenge=true --certificatesresolvers.duckdns.acme.dnschallenge.provider=duckdns --certificatesresolvers.duckdns.acme.email=$$ACME_EMAIL --certificatesresolvers.duckdns.acme.storage=/etc/traefik/certs/acme.json --certificatesresolvers.duckdns.acme.caServer=https://acme-v02.api.letsencrypt.org/directory --api=true --api.dashboard=true --api.insecure=true --entrypoints.web.address=:80 --entrypoints.websecure.address=:443 --providers.docker.exposedbydefault=false --providers.file.filename=/etc/traefik/dynamic.yml --providers.file.watch=true --log.level=DEBUG --accesslog=/etc/traefik/access.log"
     ports:
       - "80:80"
-      - "${SERVER_PORT}:443"
+      - "8443:443"
       - "8081:8080"
     extra_hosts:
       - "external-ip:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - ./traefik/certs:/etc/traefik/certs:ro
+      - ./traefik/certs:/etc/traefik/certs:rw
     networks:
       - traefik-network
     healthcheck:
@@ -49,7 +55,10 @@ services:
 
   # Service: app
   app:
-    image: hello-world
+    build:
+      context: ..
+      dockerfile: docker/app/Dockerfile
+    pull_policy: never
 
     container_name: app
     environment:
@@ -57,12 +66,30 @@ services:
       - LOG_LEVEL=info
       - NODE_ENV=development
       - TZ=America/Toronto
+      # Variables exclusives du service
+      - HTTP_TYPE=${HTTP_TYPE}
+      - SERVER_IP=${SERVER_IP}
+      - KC_PORT=${KC_PORT}
+      - KEYCLOAK_PATH=${KEYCLOAK_PATH}
+      - KC_REALM_NAME=${KC_REALM_NAME}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_SECRET=${OIDC_SECRET}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+      - MINIO_PORT=${MINIO_PORT}
+      - MINIO_USER=${MINIO_USER}
+      - MINIO_PASSWORD=${MINIO_PASSWORD}
+      - MINIO_SERVER_URL=${MINIO_SERVER_URL}
+
+
+    depends_on:
+      - auth
     extra_hosts:
       - "external-ip:host-gateway"
     networks:
       - traefik-network
-    profiles:
-      - app
 
   # Service: auth
   auth:
@@ -123,6 +150,9 @@ services:
       - POSTGRES_USER=${DB_KC_USER}
       - POSTGRES_PASSWORD=${DB_KC_PASSWORD}
       - POSTGRES_DB=${DB_KC_DB}
+
+    volumes:
+      - ../../volumes/keycloak:/var/lib/postgresql
     extra_hosts:
       - "external-ip:host-gateway"
     networks:
@@ -148,6 +178,7 @@ services:
     volumes:
       - ./postgres/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./postgres/02_setdata.sql:/docker-entrypoint-initdb.d/02_setdata.sql
+      - ../../volumes/db:/var/lib/postgresql/data
     extra_hosts:
       - "external-ip:host-gateway"
     networks:

@@ -134,7 +134,13 @@ export async function createTache(tache) {
 }
 
 export async function updateTache(tacheId, tache) {
-  const response = await api.put(`/tache/${tacheId}`, tache);
+  const params = new URLSearchParams();
+  if (tache.nomTache != null) params.set('nomTache', tache.nomTache);
+  if (tache.status != null) params.set('status', tache.status);
+  if (tache.description != null) params.set('description', tache.description);
+  if (tache.dateDebut != null) params.set('dateDebut', tache.dateDebut);
+  if (tache.dateFin != null) params.set('dateFin', tache.dateFin);
+  const response = await api.put(`/tache/${tacheId}?${params.toString()}`);
   return response.data;
 }
 
@@ -163,6 +169,23 @@ export async function getFriendConversation(userCip, friendCip, limit, offset) {
   if (limit) params.limite = limit;
   if (offset) params.decalage = offset;
   const response = await api.get('/message/friendConversation', { params });
+  return response.data;
+}
+
+// Fichiers (minio) helpers
+export async function getUploadUrl(nomFichier) {
+  const response = await api.get('/fichiers/upload-url', { params: { nomFichier } });
+  return response.data;
+}
+
+// Upload directly to the presigned URL returned by the backend. We use the global axios
+// instance so requests to the full URL work without the API baseURL interfering.
+export async function uploadToUrl(uploadUrl, file) {
+  return await axios.put(uploadUrl, file, {headers: {'Content-Type': file.type || 'application/octet-stream'}});
+}
+
+export async function getDownloadUrl(fichierId) {
+  const response = await api.get(`/fichiers/download-url/${fichierId}`);
   return response.data;
 }
 

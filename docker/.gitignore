@@ -3,6 +3,7 @@ secrets.env.dec
 *.dec
 .env
 .env.local
+../duck.env
 
 
 # IDE

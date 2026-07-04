@@ -2,9 +2,9 @@
 # Encrypted files to stage after running python sops_manage.py
 [encrypted]
 .env.enc
-http/http-client.private.env.json.enc
+duckdns.env.enc
 
 # Plaintext secret files that must NOT be staged
 [plaintext]
 .env
-http/http-client.private.env.json
+duckdns.env

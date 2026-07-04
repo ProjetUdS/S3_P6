@@ -3,6 +3,18 @@ api:
   dashboard: true
   insecure: true
 
+certificatesResolvers:
+  duckdns: # This is your resolver name
+    acme:
+      storage: "acme.json"
+      caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
+      dnsChallenge:
+        provider: duckdns
+        disablePropagationCheck: false
+        delayBeforeCheck: 60
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
 
 providers:
   docker:
@@ -22,7 +34,6 @@ entryPoints:
           permanent: true
   websecure:
     address: ":443"
-
 
 ping: {}
 

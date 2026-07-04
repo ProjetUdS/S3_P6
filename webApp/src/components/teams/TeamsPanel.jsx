@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { TeamIcon } from '../shared/Avatar';
 import { deleteEquipe } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -95,7 +95,7 @@ export default function TeamsPanel({ activeTeamId, teams: teamsProp, onSelectTea
             <div className="modal-subtitle">Are you sure you want to delete this team? This action cannot be undone.</div>
             <div className="modal-actions">
               <button className="btn-cancel" onClick={() => setDeleteConfirmEquipeId(null)}>Cancel</button>
-              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => handleDeleteEquipe(deleteConfirmEquipeId)}>Delete</button>
+              <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleDeleteEquipe(deleteConfirmEquipeId)}>Delete</button>
             </div>
           </div>
         </div>
