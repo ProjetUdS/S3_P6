@@ -9,6 +9,10 @@ quarkus:
         api:
           paths: /api/*
           policy: authenticated
+        # Ajout exception pour les routes WebSocket
+        websocket:
+          paths: /ws/*
+          policy: permit
         # Règle 2 : Laisser tout le reste public (index.html, Swagger, etc.)
         public:
           paths:

@@ -93,6 +93,7 @@ public class TacheService {
         return tacheMapper.getNewId();
     }
 
+
     @PUT
     @Path("/{tacheId}")
     public void updateTache(
@@ -103,5 +104,10 @@ public class TacheService {
             @QueryParam("dateDebut") Date dateDebut,
             @QueryParam("dateFin") Date dateFin) {
         tacheMapper.updateTache(tacheId, nomTache, status, description, dateDebut, dateFin);
+        Tache tache = tacheMapper.selectOne(tacheId);
+        if (tache != null) {
+            TacheWebSocket.broadcast(tache.equipeId,
+                    "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + tache.equipeId + "\"}");
+        }
     }
 }
