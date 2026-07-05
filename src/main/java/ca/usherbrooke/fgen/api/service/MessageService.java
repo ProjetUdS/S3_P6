@@ -1,9 +1,12 @@
 package ca.usherbrooke.fgen.api.service;
 
+import ca.usherbrooke.fgen.api.business.FichierJoint;
 import ca.usherbrooke.fgen.api.business.Message;
+import ca.usherbrooke.fgen.api.mapper.FichierJointMapper;
 import ca.usherbrooke.fgen.api.mapper.MessageMapper;
 
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
@@ -15,8 +18,13 @@ import java.util.UUID;
 @Consumes(MediaType.APPLICATION_JSON)
 public class MessageService {
 
+    private static final Logger log = Logger.getLogger(MessageService.class);
+
     @Inject
     MessageMapper messageMapper;
+
+    @Inject
+    FichierJointMapper  fichierJointMapper;
 
     @GET
     public List<Message> getMessages(@QueryParam("discussionId") String discussionId, @QueryParam("limite") Integer limit, @QueryParam("decalage") Integer offset, @QueryParam("cip") String cip, @QueryParam("messageId") String messageId) {
@@ -40,6 +48,18 @@ public class MessageService {
         message.id = UUID.randomUUID().toString();
         message.date = new java.util.Date();
         messageMapper.insertMessage(message);
+        MessageWebSocket.broadcast(message.discussionId,
+                "{\"type\":\"messageReceived\",\"messageId\":\"" + message.id + "\",\"discussionId\":\"" + message.discussionId + "\"}");
+
+        if(message.fichiers != null && !message.fichiers.isEmpty()) {
+            for (FichierJoint fichier : message.fichiers) {
+                fichier.messageId = message.id;
+                fichier.cip = message.cip;
+                fichier.dateAjout = new java.util.Date();
+                fichierJointMapper.insertFichier(fichier);
+            }
+            log.infof("Saved %d attached files for message %s", message.fichiers.size(), message.id);
+        }
     }
 
     @GET

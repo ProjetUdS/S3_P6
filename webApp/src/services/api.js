@@ -172,6 +172,23 @@ export async function getFriendConversation(userCip, friendCip, limit, offset) {
   return response.data;
 }
 
+// Fichiers (minio) helpers
+export async function getUploadUrl(nomFichier) {
+  const response = await api.get('/fichiers/upload-url', { params: { nomFichier } });
+  return response.data;
+}
+
+// Upload directly to the presigned URL returned by the backend. We use the global axios
+// instance so requests to the full URL work without the API baseURL interfering.
+export async function uploadToUrl(uploadUrl, file) {
+  return await axios.put(uploadUrl, file, {headers: {'Content-Type': file.type || 'application/octet-stream'}});
+}
+
+export async function getDownloadUrl(fichierId) {
+  const response = await api.get(`/fichiers/download-url/${fichierId}`);
+  return response.data;
+}
+
 export async function getCalendrierTasks(equipeId, dateMin, dateMax) {
   const response = await api.get('/tache/calendrier', { params: { equipeId, dateMin, dateMax } });
   return response.data;

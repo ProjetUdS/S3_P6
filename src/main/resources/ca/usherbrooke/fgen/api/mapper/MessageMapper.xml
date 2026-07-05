@@ -4,12 +4,21 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.MessageMapper">
 
-    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Message">
-        select message_id    as id,
-               date_         as date,
+    <resultMap id="MessageResultMap" type="ca.usherbrooke.fgen.api.business.Message">
+        <id property="id" column="message_id" />
+        <result property="date" column="date_" />
+        <result property="contenu" column="contenu" />
+        <result property="cip" column="cip" />
+        <result property="discussionId" column="discussion_id" />
+        <collection property="fichiers" ofType="ca.usherbrooke.fgen.api.business.FichierJoint" select="ca.usherbrooke.fgen.api.mapper.FichierJointMapper.selectByMessageId" column="message_id" />
+    </resultMap>
+
+    <select id="select" resultMap="MessageResultMap">
+        select message_id,
+               date_,
                contenu,
                cip,
-               discussion_id as discussionId
+               discussion_id
         from app.message
         where (discussion_id,
                cip,
@@ -21,12 +30,12 @@
         limit #{limite} offset #{decalage}
     </select>
 
-    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Message">
-        select message_id    as id,
-               date_         as date,
+    <select id="selectOne" resultMap="MessageResultMap">
+        select message_id,
+               date_,
                contenu,
                cip,
-               discussion_id as discussionId
+               discussion_id
         from app.message
         where message_id = #{messageId}
     </select>
@@ -61,12 +70,12 @@
         WHERE cip = #{cip}
     </select>
 
-    <select id="getFriendConversation" resultType="ca.usherbrooke.fgen.api.business.Message">
-        SELECT m.message_id    as id,
-               m.date_         as date,
+    <select id="getFriendConversation" resultMap="MessageResultMap">
+        SELECT m.message_id,
+               m.date_,
                m.contenu,
                m.cip,
-               m.discussion_id as discussionId
+               m.discussion_id
         FROM app.message m
                  JOIN app.discussion disc ON m.discussion_id = disc.discussion_id
         WHERE NOT EXISTS (

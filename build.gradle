@@ -54,4 +54,9 @@ dependencies {
 
     // utilisation avec swagger
     implementation("io.quarkus:quarkus-smallrye-openapi")
+
+    implementation 'io.minio:minio:8.5.7'
+
+    implementation("io.quarkus:quarkus-websockets-next")
+    implementation("io.quarkus:quarkus-scheduler")
 }

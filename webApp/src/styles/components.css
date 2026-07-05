@@ -817,6 +817,23 @@
   background: rgba(59, 130, 246, 0.05);
 }
 
+/* ---- Attachment styles (added for file messages) ---- */
+.attachment-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.attachment-link {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  padding: 6px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.attachment-link:disabled { opacity: 0.6; cursor: default; }
+
 /* Responsive Kanban board */
 @media (max-width: 1400px) {
   .kanban-board {
