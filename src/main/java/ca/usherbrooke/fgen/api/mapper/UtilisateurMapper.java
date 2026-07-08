@@ -16,6 +16,14 @@ public interface UtilisateurMapper {
             @Param("prenom") String prenom,
             @Param("photoProfilId") String photoProfilId);
 
+    void updateUtilisateur(
+            @Param("cip") String cip,
+            @Param("pseudo") String pseudo,
+            @Param("courriel") String courriel,
+            @Param("nom") String nom,
+            @Param("prenom") String prenom,
+            @Param("photoProfilId") String photoProfilId);
+
     List<Utilisateur> select(
             @Param("cip") String cip,
             @Param("pseudo") String pseudo,

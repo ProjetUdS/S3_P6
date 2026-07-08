@@ -85,6 +85,19 @@ public class UtilisateurService {
         return "200";
     }
 
+    @PUT
+    @Path("/{cip}")
+    public String updateUtilisateur(
+            @PathParam("cip") String cip,
+            @QueryParam("pseudo") String pseudo,
+            @QueryParam("courriel") String courriel,
+            @QueryParam("nom") String nom,
+            @QueryParam("prenom") String prenom,
+            @QueryParam("photoProfilId") String photoProfilId) {
+        utilisateurMapper.updateUtilisateur(cip, pseudo, courriel, nom, prenom, photoProfilId);
+        return "200";
+    }
+
   @GET
   @Path("/contacts")
   public List<Utilisateur> getContacts(@QueryParam("userCip") String cip) {
