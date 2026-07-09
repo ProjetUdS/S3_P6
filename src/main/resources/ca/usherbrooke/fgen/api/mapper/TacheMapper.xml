@@ -95,21 +95,6 @@
         order by date_fin asc
     </select>
 
-    <select id="tachesAvecDeadlineDemain" resultType="ca.usherbrooke.fgen.api.business.Tache">
-        SELECT t.tache_id      as id,
-               t.nom_tache     as nomTache,
-               t.status,
-               t.description,
-               t.date_creation as dateCreation,
-               t.date_debut    as dateDebut,
-               t.date_fin      as dateFin,
-               t.equipe_id     as equipeId,
-               t.cip
-        FROM app.Tache t
-        WHERE DATE(t.date_fin) = CURRENT_DATE + INTERVAL '1 day'
-          AND t.status != 'terminé'
-    </select>
-
     <delete id="deleteOne">
         delete from app.Tache
         where tache_id = #{tacheId}

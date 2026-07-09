@@ -27,8 +27,6 @@ public class RequeteAmiService {
     @POST
     public String insertRequete(@QueryParam("cip") String cip, @QueryParam("destinataireCip") String destinataireCip) {
         requeteAmiMapper.insertRequete(cip, destinataireCip);
-        RequeteAmiWebSocket.broadcast(destinataireCip,
-                "{\"type\":\"friendRequest\",\"de\":\"" + cip + "\",\"a\":\"" + destinataireCip + "\"}");
         return destinataireCip;
     }
 

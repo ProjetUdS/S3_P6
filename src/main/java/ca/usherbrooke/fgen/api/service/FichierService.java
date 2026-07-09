@@ -20,7 +20,7 @@ public class FichierService {
     }
 
     @GET
-    @Path("/download-url/{fichierId}")
+    @Path("/download-url/{fichierId: .+}")
     public MinioStorageService.PresignedUrlResponse getDownloadUrl(@PathParam("fichierId") String fichierId) {
         return minioStorageService.generateDownloadUrl(fichierId);
     }
@@ -33,7 +33,7 @@ public class FichierService {
      * Usage: GET /api/fichiers/download-proxy/{fichierId}?filename=originalname.png
      */
     @GET
-    @Path("/download-proxy/{fichierId}")
+    @Path("/download-proxy/{fichierId: .+}")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     public Response downloadProxy(@PathParam("fichierId") String fichierId, @QueryParam("filename") String filename) {
         try {

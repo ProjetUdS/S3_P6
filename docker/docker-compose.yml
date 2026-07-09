@@ -181,6 +181,30 @@ services:
     networks:
       - traefik-network
 
+  minio-storage:
+    image: minio/minio:${MINIO_VERSION:-latest}
+
+    container_name: minio-storage
+    environment:
+      # Variables partagées (depuis config.yml)
+      - LOG_LEVEL=info
+      - NODE_ENV=development
+      - TZ=America/Toronto
+      # Variables exclusives du service
+      - MINIO_ROOT_USER=${MINIO_USER:-local_admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD:-local_password}
+
+    ports:
+      - "${MINIO_PORT:-9000}:${MINIO_PORT:-9000}"   # S3 API port
+      - "9001:9001"   # Web UI console port
+    volumes:
+      - ./minio/data:/data
+    command: server /data --console-address ":9001"
+    extra_hosts:
+      - "external-ip:host-gateway"
+    networks:
+      - traefik-network
+
 
 networks:
   traefik-network:

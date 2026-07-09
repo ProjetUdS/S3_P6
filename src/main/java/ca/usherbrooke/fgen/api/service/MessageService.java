@@ -48,14 +48,13 @@ public class MessageService {
         message.id = UUID.randomUUID().toString();
         message.date = new java.util.Date();
         messageMapper.insertMessage(message);
-        MessageWebSocket.broadcast(message.discussionId,
-                "{\"type\":\"messageReceived\",\"messageId\":\"" + message.id + "\",\"discussionId\":\"" + message.discussionId + "\"}");
 
         if(message.fichiers != null && !message.fichiers.isEmpty()) {
-            for (FichierJoint fichier : message.fichiers) {
+            for (FichierJoint fichier:message.fichiers) {
                 fichier.messageId = message.id;
                 fichier.cip = message.cip;
                 fichier.dateAjout = new java.util.Date();
+
                 fichierJointMapper.insertFichier(fichier);
             }
             log.infof("Saved %d attached files for message %s", message.fichiers.size(), message.id);
