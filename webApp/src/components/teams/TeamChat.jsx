@@ -4,6 +4,7 @@ import { Avatar, TeamIcon } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
 import EmojiPicker from '../shared/EmojiPicker';
+import ChatInput from '../shared/ChatInput';
 import { useAuth } from '../../context/AuthContext';
 import { getTeamMembers, getDiscussions, getMessages, sendMessage, createDiscussion } from '../../services/api';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
@@ -12,7 +13,6 @@ export default function TeamChat({ team }) {
   const { user } = useAuth();
   const myCip = user?.cip;
   const [members, setMembers] = useState([]);
-  const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(true);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const messagesAreaRef = useRef(null);
@@ -32,8 +32,6 @@ export default function TeamChat({ team }) {
     confirmDeleteMessage,
     cancelDelete,
   } = useChatMessages(myCip, messagesAreaRef);
-
-  const inputRef = useRef(null);
 
   useEffect(() => {
     if (!team?.equipeId) {
@@ -78,9 +76,11 @@ export default function TeamChat({ team }) {
     ]);
   }, [team?.equipeId]);
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || !myCip || !team?.equipeId) return;
+  async function handleSend(text, attachments) {
+    if (!myCip || !team?.equipeId) return;
+
+    const hasUploaded = (attachments || []).some(a => a.uploaded && a.fichierId);
+    if (!text && !hasUploaded) return;
 
     let discussionId = null;
     const discussions = await getDiscussions(null, team.equipeId).catch(err => {
@@ -103,23 +103,27 @@ export default function TeamChat({ team }) {
 
     if (!discussionId) return;
 
+    const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
+      fichierId: a.fichierId,
+      nomOriginal: a.file.name,
+      typeMime: a.file.type,
+      tailleOctets: a.file.size,
+      cip: myCip,
+    }));
+
     try {
       await sendMessage({
         contenu: text,
         cip: myCip,
         discussionId,
+        fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
-      setInput('');
 
       const updatedMessages = await getMessages(discussionId, 50, 0);
       setMessages(transformMessages(updatedMessages));
     } catch (err) {
       console.error('Failed to send message:', err);
     }
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   }
 
   function handleEmojiSelect(emoji) {
@@ -199,30 +203,11 @@ export default function TeamChat({ team }) {
       )}
 
       {/* Input */}
-      <div className="chat-input-bar">
-        <div className="input-actions">
-          <button className="action-btn" aria-label="Image">🖼️</button>
-          <button className="action-btn" aria-label="Video">🎬</button>
-          <button className="action-btn" aria-label="Attach">📎</button>
-          <button className="action-btn" aria-label="Emoji" onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>😊</button>
-        </div>
-        <textarea
-          ref={inputRef}
-          className="chat-text-input"
-          placeholder={`Message ${team?.nomEquipe || 'team'}…`}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          aria-label="Team message input"
-          rows={1}
-          onInput={e => {
-            const el = e.target;
-            el.style.height = 'auto';
-            el.style.height = Math.min(el.scrollHeight, 80) + 'px';
-          }}
-        />
-        <button className="send-btn" onClick={handleSend} aria-label="Send">➤</button>
-      </div>
+      <ChatInput
+        onSend={handleSend}
+        placeholder={`Message ${team?.nomEquipe || 'team'}…`}
+        onEmojiClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
+      />
 
       {confirmDelete && (
         <div className="modal-overlay" onClick={cancelDelete}>
