@@ -8,7 +8,7 @@ import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionM
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
-export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged }) {
+export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged, activeFriend, onNotif }) {
   const { user } = useAuth();
   const myCip = user?.cip;
   const [localDiscussionId, setLocalDiscussionId] = useState(null);
@@ -18,21 +18,22 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   const pendingActionRef = useRef(null);
   const messagesAreaRef = useRef(null);
 
-  const {
-    messages,
-    setMessages,
-    hoveredMsgId,
-    setHoveredMsgId,
-    menuMsgId,
-    setMenuMsgId,
-    confirmDelete,
-    isOwn,
-    getRelativeTime,
-    transformMessages,
-    handleDelete,
-    confirmDeleteMessage,
-    cancelDelete,
-  } = useChatMessages(myCip, messagesAreaRef);
+    const {
+        messages,
+        setMessages,
+        hoveredMsgId,
+        setHoveredMsgId,
+        menuMsgId,
+        setMenuMsgId,
+        confirmDelete,
+        isOwn,
+        getRelativeTime,
+        transformMessages,
+        handleDelete,
+        confirmDeleteMessage,
+        cancelDelete,
+        connectWebSocket,
+    } = useChatMessages(myCip, messagesAreaRef);
 
   const discussionId = propDiscussionId || localDiscussionId;
 
@@ -67,6 +68,27 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
   }, [topbarMenuOpen]);
+
+    const isActiveConversationRef = useRef(false);
+
+    useEffect(() => {
+        isActiveConversationRef.current = true;
+        return () => {
+            isActiveConversationRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!discussionId || !friend?.cip) return;
+        const cleanup = connectWebSocket(
+            discussionId,
+            friend.cip,
+            () => isActiveConversationRef.current,
+            onNotif
+        );
+        return cleanup;
+    }, [discussionId, friend?.cip]);
+
 
   async function handleSend(text, attachments) {
     if (!myCip || !friend?.cip) return;
