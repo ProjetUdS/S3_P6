@@ -14,7 +14,6 @@ export function ChatMessagesList({
   getSender,
   emptyState,
   isLoading,
-  fichiers,
 }) {
   if (isLoading && messages.length === 0) {
     return <div className="loading-spinner" style={{ margin: '40px auto' }} />;
@@ -51,7 +50,6 @@ export function ChatMessagesList({
               setMenuMsgId(menuMsgId === msg.id ? null : msg.id);
             }}
             onDelete={() => handleDelete(msg.id)}
-            fichiers={msg.fichiers}
           />
         );
       })}

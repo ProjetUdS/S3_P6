@@ -14,13 +14,23 @@ import './styles/layout.css';
 import './styles/components.css';
 
 export default function App() {
-  const { authenticated, user, loading } = useAuth();
-  const [view, setView] = useState('messages');
-  const [activeFriend, setActiveFriend] = useState(null);
-  const [activeTeam, setActiveTeam] = useState(null);
-  const [teams, setTeams] = useState([]);
-  const [conversations, setConversations] = useState([]);
-  const [expandedSections, setExpandedSections] = useState({ active: true, archived: false, blocked: false });
+    const { authenticated, user, loading } = useAuth();
+    const [view, setView] = useState('messages');
+    const [activeFriend, setActiveFriend] = useState(null);
+    const [activeTeam, setActiveTeam] = useState(null);
+    const [teams, setTeams] = useState([]);
+    const [conversations, setConversations] = useState([]);
+    const [expandedSections, setExpandedSections] = useState({ active: true, archived: false, blocked: false });
+    const [hasNotif, setHasNotif] = useState(false);
+
+    function handleNav(key) {
+        if (key === 'messages') setView('messages');
+        if (key === 'teams') setView('teams');
+        if (key === 'notifs') {
+            setHasNotif(false);
+            setView('notifs');
+        }
+    }
 
   function loadConversations() {
     if (!user?.cip) return;
@@ -110,62 +120,66 @@ export default function App() {
     );
   }
 
-  function handleNav(key) {
-    if (key === 'messages') setView('messages');
-    if (key === 'teams') setView('teams');
-  }
+    return (
+        <div className="app-shell">
+            <Sidebar activeView={view} onNav={handleNav} hasNotif={hasNotif} />
 
-  return (
-    <div className="app-shell">
-      <Sidebar activeView={view} onNav={handleNav} />
+            {view === 'messages' && (
+                <>
+                    <FriendsPanel
+                        activeFriendId={activeFriend?.id}
+                        onSelectFriend={setActiveFriend}
+                        conversations={conversations}
+                        expandedSections={expandedSections}
+                        onToggleSection={toggleSection}
+                        existingCips={conversations.map(c => c.cip)}
+                        onFriendAdded={loadConversations}
+                    />
+                    {activeFriend
+                        ? <ChatView
+                            friend={activeFriend}
+                            key={activeFriend.id}
+                            conversations={conversations}
+                            discussionId={activeFriend.discussionId}
+                            onDeleteConversation={() => setActiveFriend(null)}
+                            onStateChanged={loadConversations}
+                            activeFriend={activeFriend}
+                            onNotif={() => setHasNotif(true)}
+                        />
+                        : (
+                            <div className="main-area">
+                                <div className="empty-state">
+                                    <span className="empty-state-icon">💬</span>
+                                    <span className="empty-state-text">Select a friend to start chatting</span>
+                                </div>
+                            </div>
+                        )
+                    }
+                </>
+            )}
 
-      {view === 'messages' && (
-        <>
-          <FriendsPanel
-            activeFriendId={activeFriend?.id}
-            onSelectFriend={setActiveFriend}
-            conversations={conversations}
-            expandedSections={expandedSections}
-            onToggleSection={toggleSection}
-            existingCips={conversations.map(c => c.cip)}
-            onFriendAdded={loadConversations}
-          />
-             {activeFriend
-            ? <ChatView friend={activeFriend} key={activeFriend.id} conversations={conversations} discussionId={activeFriend.discussionId} onDeleteConversation={() => setActiveFriend(null)} onStateChanged={loadConversations} />
-            : (
-              <div className="main-area">
-                <div className="empty-state">
-                  <span className="empty-state-icon">💬</span>
-                  <span className="empty-state-text">Select a friend to start chatting</span>
-                </div>
-              </div>
-            )
-          }
-        </>
-      )}
-
-      {view === 'teams' && (
-        <>
-          <TeamsPanel
-            activeTeamId={activeTeam?.equipeId}
-            teams={teams}
-            onSelectTeam={setActiveTeam}
-            onTeamDeleted={handleTeamDeleted}
-            onTeamCreated={loadTeams}
-          />
-          {activeTeam
-            ? <TeamArea team={activeTeam} key={activeTeam.id} />
-            : (
-              <div className="main-area">
-                <div className="empty-state">
-                  <span className="empty-state-icon">👥</span>
-                  <span className="empty-state-text">Select or create a team</span>
-                </div>
-              </div>
-            )
-          }
-        </>
-      )}
-    </div>
-  );
+            {view === 'teams' && (
+                <>
+                    <TeamsPanel
+                        activeTeamId={activeTeam?.equipeId}
+                        teams={teams}
+                        onSelectTeam={setActiveTeam}
+                        onTeamDeleted={handleTeamDeleted}
+                        onTeamCreated={loadTeams}
+                    />
+                    {activeTeam
+                        ? <TeamArea team={activeTeam} key={activeTeam.id} />
+                        : (
+                            <div className="main-area">
+                                <div className="empty-state">
+                                    <span className="empty-state-icon">👥</span>
+                                    <span className="empty-state-text">Select or create a team</span>
+                                </div>
+                            </div>
+                        )
+                    }
+                </>
+            )}
+        </div>
+    );
 }

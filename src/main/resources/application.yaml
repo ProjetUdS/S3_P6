@@ -29,6 +29,7 @@ quarkus:
         - http://localhost:8888
         - http://localhost:8180
         - ${HTTP_TYPE}://${SERVER_IP}
+        - "*"
       methods:
         - GET
         - PUT
@@ -70,18 +71,8 @@ quarkus:
       url: "jdbc:postgresql://localhost:5444/postgres"
       leak-detection-interval: 5M
 
-   # --- MyBatis Mapping Configuration ---
+  # --- MyBatis Mapping Configuration ---
   mybatis:
     xmlconfig:
       enable: false
     map-underscore-to-camel-case: true
-
-# MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
-minio:
-  url: "http://localhost:${MINIO_PORT}"
-  access:
-    key: ${MINIO_USER}
-  secret:
-    key: ${MINIO_PASSWORD}
-  bucket:
-    name: "chat-media"

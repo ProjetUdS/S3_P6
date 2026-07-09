@@ -16,49 +16,7 @@ export function MessageGroup({
   onHoverOut,
   onMenuToggle,
   onDelete,
-  fichiers,
 }) {
-
-  const [downloadingId, setDownloadingId] = React.useState(null);
-
-  async function handleDownload(fichier) {
-    try {
-      setDownloadingId(fichier.fichierId);
-      const presigned = await getDownloadUrl(fichier.fichierId);
-      try {
-        const proxyRes = await api.get(`/fichiers/download-proxy/${fichier.fichierId}`, { params: { filename: fichier.nomOriginal }, responseType: 'blob' });
-        const blob = proxyRes.data;
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url; link.download = fichier.nomOriginal || 'download';
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-        setDownloadingId(null);
-        return;
-      } catch {
-        console.warn('Proxy download failed, falling back');
-      }
-      try {
-        const response = await fetch(presigned.uploadUrl, { mode: 'cors', credentials: 'omit' });
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url; link.download = fichier.nomOriginal || 'download';
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-      } catch {
-        console.warn('Fetch download failed, opening presigned URL');
-        const a = document.createElement('a');
-        a.href = presigned.uploadUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      }
-    } catch (err) {
-      console.error('Download failed:', err);
-    } finally {
-      setDownloadingId(null);
-    }
-  }
-
   return (
     <>
       {showDay && msg.day && <div className="day-divider">{msg.day}</div>}
@@ -118,10 +76,6 @@ export function MessageGroup({
             )}
           </div>
           <div className="msg-time">{relativeTime}</div>
-          {/*todo: remove /* Debug/visibility: show attachment count so we can tell if fichiers are present */}
-          {fichiers && fichiers.length > 0 && (
-            <div className="msg-attachments-count">Attachments: {fichiers.length}</div>
-          )}
         </div>
       </div>
     </>
