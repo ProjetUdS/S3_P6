@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
-import EmojiPicker from '../shared/EmojiPicker';
 import ChatInput from '../shared/ChatInput';
 import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState, getUploadUrl, uploadToUrl, getDownloadUrl, default as api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -16,7 +15,6 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
   const [topbarMenuOpen, setTopbarMenuOpen] = useState(false);
   const [confirmDeleteConversation, setConfirmDeleteConversation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const pendingActionRef = useRef(null);
   const messagesAreaRef = useRef(null);
 
@@ -118,22 +116,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     }
   }
 
-  function handleEmojiSelect(emoji) {
-    const textarea = document.querySelector('.chat-text-input');
-    if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-
-    textarea.value = text.substring(0, start) + emoji + text.substring(end);
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
-    }, 0);
-  }
 
   const isReadOnly = !['enabled', 'active'].includes(etat);
 
@@ -306,19 +289,11 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         />
       </div>
 
-      {/* Emoji Picker */}
-      {emojiPickerOpen && (
-        <div className="emoji-picker-container">
-          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
-        </div>
-      )}
-
       {/* Input bar or action button for read-only */}
       <ChatInput
         onSend={handleSend}
         placeholder={getPlaceholder()}
         isReadOnly={isReadOnly}
-        onEmojiClick={isReadOnly ? undefined : () => setEmojiPickerOpen(!emojiPickerOpen)}
       >
         {isReadOnly && (
           <button

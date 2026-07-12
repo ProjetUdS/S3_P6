@@ -64,9 +64,81 @@ const EMOJI_DATA = {
   }
 };
 
+let cachedTofuData = null;
+
+function isEmojiSupported(emoji) {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 16;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return true;
+
+    ctx.font = '14px sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+
+    if (!cachedTofuData) {
+      ctx.clearRect(0, 0, 16, 16);
+      ctx.fillText('\u{1efff}', 0, 0); // Known unassigned/unsupported character
+      cachedTofuData = ctx.getImageData(0, 0, 16, 16).data.toString();
+    }
+
+    ctx.clearRect(0, 0, 16, 16);
+    ctx.fillText(emoji, 0, 0);
+    const emojiImageData = ctx.getImageData(0, 0, 16, 16).data;
+    const emojiDataStr = emojiImageData.toString();
+
+    // If it renders identically to the tofu fallback, it is not supported
+    if (emojiDataStr === cachedTofuData) {
+      return false;
+    }
+
+    // Verify it renders at least one non-transparent pixel
+    let hasPixels = false;
+    for (let i = 3; i < emojiImageData.length; i += 4) {
+      if (emojiImageData[i] > 0) {
+        hasPixels = true;
+        break;
+      }
+    }
+    return hasPixels;
+  } catch (e) {
+    return true;
+  }
+}
+
+let filteredEmojiData = null;
+
+function getFilteredEmojiData() {
+  if (filteredEmojiData) return filteredEmojiData;
+
+  const result = {};
+  for (const [category, data] of Object.entries(EMOJI_DATA)) {
+    const matchedEmojis = {};
+    const icons = [];
+    for (const [name, emoji] of Object.entries(data.emojis)) {
+      if (isEmojiSupported(emoji)) {
+        matchedEmojis[name] = emoji;
+        icons.push(emoji);
+      }
+    }
+    if (Object.keys(matchedEmojis).length > 0) {
+      result[category] = {
+        icons,
+        emojis: matchedEmojis,
+      };
+    }
+  }
+
+  filteredEmojiData = result;
+  return result;
+}
+
 export default function EmojiPicker({ onEmojiSelect, onClose }) {
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState(Object.keys(EMOJI_DATA)[0]);
+  const emojiData = getFilteredEmojiData();
+  const [activeCategory, setActiveCategory] = useState(() => Object.keys(emojiData)[0] || '');
   const pickerRef = useRef(null);
   const searchRef = useRef(null);
   const emojiGridRef = useRef(null);
@@ -93,7 +165,7 @@ export default function EmojiPicker({ onEmojiSelect, onClose }) {
   
   if (search.trim()) {
     const lowerSearch = search.toLowerCase();
-    for (const [category, data] of Object.entries(EMOJI_DATA)) {
+    for (const [category, data] of Object.entries(emojiData)) {
       const matchedEmojis = {};
       for (const [name, emoji] of Object.entries(data.emojis)) {
         if (name.toLowerCase().includes(lowerSearch)) {
@@ -105,10 +177,12 @@ export default function EmojiPicker({ onEmojiSelect, onClose }) {
       }
     }
   } else {
-    filteredCategories[activeCategory] = EMOJI_DATA[activeCategory];
+    if (activeCategory) {
+      filteredCategories[activeCategory] = emojiData[activeCategory];
+    }
   }
 
-  const allCategories = Object.keys(EMOJI_DATA);
+  const allCategories = Object.keys(emojiData);
   const categories = search.trim() ? Object.keys(filteredCategories) : allCategories;
   const currentCategory = search.trim() ? categories[0] : activeCategory;
   const currentEmojis = filteredCategories[currentCategory]?.emojis || {};
