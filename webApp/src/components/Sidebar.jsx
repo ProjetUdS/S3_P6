@@ -3,6 +3,7 @@ import { Avatar } from './shared/Avatar';
 import { useAuth } from '../context/AuthContext';
 import teamIcon from '../assets/icons/team.png';
 import settingIcon from '../assets/icons/setting.png';
+import messageIcon from '../assets/icons/message.png'
 
 export default function Sidebar({ activeView, onNav, hasNotif }) {
     const { user } = useAuth();
@@ -14,9 +15,9 @@ export default function Sidebar({ activeView, onNav, hasNotif }) {
     const gradient = 'linear-gradient(135deg, #3b82f6, #60a5fa)';
 
     const NAV_ITEMS = [
-        { key: 'messages', icon: '💬', label: 'Messages' },
-        { key: 'teams', icon: teamIcon, label: 'Teams', isImage: true },
-        { key: 'notifs', icon: '🔔', label: 'Notifications', badge: hasNotif },
+        { key: 'messages', icon: messageIcon, label: 'Messages', isImage: true },
+        { key: 'teams',    icon: teamIcon, label: 'Teams', isImage: true },
+        { key: 'notifs',   icon: '🔔', label: 'Notifications', badge: true },
     ];
 
     return (
