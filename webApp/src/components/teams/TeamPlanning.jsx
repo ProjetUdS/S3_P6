@@ -5,6 +5,7 @@ import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
 import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
+import EditTaskModal from './EditTaskModal';
 
 /**
  * TeamPlanning  — Planning tab: Kanban board, meetings, calendar, right sidebar.
@@ -23,6 +24,7 @@ export default function TeamPlanning({ team }) {
   const [draggedTask, setDraggedTask] = useState(null);
   const [todayDeadlines, setTodayDeadlines] = useState([]);
   const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState(null);
+  const [editingTaskId, setEditingTaskId] = useState(null);
 
   // Map task status to column state
   const getTaskStatus = (t) => {
@@ -31,6 +33,46 @@ export default function TeamPlanning({ team }) {
     if (normalized === 'termine' || normalized === 'done') return 'done';
     if (normalized === 'en_cours' || normalized === 'doing') return 'doing';
     return 'todo';
+  };
+
+  const fetchTasks = async () => {
+    if (!team?.equipeId) return;
+    try {
+      const data = await getTaches(team.equipeId);
+      const transformed = (data || []).map(t => ({
+        id: t.id,
+        text: t.nomTache,
+        status: getTaskStatus(t),
+        assignee: {
+          initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
+          gradient: gradientForCip(t.cip),
+        },
+        priority: t.status === 'termine' ? 'done' :
+                 t.status === 'urgent' ? 'high' :
+                 t.status === 'important' ? 'med' : 'low',
+        originalStatus: t.status,
+      }));
+      setTasks(transformed);
+
+      const dData = await getDeadlines(team.equipeId);
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const deadlines = (dData || [])
+        .filter(t => {
+          const fin = new Date(t.dateFin);
+          const finStr = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`;
+          return finStr === todayStr;
+        })
+        .map(t => ({
+          id: t.id,
+          nomTache: t.nomTache,
+          status: getTaskStatus(t),
+          dateFin: new Date(t.dateFin),
+        }));
+      setTodayDeadlines(deadlines);
+    } catch (err) {
+      console.error('Failed to fetch tasks/deadlines:', err);
+    }
   };
 
   useEffect(() => {
@@ -57,43 +99,7 @@ export default function TeamPlanning({ team }) {
           setMembers(transformed);
         })
         .catch(err => console.error('Failed to load team members:', err)),
-      getTaches(team.equipeId)
-        .then(data => {
-          const transformed = (data || []).map(t => ({
-            id: t.id,
-            text: t.nomTache,
-            status: getTaskStatus(t),
-            assignee: {
-              initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
-              gradient: gradientForCip(t.cip),
-            },
-            priority: t.status === 'termine' ? 'done' :
-                     t.status === 'urgent' ? 'high' :
-                     t.status === 'important' ? 'med' : 'low',
-            originalStatus: t.status,
-          }));
-          setTasks(transformed);
-        })
-        .catch(err => console.error('Failed to load tasks:', err)),
-      getDeadlines(team.equipeId)
-        .then(data => {
-          const today = new Date();
-          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-          const deadlines = (data || [])
-            .filter(t => {
-              const fin = new Date(t.dateFin);
-              const finStr = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`;
-              return finStr === todayStr;
-            })
-            .map(t => ({
-              id: t.id,
-              nomTache: t.nomTache,
-              status: getTaskStatus(t),
-              dateFin: new Date(t.dateFin),
-            }));
-          setTodayDeadlines(deadlines);
-        })
-        .catch(err => console.error('Failed to load deadlines:', err)),
+      fetchTasks(),
     ]).finally(() => setLoading(false));
   }, [team?.equipeId]);
 
@@ -109,21 +115,7 @@ export default function TeamPlanning({ team }) {
       });
       setNewTaskName('');
       setShowTaskForm(false);
-      const data = await getTaches(team.equipeId);
-      const transformed = (data || []).map(t => ({
-        id: t.id,
-        text: t.nomTache,
-        status: getTaskStatus(t),
-        assignee: {
-          initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
-          gradient: gradientForCip(t.cip),
-        },
-        priority: t.status === 'termine' ? 'done' :
-                 t.status === 'urgent' ? 'high' :
-                 t.status === 'important' ? 'med' : 'low',
-        originalStatus: t.status,
-      }));
-      setTasks(transformed);
+      await fetchTasks();
     } catch (err) {
       console.error('Failed to create task:', err);
     } finally {
@@ -221,6 +213,8 @@ export default function TeamPlanning({ team }) {
                     className="kanban-card"
                     draggable
                     onDragStart={() => handleDragStart(task)}
+                    onClick={() => setEditingTaskId(task.id)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <button
                       className="kanban-delete-btn"
@@ -300,6 +294,8 @@ export default function TeamPlanning({ team }) {
                     className="kanban-card"
                     draggable
                     onDragStart={() => handleDragStart(task)}
+                    onClick={() => setEditingTaskId(task.id)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <button
                       className="kanban-delete-btn"
@@ -340,6 +336,8 @@ export default function TeamPlanning({ team }) {
                     className="kanban-card done"
                     draggable
                     onDragStart={() => handleDragStart(task)}
+                    onClick={() => setEditingTaskId(task.id)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <button
                       className="kanban-delete-btn"
@@ -504,6 +502,15 @@ export default function TeamPlanning({ team }) {
              </div>
            </div>
          </div>
+       )}
+
+       {/* Edit task modal */}
+       {editingTaskId && (
+         <EditTaskModal
+           taskId={editingTaskId}
+           onClose={() => setEditingTaskId(null)}
+           onUpdated={fetchTasks}
+         />
        )}
      </div>
    );
