@@ -200,7 +200,7 @@ export async function getTeamMembers(equipeId) {
 }
 
 export async function addTeamMember(equipeId, memberCip) {
-  const response = await api.post(`/equipes/${equipeId}/member`, { memberCip });
+  const response = await api.post(`/equipeMember/${equipeId}?cip=${memberCip}`);
   return response.data;
 }
 

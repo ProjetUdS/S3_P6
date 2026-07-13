@@ -6,6 +6,7 @@ import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 import EditTaskModal from './EditTaskModal';
+import InviteMemberModal from './InviteMemberModal';
 
 /**
  * TeamPlanning  — Planning tab: Kanban board, meetings, calendar, right sidebar.
@@ -25,6 +26,7 @@ export default function TeamPlanning({ team }) {
   const [todayDeadlines, setTodayDeadlines] = useState([]);
   const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState(null);
   const [editingTaskId, setEditingTaskId] = useState(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Map task status to column state
   const getTaskStatus = (t) => {
@@ -33,6 +35,27 @@ export default function TeamPlanning({ team }) {
     if (normalized === 'termine' || normalized === 'done') return 'done';
     if (normalized === 'en_cours' || normalized === 'doing') return 'doing';
     return 'todo';
+  };
+
+  const fetchMembers = async () => {
+    if (!team?.equipeId) return;
+    try {
+      const data = await getTeamMembers(team.equipeId);
+      const transformed = (data || []).map(m => {
+        const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
+        return {
+          id: m.cip,
+          name,
+          initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
+          role: m.role || 'Member',
+          gradient: gradientForCip(m.cip),
+          status: m.status, // "Admin" or other status values from backend
+        };
+      });
+      setMembers(transformed);
+    } catch (err) {
+      console.error('Failed to load team members:', err);
+    }
   };
 
   const fetchTasks = async () => {
@@ -83,22 +106,7 @@ export default function TeamPlanning({ team }) {
 
     setLoading(true);
     Promise.all([
-      getTeamMembers(team.equipeId)
-        .then(data => {
-          const transformed = (data || []).map(m => {
-            const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
-            return {
-              id: m.cip,
-              name,
-              initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
-              role: m.role || 'Member',
-              gradient: gradientForCip(m.cip),
-              status: m.status || 'offline',
-            };
-          });
-          setMembers(transformed);
-        })
-        .catch(err => console.error('Failed to load team members:', err)),
+      fetchMembers(),
       fetchTasks(),
     ]).finally(() => setLoading(false));
   }, [team?.equipeId]);
@@ -432,20 +440,83 @@ export default function TeamPlanning({ team }) {
         {/* Team members */}
         <div>
           <div className="ps-section-title">Team Members</div>
+          <button
+            onClick={() => setShowInviteModal(true)}
+            style={{
+              width: '100%',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.15s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--blue-bg)';
+              e.currentTarget.style.borderColor = 'var(--blue)';
+              e.currentTarget.style.color = 'var(--blue)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--bg-secondary)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+          >
+            <span>➕</span> Inviter un membre
+          </button>
+
           {loading ? (
             <div className="loading-spinner" style={{ margin: '10px 0' }} />
           ) : members.length === 0 ? (
             <div className="panel-section">No members</div>
           ) : (
-            members.map(m => (
-              <div key={m.id} className="member-row">
-                <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status} dotSize="sm" />
-                <div className="member-info">
-                  <div className="member-name">{m.name}</div>
-                  <div className="member-role">{m.role}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Admins Category */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                  Admins ({members.filter(m => m.status === 'Admin').length})
                 </div>
+                {members.filter(m => m.status === 'Admin').map(m => (
+                  <div key={m.id} className="member-row" style={{ marginBottom: '6px' }}>
+                    <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
+                    <div className="member-info">
+                      <div className="member-name">{m.name}</div>
+                      <div className="member-role">Admin</div>
+                    </div>
+                  </div>
+                ))}
+                {members.filter(m => m.status === 'Admin').length === 0 && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', paddingLeft: '4px' }}>Aucun administrateur</div>
+                )}
               </div>
-            ))
+
+              {/* Members Category */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                  Membres ({members.filter(m => m.status !== 'Admin').length})
+                </div>
+                {members.filter(m => m.status !== 'Admin').map(m => (
+                  <div key={m.id} className="member-row" style={{ marginBottom: '6px' }}>
+                    <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
+                    <div className="member-info">
+                      <div className="member-name">{m.name}</div>
+                      <div className="member-role">{m.role}</div>
+                    </div>
+                  </div>
+                ))}
+                {members.filter(m => m.status !== 'Admin').length === 0 && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', paddingLeft: '4px' }}>Aucun membre</div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
@@ -504,17 +575,27 @@ export default function TeamPlanning({ team }) {
          </div>
        )}
 
-       {/* Edit task modal */}
-       {editingTaskId && (
-         <EditTaskModal
-           taskId={editingTaskId}
-           onClose={() => setEditingTaskId(null)}
-           onUpdated={fetchTasks}
-         />
-       )}
-     </div>
-   );
- }
+        {/* Edit task modal */}
+        {editingTaskId && (
+          <EditTaskModal
+            taskId={editingTaskId}
+            onClose={() => setEditingTaskId(null)}
+            onUpdated={fetchTasks}
+          />
+        )}
+
+        {/* Invite member modal */}
+        {showInviteModal && (
+          <InviteMemberModal
+            equipeId={team.equipeId}
+            existingMemberCips={members.map(m => m.id)}
+            onClose={() => setShowInviteModal(false)}
+            onAdded={fetchMembers}
+          />
+        )}
+      </div>
+    );
+  }
 
 // ── PriorityTag ──────────────────────────────────────────────────────────────
 function PriorityTag({ priority }) {
