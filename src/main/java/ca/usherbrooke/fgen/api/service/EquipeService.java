@@ -9,6 +9,8 @@ import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.jwt.JsonWebToken;
+import jakarta.ws.rs.core.Response;
 
 import java.util.*;
 import java.util.UUID;
@@ -48,9 +50,17 @@ public class EquipeService {
         return equipeMapper.selectMembers(equipeId);
     }
 
+    @Inject
+    JsonWebToken jwt;
+
     @DELETE
     @Path("/{equipeId}")
     public String deleteOne(@PathParam("equipeId") String equipeId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Equipe equipe = equipeMapper.selectOne(equipeId);
+        if (equipe == null || !equipe.administrateurCip.equals(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         equipeMapper.deleteOne(equipeId);
         return equipeId;
     }

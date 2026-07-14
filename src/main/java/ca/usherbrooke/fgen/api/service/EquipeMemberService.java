@@ -5,6 +5,11 @@ import ca.usherbrooke.fgen.api.record.TeamMember;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.jwt.JsonWebToken;
+import ca.usherbrooke.fgen.api.business.Equipe;
+import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 
@@ -22,9 +27,20 @@ public class EquipeMemberService {
         return equipeMemberMapper.selectMembers(equipeId);
     }
 
+    @Inject
+    JsonWebToken jwt;
+
+    @Inject
+    EquipeMapper equipeMapper;
+
     @POST
     @Path("/{equipeId}")
     public String insertMember(@PathParam("equipeId") String equipeId, @QueryParam("cip") String memberCip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Equipe equipe = equipeMapper.selectOne(equipeId);
+        if (equipe == null || !equipe.administrateurCip.equals(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         equipeMemberMapper.insertMember(equipeId, memberCip);
         return memberCip;
     }
@@ -32,6 +48,11 @@ public class EquipeMemberService {
     @DELETE
     @Path("/{equipeId}")
     public String deleteMember(@PathParam("equipeId") String equipeId, @QueryParam("cip") String memberCip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Equipe equipe = equipeMapper.selectOne(equipeId);
+        if (equipe == null || (!equipe.administrateurCip.equals(cipConnecte) && !cipConnecte.equals(memberCip))) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         equipeMemberMapper.deleteMember(equipeId, memberCip);
         return memberCip;
     }

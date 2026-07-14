@@ -13,6 +13,10 @@ import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.UUID;
 
+import org.eclipse.microprofile.jwt.JsonWebToken;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+
 @Path("/api/message")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -37,9 +41,18 @@ public class MessageService {
         return messageMapper.selectOne(messageId);
     }
 
+
+    @Inject
+    JsonWebToken jwt;
+
     @DELETE
     @Path("/{messageId}")
     public void deleteMessage(@PathParam("messageId") String messageId, @QueryParam("discussionId") String discussionId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Message message = messageMapper.selectOne(messageId);
+        if (message == null || !message.cip.equals(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         messageMapper.deleteOne(messageId, discussionId);
     }
 
