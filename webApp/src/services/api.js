@@ -138,8 +138,8 @@ export async function updateTache(tacheId, tache) {
   if (tache.nomTache != null) params.set('nomTache', tache.nomTache);
   if (tache.status != null) params.set('status', tache.status);
   if (tache.description != null) params.set('description', tache.description);
-  if (tache.dateDebut != null) params.set('dateDebut', tache.dateDebut);
-  if (tache.dateFin != null) params.set('dateFin', tache.dateFin);
+  if (tache.dateDebut) params.set('dateDebut', tache.dateDebut.replace(/-/g, '/'));
+  if (tache.dateFin) params.set('dateFin', tache.dateFin.replace(/-/g, '/'));
   const response = await api.put(`/tache/${tacheId}?${params.toString()}`);
   return response.data;
 }
