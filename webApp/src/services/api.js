@@ -219,4 +219,19 @@ export async function getConversations(cip) {
   return response.data;
 }
 
+export async function getAssignees(tacheId) {
+  const response = await api.get(`/assignee/${tacheId}`);
+  return response.data;
+}
+
+export async function addAssignee(tacheId, cip) {
+  const response = await api.post(`/assignee/${tacheId}?cip=${cip}`);
+  return response.data;
+}
+
+export async function deleteAssignee(tacheId, cip) {
+  const response = await api.delete(`/assignee/${tacheId}?cip=${cip}`);
+  return response.data;
+}
+
 export default api;

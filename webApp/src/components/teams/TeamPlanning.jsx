@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache } from '../../services/api';
+import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache, getAssignees } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 import EditTaskModal from './EditTaskModal';
 import InviteMemberModal from './InviteMemberModal';
+import AssigneesModal from './AssigneesModal';
 
 /**
  * TeamPlanning  — Planning tab: Kanban board, meetings, calendar, right sidebar.
@@ -27,6 +28,7 @@ export default function TeamPlanning({ team }) {
   const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState(null);
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [assigningTask, setAssigningTask] = useState(null);
 
   // Map task status to column state
   const getTaskStatus = (t) => {
@@ -62,20 +64,34 @@ export default function TeamPlanning({ team }) {
     if (!team?.equipeId) return;
     try {
       const data = await getTaches(team.equipeId);
-      const transformed = (data || []).map(t => ({
-        id: t.id,
-        text: t.nomTache,
-        status: getTaskStatus(t),
-        assignee: {
-          initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
-          gradient: gradientForCip(t.cip),
-        },
-        priority: t.status === 'termine' ? 'done' :
-                 t.status === 'urgent' ? 'high' :
-                 t.status === 'important' ? 'med' : 'low',
-        originalStatus: t.status,
+      
+      const tasksWithAssignees = await Promise.all((data || []).map(async t => {
+        let assigneeCips = [];
+        try {
+          assigneeCips = await getAssignees(t.id);
+        } catch (e) {
+          console.error(`Failed to fetch assignees for task ${t.id}`, e);
+        }
+        
+        const assignees = assigneeCips.map(cip => ({
+          cip,
+          initials: initialsFromUser({ cip, pseudo: cip }),
+          gradient: gradientForCip(cip),
+        }));
+
+        return {
+          id: t.id,
+          text: t.nomTache,
+          status: getTaskStatus(t),
+          assignees,
+          priority: t.status === 'termine' ? 'done' :
+                   t.status === 'urgent' ? 'high' :
+                   t.status === 'important' ? 'med' : 'low',
+          originalStatus: t.status,
+        };
       }));
-      setTasks(transformed);
+      
+      setTasks(tasksWithAssignees);
 
       const dData = await getDeadlines(team.equipeId);
       const today = new Date();
@@ -233,13 +249,49 @@ export default function TeamPlanning({ team }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta">
-                      <Avatar
-                        initials={task.assignee.initials}
-                        gradient={task.assignee.gradient}
-                        size="sm"
-                      />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <PriorityTag priority={task.priority} />
+                      <div 
+                        className="attendee-stack" 
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigningTask({ id: task.id, text: task.text });
+                        }}
+                      >
+                        {task.assignees && task.assignees.length > 0 ? (
+                          task.assignees.map((assignee, idx) => (
+                            <Avatar
+                              key={assignee.cip}
+                              initials={assignee.initials}
+                              gradient={assignee.gradient}
+                              size="sm"
+                              style={{ 
+                                marginLeft: idx > 0 ? '-8px' : '0', 
+                                border: '2px solid var(--bg-primary)',
+                                zIndex: 10 - idx
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <div
+                            className="avatar avatar-sm"
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              border: '1.5px dashed var(--border)',
+                              color: 'var(--text-tertiary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 'normal'
+                            }}
+                            title="Aucun assigné"
+                          >
+                            👤
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -314,13 +366,49 @@ export default function TeamPlanning({ team }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta">
-                      <Avatar
-                        initials={task.assignee.initials}
-                        gradient={task.assignee.gradient}
-                        size="sm"
-                      />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <PriorityTag priority={task.priority} />
+                      <div 
+                        className="attendee-stack" 
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigningTask({ id: task.id, text: task.text });
+                        }}
+                      >
+                        {task.assignees && task.assignees.length > 0 ? (
+                          task.assignees.map((assignee, idx) => (
+                            <Avatar
+                              key={assignee.cip}
+                              initials={assignee.initials}
+                              gradient={assignee.gradient}
+                              size="sm"
+                              style={{ 
+                                marginLeft: idx > 0 ? '-8px' : '0', 
+                                border: '2px solid var(--bg-primary)',
+                                zIndex: 10 - idx
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <div
+                            className="avatar avatar-sm"
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              border: '1.5px dashed var(--border)',
+                              color: 'var(--text-tertiary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 'normal'
+                            }}
+                            title="Aucun assigné"
+                          >
+                            👤
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -356,13 +444,49 @@ export default function TeamPlanning({ team }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta">
-                      <Avatar
-                        initials={task.assignee.initials}
-                        gradient={task.assignee.gradient}
-                        size="sm"
-                      />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <PriorityTag priority={task.priority} />
+                      <div 
+                        className="attendee-stack" 
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigningTask({ id: task.id, text: task.text });
+                        }}
+                      >
+                        {task.assignees && task.assignees.length > 0 ? (
+                          task.assignees.map((assignee, idx) => (
+                            <Avatar
+                              key={assignee.cip}
+                              initials={assignee.initials}
+                              gradient={assignee.gradient}
+                              size="sm"
+                              style={{ 
+                                marginLeft: idx > 0 ? '-8px' : '0', 
+                                border: '2px solid var(--bg-primary)',
+                                zIndex: 10 - idx
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <div
+                            className="avatar avatar-sm"
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              border: '1.5px dashed var(--border)',
+                              color: 'var(--text-tertiary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 'normal'
+                            }}
+                            title="Aucun assigné"
+                          >
+                            👤
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -591,6 +715,17 @@ export default function TeamPlanning({ team }) {
             existingMemberCips={members.map(m => m.id)}
             onClose={() => setShowInviteModal(false)}
             onAdded={fetchMembers}
+          />
+        )}
+
+        {/* Assignees management modal */}
+        {assigningTask && (
+          <AssigneesModal
+            taskId={assigningTask.id}
+            taskName={assigningTask.text}
+            teamMembers={members}
+            onClose={() => setAssigningTask(null)}
+            onUpdated={fetchTasks}
           />
         )}
       </div>
