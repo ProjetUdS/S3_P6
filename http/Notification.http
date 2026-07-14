@@ -1,0 +1,21 @@
+### Obtenir le token
+POST http://localhost:8180/realms/usager/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=backend&client_secret=secretsecretsecretsecretsecretsecret&username=test&password=projet
+
+> {%
+    client.global.set("auth_token", response.body.access_token);
+%}
+
+### Lister mes notifications (doit contenir notif1)
+GET http://localhost:8888/api/notification?cip=test1234
+Authorization: Bearer {{auth_token}}
+
+### Compter les non-lues (le badge)
+GET http://localhost:8888/api/notification/unread?cip=test1234
+Authorization: Bearer {{auth_token}}
+
+### Assigner une tache (doit creer une 2e notification)
+POST http://localhost:8888/api/assignee/tache1?cip=test1234
+Authorization: Bearer {{auth_token}}

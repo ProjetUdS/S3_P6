@@ -106,6 +106,18 @@ CREATE TABLE app.Tache
     FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip)
 );
 
+CREATE TABLE app.Notification
+(
+    notification_id VARCHAR(50),
+    cip             VARCHAR(50) NOT NULL,
+    type            VARCHAR(50) NOT NULL,
+    contenu         TEXT        NOT NULL,
+    lu              BOOLEAN     NOT NULL DEFAULT FALSE,
+    date_creation   TIMESTAMP   NOT NULL,
+    PRIMARY KEY (notification_id),
+    FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip) ON DELETE CASCADE
+);
+
 CREATE TABLE app.Est_dans
 (
     cip       VARCHAR(50),

@@ -14,6 +14,8 @@ public class AssigneeService {
 
     @Inject
     AssigneeMapper assigneeMapper;
+    @Inject
+    NotificationService notificationService;
 
     @GET
     @Path("/{tacheId}")
@@ -21,17 +23,19 @@ public class AssigneeService {
         return assigneeMapper.selectAssignees(tacheId);
     }
 
-    @POST
-    @Path("/{tacheId}")
-    public String insertAssignee(@PathParam("tacheId") String tacheId, @QueryParam("cip") String cip) {
-        assigneeMapper.insertAssignee(tacheId, cip);
-        return cip;
-    }
-
     @DELETE
     @Path("/{tacheId}")
     public String deleteAssignee(@PathParam("tacheId") String tacheId, @QueryParam("cip") String cip) {
         assigneeMapper.deleteAssignee(tacheId, cip);
+        return cip;
+    }
+
+    @POST
+    @Path("/{tacheId}")
+    public String insertAssignee(@PathParam("tacheId") String tacheId, @QueryParam("cip") String cip) {
+        assigneeMapper.insertAssignee(tacheId, cip);
+        notificationService.creerNotification(cip, "taskAssigned",
+                "Une tache vous a ete assignee");
         return cip;
     }
 }
