@@ -28,6 +28,11 @@ public class DiscussionMemberService {
     @GET
     @Path("/conversations")
     public List<DiscussionMemberSummary> getConversations(@QueryParam("cip") String cip) {
+        String cipConnecte = jwt.getClaim("cip");
+        if(cipConnecte == null || !(cipConnecte == cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+
         return discussionMemberMapper.selectConversations(cip);
     }
 

@@ -19,8 +19,13 @@ public class ContactService {
 
     @Inject
     JsonWebToken jwt;
+
     @GET
     public List<String> getContacts(@QueryParam("cip") String cip) {
+        String cipConnecte = jwt.getClaim("cip");
+        if(cipConnecte == null || !(cipConnecte == cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return contactMapper.selectContacts(cip);
     }
 
@@ -28,7 +33,7 @@ public class ContactService {
     public String deleteContact(@QueryParam("cip") String cip, @QueryParam("cipContact") String cipContact) {
         String cipConnecte = (String) jwt.getClaim("cip");
 
-        if(!(cip.equals(cipConnecte) || cipContact.equals(cipConnecte))) {
+        if (!(cip.equals(cipConnecte) || cipContact.equals(cipConnecte))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 

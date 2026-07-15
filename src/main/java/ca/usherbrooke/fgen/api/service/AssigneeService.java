@@ -33,6 +33,15 @@ public class AssigneeService {
     @GET
     @Path("/{tacheId}")
     public List<String> getAssignees(@PathParam("tacheId") String tacheId) {
+        String cipConnecte = jwt.getClaim("cipConnecte");
+
+        Tache tache = tacheMapper.selectOne(tacheId);
+        String equipeId = tache.equipeId;
+        Equipe equipe = equipeMapper.selectOne(equipeId);
+
+        if(equipe == null || !equipeMapper.selectMembers(equipeId).contains(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return assigneeMapper.selectAssignees(tacheId);
     }
 
