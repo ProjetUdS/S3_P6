@@ -13,4 +13,6 @@ public interface ContactMapper {
     void deleteContact(@Param("cip") String cip, @Param("cipContact") String cipContact);
 
     List<String> selectContacts(@Param("cip") String cip);
+
+    boolean isContact(@Param("cip") String cip, @Param("cipContact") String cipContact);
 }

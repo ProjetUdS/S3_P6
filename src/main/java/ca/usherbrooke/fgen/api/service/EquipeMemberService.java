@@ -1,15 +1,14 @@
 package ca.usherbrooke.fgen.api.service;
 
+import ca.usherbrooke.fgen.api.business.Equipe;
+import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.record.TeamMember;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import org.eclipse.microprofile.jwt.JsonWebToken;
-import ca.usherbrooke.fgen.api.business.Equipe;
-import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
-import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.List;
 
@@ -21,17 +20,17 @@ public class EquipeMemberService {
     @Inject
     EquipeMemberMapper equipeMemberMapper;
 
+    @Inject
+    EquipeMapper equipeMapper;
+
+    @Inject
+    JsonWebToken jwt;
+
     @GET
     @Path("/{equipeId}")
     public List<TeamMember> getMembers(@PathParam("equipeId") String equipeId) {
         return equipeMemberMapper.selectMembers(equipeId);
     }
-
-    @Inject
-    JsonWebToken jwt;
-
-    @Inject
-    EquipeMapper equipeMapper;
 
     @POST
     @Path("/{equipeId}")

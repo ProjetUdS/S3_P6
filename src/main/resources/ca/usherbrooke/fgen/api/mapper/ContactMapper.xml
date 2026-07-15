@@ -23,4 +23,12 @@
         WHERE cip = #{cip}
     </select>
 
+    <select id="isContact" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM app.Contact
+            WHERE cip = #{cip}
+              AND cip_contact = #{cipContact}
+        )
+    </select>
+
 </mapper>

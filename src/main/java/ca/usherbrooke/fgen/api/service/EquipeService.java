@@ -9,8 +9,8 @@ import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.*;
 import java.util.UUID;
@@ -28,6 +28,9 @@ public class EquipeService {
 
     @Inject
     DiscussionMapper discussionMapper;
+
+    @Inject
+    JsonWebToken jwt;
 
     @GET
     public List<Equipe> select(
@@ -50,9 +53,6 @@ public class EquipeService {
         return equipeMapper.selectMembers(equipeId);
     }
 
-    @Inject
-    JsonWebToken jwt;
-
     @DELETE
     @Path("/{equipeId}")
     public String deleteOne(@PathParam("equipeId") String equipeId) {
@@ -67,23 +67,23 @@ public class EquipeService {
 
     @POST
     public String insertEquipe(Equipe equipe, @QueryParam("membersCip") List<String> membersCip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(equipe.administrateurCip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         if (equipe.equipeId == null) {
             equipe.equipeId = UUID.randomUUID().toString().replace("-", "");
         }
-
-        if(equipe.discussionId == null) {
+        if (equipe.discussionId == null) {
             Discussion discussion = new Discussion();
-            discussion.discussionId  = UUID.randomUUID().toString().replace("-", "");
+            discussion.discussionId = UUID.randomUUID().toString().replace("-", "");
             discussionMapper.insertDiscussion(discussion);
             equipe.discussionId = discussion.discussionId;
         }
-
         equipeMapper.insertEquipe(equipe);
-
         for (String cip : membersCip) {
             equipeMemberMapper.insertMember(equipe.equipeId, cip);
         }
-
         return equipe.equipeId;
     }
 

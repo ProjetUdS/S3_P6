@@ -1,11 +1,13 @@
 package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Tache;
+import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.TacheMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import org.apache.ibatis.annotations.Param;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.Date;
 import java.util.List;
@@ -17,7 +19,14 @@ import java.time.LocalDate;
 @Consumes(MediaType.APPLICATION_JSON)
 public class TacheService {
 
-  @Inject TacheMapper tacheMapper;
+    @Inject
+    TacheMapper tacheMapper;
+
+    @Inject
+    EquipeMemberMapper equipeMemberMapper;
+
+    @Inject
+    JsonWebToken jwt;
 
     @GET
     public List<Tache> getTaches(
@@ -28,28 +37,12 @@ public class TacheService {
         return tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
     }
 
-    /**
-     * Récupère les tâches d'une équipe ayant une échéance, triées par date de fin croissante.
-     *
-     * @param equipeId l'identifiant de l'équipe dont on veut les échéances
-     * @return la liste des tâches de l'équipe possédant une date de fin,
-     *         ordonnées de l'échéance la plus proche à la plus lointaine
-     */
     @GET
     @Path("/deadlines")
     public List<Tache> getDeadlines(@QueryParam("equipeId") String equipeId) {
         return tacheMapper.deadlines(equipeId);
     }
 
-    /**
-     * Récupère les tâches d'une équipe qui chevauchent une plage de dates donnée,
-     * pour un affichage de type calendrier.
-     *
-     * @param equipeId l'identifiant de l'équipe
-     * @param dateMin borne inférieure de la plage (peut être nulle pour ne pas filtrer)
-     * @param dateMax borne supérieure de la plage (peut être nulle pour ne pas filtrer)
-     * @return la liste des tâches de l'équipe dont la période recoupe l'intervalle demandé
-     */
     @GET
     @Path("/calendrier")
     public List<Tache> getCalendrier(@QueryParam("equipeId") String equipeId,
@@ -67,11 +60,20 @@ public class TacheService {
     @DELETE
     @Path("/{tacheId}")
     public void deleteTache(@PathParam("tacheId") String tacheId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Tache tache = tacheMapper.selectOne(tacheId);
+        if (tache == null || !equipeMemberMapper.isMember(tache.equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         tacheMapper.deleteOne(tacheId);
     }
 
     @POST
     public void createTache(Tache tache) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!equipeMemberMapper.isMember(tache.equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         tache.id = UUID.randomUUID().toString();
         tache.dateCreation = new java.util.Date();
         tacheMapper.insertTache(tache);
@@ -80,9 +82,10 @@ public class TacheService {
     @POST
     @Path("/set/{tacheId}")
     public void setTacheStatus(@PathParam("tacheId") String tacheId, @QueryParam("status") String status) {
+        String cipConnecte = (String) jwt.getClaim("cip");
         Tache tache = tacheMapper.selectOne(tacheId);
-        if(tache == null) {
-            return;
+        if (tache == null || !equipeMemberMapper.isMember(tache.equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         tacheMapper.setStatus(tacheId, status);
     }
@@ -93,7 +96,6 @@ public class TacheService {
         return tacheMapper.getNewId();
     }
 
-
     @PUT
     @Path("/{tacheId}")
     public void updateTache(
@@ -103,8 +105,13 @@ public class TacheService {
             @QueryParam("description") String description,
             @QueryParam("dateDebut") Date dateDebut,
             @QueryParam("dateFin") Date dateFin) {
-        tacheMapper.updateTache(tacheId, nomTache, status, description, dateDebut, dateFin);
+        String cipConnecte = (String) jwt.getClaim("cip");
         Tache tache = tacheMapper.selectOne(tacheId);
+        if (tache == null || !equipeMemberMapper.isMember(tache.equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        tacheMapper.updateTache(tacheId, nomTache, status, description, dateDebut, dateFin);
+        tache = tacheMapper.selectOne(tacheId);
         if (tache != null) {
             TacheWebSocket.broadcast(tache.equipeId,
                     "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + tache.equipeId + "\"}");

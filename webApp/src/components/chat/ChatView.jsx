@@ -124,6 +124,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         contenu: text,
         cip: myCip,
         discussionId,
+        destinataireCip: friend.cip,
         fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
       const data = await getFriendConversation(myCip, friend.cip, 100, 0);
