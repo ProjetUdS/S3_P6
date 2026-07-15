@@ -35,12 +35,16 @@ dependencies {
     implementation 'io.quarkus:quarkus-rest'
     implementation 'io.quarkus:quarkus-rest-jackson'
     implementation 'io.quarkus:quarkus-arc'
+
+    // Test
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-core:5.7.0'
-    testImplementation 'org.mockito:mockito-core:5.7.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.7.0'
     //testImplementation 'io.quarkus:quarkus-testcontainers-postgresql:3.23.2'
+    testImplementation 'org.testcontainers:postgresql:1.21.4'
+    //      Ensure PostgreSQL driver is available for tests
+    runtimeOnly 'org.postgresql:postgresql'
 
     // MyBatis
     implementation("io.quarkiverse.mybatis:quarkus-mybatis:$quarkusMybatisVersion")
@@ -55,8 +59,10 @@ dependencies {
     // utilisation avec swagger
     implementation("io.quarkus:quarkus-smallrye-openapi")
 
+    //MinIo
     implementation 'io.minio:minio:8.5.7'
 
+    //Websockets
     implementation("io.quarkus:quarkus-websockets-next")
     implementation("io.quarkus:quarkus-scheduler")
 }
