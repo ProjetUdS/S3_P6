@@ -1,0 +1,9 @@
+@base_ = {{base_url}}/api/equipes
+
+
+@cip = test
+
+### getEquipes for user
+GET {{base_}}
+    ?usersCip={{cip}}
+Authorization: Bearer {{auth_token}}

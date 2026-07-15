@@ -31,7 +31,7 @@ public class EquipeService {
 
     @GET
     public List<Equipe> select(
-            @QueryParam("usersCip") String[] usersCip,
+            @QueryParam("usersCip[]") String[] usersCip,
             @QueryParam("equipeId") String equipeId,
             @QueryParam("administrateur") String administrateur,
             @QueryParam("nomEquipe") String nomEquipe) {
