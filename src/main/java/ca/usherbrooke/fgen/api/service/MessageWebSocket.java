@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @WebSocket(path = "/ws/message/{discussionId}")
 public class MessageWebSocket {
 
-    private static final Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
+    private static Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
 
     @Inject
     WebSocketConnection connection;

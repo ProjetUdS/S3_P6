@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @WebSocket(path = "/ws/tache/{equipeId}")
 public class TacheWebSocket {
 
-    private static final Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
+    private static Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
 
     @Inject
     WebSocketConnection connection;
