@@ -5,6 +5,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
+import ca.usherbrooke.fgen.api.mapper.FichierJointMapper;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 @Path("/api/fichiers")
 @Produces(MediaType.APPLICATION_JSON)
@@ -12,6 +14,12 @@ import java.io.InputStream;
 public class FichierService {
     @Inject
     MinioStorageService minioStorageService;
+
+    @Inject
+    JsonWebToken jwt;
+
+    @Inject
+    FichierJointMapper fichierJointMapper;
 
     @GET
     @Path("/upload-url")
@@ -22,20 +30,23 @@ public class FichierService {
     @GET
     @Path("/download-url/{fichierId: .+}")
     public MinioStorageService.PresignedUrlResponse getDownloadUrl(@PathParam("fichierId") String fichierId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Boolean isAllowed = fichierJointMapper.isUserAllowedToDownloadFichier(fichierId, cipConnecte);
+        if (isAllowed == null || !isAllowed) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return minioStorageService.generateDownloadUrl(fichierId);
     }
 
-    /**
-     * Proxy download endpoint: streams the object from MinIO through the application
-     * and sets a Content-Disposition header so browsers will download it. This
-     * avoids cross-origin (CORS) issues when fetching presigned URLs directly from the browser.
-     *
-     * Usage: GET /api/fichiers/download-proxy/{fichierId}?filename=originalname.png
-     */
     @GET
     @Path("/download-proxy/{fichierId: .+}")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     public Response downloadProxy(@PathParam("fichierId") String fichierId, @QueryParam("filename") String filename) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Boolean isAllowed = fichierJointMapper.isUserAllowedToDownloadFichier(fichierId, cipConnecte);
+        if (isAllowed == null || !isAllowed) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         try {
             InputStream is = minioStorageService.getObjectStream(fichierId);
             String disposition = "attachment";
