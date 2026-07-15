@@ -4,6 +4,7 @@ import { Avatar } from './shared/Avatar';
 import { useAuth } from '../context/AuthContext';
 import teamIcon from '../assets/icons/team.png';
 import settingIcon from '../assets/icons/setting.png';
+import { useNotifications } from '../hooks/useNotifications';
 
 const NAV_ITEMS = [
   { key: 'messages', icon: '💬', label: 'Messages' },
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ activeView, onNav }) {
   const { user } = useAuth();
+  const { unreadCount } = useNotifications(user?.cip);
 
   const initials = user?.preferred_username
     ? user.preferred_username.substring(0, 2).toUpperCase()
@@ -32,8 +34,12 @@ export default function Sidebar({ activeView, onNav }) {
           aria-label={label}
           title={label}
         >
-          {isImage ? <img src={icon} alt="" /> : icon}
-          {badge && <span className="notif-dot" aria-hidden="true" />}
+            {isImage ? <img src={icon} alt="" /> : icon}
+            {badge && unreadCount > 0 && (
+                <span className="notif-badge" aria-label={`${unreadCount} notifications non lues`}>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+            )}
         </button>
       ))}
 
