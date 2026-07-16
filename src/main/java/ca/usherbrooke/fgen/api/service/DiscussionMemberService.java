@@ -29,7 +29,7 @@ public class DiscussionMemberService {
     @Path("/conversations")
     public List<DiscussionMemberSummary> getConversations(@QueryParam("cip") String cip) {
         String cipConnecte = jwt.getClaim("cip");
-        if(cipConnecte == null || !(cipConnecte == cip)) {
+        if(cipConnecte == null || !(cipConnecte.equals(cip))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 
