@@ -2,14 +2,12 @@ package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Utilisateur;
 import ca.usherbrooke.fgen.api.mapper.UtilisateurMapper;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.jwt.JsonWebToken;
-
 import jakarta.inject.Inject;
-
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.List;
 import java.util.Map;
@@ -92,22 +90,13 @@ public class UtilisateurService {
         return "200";
     }
 
-    @PUT
-    @Path("/{cip}")
-    public String updateUtilisateur(
-            @PathParam("cip") String cip,
-            @QueryParam("pseudo") String pseudo,
-            @QueryParam("courriel") String courriel,
-            @QueryParam("nom") String nom,
-            @QueryParam("prenom") String prenom,
-            @QueryParam("photoProfilId") String photoProfilId) {
-        utilisateurMapper.updateUtilisateur(cip, pseudo, courriel, nom, prenom, photoProfilId);
-        return "200";
-    }
-
     @GET
     @Path("/contacts")
     public List<Utilisateur> getContacts(@QueryParam("userCip") String cip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return utilisateurMapper.getContacts(cip);
     }
 }

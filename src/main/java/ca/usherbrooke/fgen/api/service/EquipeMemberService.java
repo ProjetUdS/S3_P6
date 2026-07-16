@@ -29,6 +29,10 @@ public class EquipeMemberService {
     @GET
     @Path("/{equipeId}")
     public List<TeamMember> getMembers(@PathParam("equipeId") String equipeId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return equipeMemberMapper.selectMembers(equipeId);
     }
 

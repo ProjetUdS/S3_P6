@@ -38,18 +38,30 @@ public class EquipeService {
             @QueryParam("equipeId") String equipeId,
             @QueryParam("administrateur") String administrateur,
             @QueryParam("nomEquipe") String nomEquipe) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (equipeId != null && !equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return equipeMapper.select(usersCip, equipeId, administrateur, nomEquipe);
     }
 
     @GET
     @Path("/{equipeId}")
     public Equipe selectOne(@PathParam("equipeId") String equipeId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return equipeMapper.selectOne(equipeId);
     }
 
     @GET
     @Path("/{equipeId}/members")
     public List<TeamMember> selectMembers(@PathParam("equipeId") String equipeId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return equipeMapper.selectMembers(equipeId);
     }
 

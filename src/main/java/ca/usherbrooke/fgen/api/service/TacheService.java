@@ -34,20 +34,33 @@ public class TacheService {
             @QueryParam("usersID") List<String> usersId,
             @QueryParam("dateCreation") Date dateCreation,
             @QueryParam("nomTache") String nomTache) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (equipeId != null && !equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
     }
 
     @GET
     @Path("/deadlines")
     public List<Tache> getDeadlines(@QueryParam("equipeId") String equipeId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return tacheMapper.deadlines(equipeId);
     }
 
     @GET
     @Path("/calendrier")
-    public List<Tache> getCalendrier(@QueryParam("equipeId") String equipeId,
-                                     @QueryParam("dateMin") LocalDate dateMin,
-                                     @QueryParam("dateMax") LocalDate dateMax) {
+    public List<Tache> getCalendrier(
+            @QueryParam("equipeId") String equipeId,
+            @QueryParam("dateMin") LocalDate dateMin,
+            @QueryParam("dateMax") LocalDate dateMax) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return tacheMapper.calendrierEquipe(equipeId, dateMin, dateMax);
     }
 
