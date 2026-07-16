@@ -13,7 +13,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ activeView, onNav, hasNotif }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { unreadCount } = useNotifications(user?.cip);
 
     const initials = user?.preferred_username
