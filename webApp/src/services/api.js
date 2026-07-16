@@ -204,6 +204,11 @@ export async function addTeamMember(equipeId, memberCip) {
   return response.data;
 }
 
+export async function removeTeamMember(equipeId, memberCip) {
+  const response = await api.delete(`/equipeMember/${equipeId}?cip=${memberCip}`);
+  return response.data;
+}
+
 export async function removeDiscussionMember(discussionId, cip) {
   const response = await api.delete('/discussionMember', { params: { discussionId, cip } });
   return response.data;

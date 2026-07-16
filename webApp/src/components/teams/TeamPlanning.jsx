@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache, getAssignees } from '../../services/api';
+import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache, getAssignees, removeTeamMember } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 import EditTaskModal from './EditTaskModal';
@@ -29,6 +29,24 @@ export default function TeamPlanning({ team }) {
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [assigningTask, setAssigningTask] = useState(null);
+  const [memberToRemove, setMemberToRemove] = useState(null);
+
+  const isCurrentUserAdmin = user?.cip === team?.administrateurCip || members.some(m => m.id === user?.cip && m.status === 'Admin');
+
+  async function handleRemoveMember(memberCip) {
+    try {
+      await removeTeamMember(team.equipeId, memberCip);
+      if (memberCip === user?.cip) {
+        window.dispatchEvent(new CustomEvent('team-left', { detail: { equipeId: team.equipeId } }));
+      } else {
+        await fetchMembers();
+      }
+    } catch (err) {
+      console.error('Failed to remove team member:', err);
+    } finally {
+      setMemberToRemove(null);
+    }
+  }
 
   // Map task status to column state
   const getTaskStatus = (t) => {
@@ -615,6 +633,16 @@ export default function TeamPlanning({ team }) {
                       <div className="member-name">{m.name}</div>
                       <div className="member-role">Admin</div>
                     </div>
+                    {(isCurrentUserAdmin || m.id === user?.cip) && (
+                      <button
+                        className="member-remove-btn"
+                        onClick={(e) => { e.stopPropagation(); setMemberToRemove(m); }}
+                        title={m.id === user?.cip ? "Leave team" : "Remove member"}
+                        aria-label={m.id === user?.cip ? "Leave team" : "Remove member"}
+                      >
+                        &times;
+                      </button>
+                    )}
                   </div>
                 ))}
                 {members.filter(m => m.status === 'Admin').length === 0 && (
@@ -634,6 +662,16 @@ export default function TeamPlanning({ team }) {
                       <div className="member-name">{m.name}</div>
                       <div className="member-role">{m.role}</div>
                     </div>
+                    {(isCurrentUserAdmin || m.id === user?.cip) && (
+                      <button
+                        className="member-remove-btn"
+                        onClick={(e) => { e.stopPropagation(); setMemberToRemove(m); }}
+                        title={m.id === user?.cip ? "Leave team" : "Remove member"}
+                        aria-label={m.id === user?.cip ? "Leave team" : "Remove member"}
+                      >
+                        &times;
+                      </button>
+                    )}
                   </div>
                 ))}
                 {members.filter(m => m.status !== 'Admin').length === 0 && (
@@ -694,6 +732,28 @@ export default function TeamPlanning({ team }) {
              <div className="modal-actions">
                <button className="btn-cancel" onClick={() => setDeleteConfirmTaskId(null)}>Cancel</button>
                <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleDeleteTask(deleteConfirmTaskId)}>Delete</button>
+             </div>
+           </div>
+         </div>
+       )}
+
+       {/* Remove member confirmation modal */}
+       {memberToRemove && (
+         <div className="modal-overlay" onClick={() => setMemberToRemove(null)}>
+           <div className="modal" onClick={e => e.stopPropagation()}>
+             <div className="modal-title">
+               {memberToRemove.id === user?.cip ? "Leave team" : "Remove member"}
+             </div>
+             <div className="modal-subtitle">
+               {memberToRemove.id === user?.cip
+                 ? "Are you sure you want to leave the team?"
+                 : `Are you sure you want to remove ${memberToRemove.name} from the team?`}
+             </div>
+             <div className="modal-actions">
+               <button className="btn-cancel" onClick={() => setMemberToRemove(null)}>Cancel</button>
+               <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleRemoveMember(memberToRemove.id)}>
+                 {memberToRemove.id === user?.cip ? "Leave" : "Remove"}
+               </button>
              </div>
            </div>
          </div>

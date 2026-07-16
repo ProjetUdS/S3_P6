@@ -87,6 +87,17 @@ export default function App() {
   }
 
   useEffect(() => {
+    const handleTeamLeft = (e) => {
+      loadTeams();
+      if (activeTeam?.equipeId === e.detail.equipeId) {
+        setActiveTeam(null);
+      }
+    };
+    window.addEventListener('team-left', handleTeamLeft);
+    return () => window.removeEventListener('team-left', handleTeamLeft);
+  }, [activeTeam]);
+
+  useEffect(() => {
     if (authenticated && user?.cip) {
       loadConversations();
       loadTeams();
@@ -98,6 +109,7 @@ export default function App() {
       setActiveTeam(teams[0]);
     }
   }, [teams]);
+
 
   if (loading) {
     return (
