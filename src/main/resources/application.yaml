@@ -32,7 +32,7 @@ quarkus:
         - http://localhost
         - http://localhost:8888
         - http://localhost:8180
-        - ${HTTP_TYPE}://${SERVER_IP}
+        - ${HTTP_TYPE:http}://${SERVER_IP:localhost}
       methods:
         - GET
         - PUT
@@ -45,10 +45,10 @@ quarkus:
         - Accept
   # --- OIDC (OpenID Connect) Configuration ---
   oidc:
-    auth-server-url: ${HTTP_TYPE}://${SERVER_IP}${KEYCLOAK_PATH}/realms/usager
-    client-id: ${OIDC_CLIENT_ID}
+    auth-server-url: ${HTTP_TYPE:http}://${SERVER_IP:localhost}${KEYCLOAK_PATH:}/${OIDC_REALM:realms/usager}
+    client-id: ${OIDC_CLIENT_ID:client-id}
     credentials:
-      secret: ${OIDC_SECRET}
+      secret: ${OIDC_SECRET:secret}
     application-type: service
 
 #
@@ -68,8 +68,8 @@ quarkus:
       enabled: false
 
     db-kind: postgresql
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     jdbc:
       url: "jdbc:postgresql://localhost:5444/postgres"
       leak-detection-interval: 5M
@@ -82,10 +82,10 @@ quarkus:
 
 # MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
 minio:
-  url: "http://localhost:${MINIO_PORT}"
+  url: "http://localhost:${MINIO_PORT:9000}"
   access:
-    key: ${MINIO_USER}
+    key: ${MINIO_USER:minioadmin}
   secret:
-    key: ${MINIO_PASSWORD}
+    key: ${MINIO_PASSWORD:minioadmin}
   bucket:
     name: "chat-media"
