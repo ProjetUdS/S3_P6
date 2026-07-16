@@ -34,10 +34,6 @@ public class TacheWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String equipeId, String tacheJson) {
-        /*connections.values().stream()
-                .filter(c -> equipeId.equals(c.pathParam("equipeId")))
-                .forEach(c -> c.sendTextAndAwait(tacheJson));
-    }*/
         connections.forEach((id, conn) -> {
             try {
                 if (equipeId.equals(conn.pathParam("equipeId"))) {

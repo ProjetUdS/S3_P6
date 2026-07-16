@@ -34,10 +34,6 @@ public class RequeteAmiWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String cip, String requeteJson) {
-        /*connections.values().stream()
-                .filter(c -> cip.equals(c.pathParam("cip")))
-                .forEach(c -> c.sendTextAndAwait(requeteJson));
-    }*/
         connections.forEach((id, conn) -> {
             try {
                 if (cip.equals(conn.pathParam("cip"))) {
