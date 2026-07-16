@@ -23,11 +23,7 @@
 
         <!-- Filter by the array of user CIPs if provided -->
         <if test="usersCip != null and usersCip.length > 0">
-            AND ed.cip IN
-            <foreach item="item" index="index" collection="usersCip"
-                     open="(" separator="," close=")">
-                #{item}
-            </foreach>
+            AND ed.cip = ANY(#{usersCip, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler})
         </if>
     </select>
 
