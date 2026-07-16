@@ -160,7 +160,27 @@ export async function searchUsers(query) {
 }
 
 export async function addContact(userCip, contactCip) {
-  const response = await api.post(`/utilisateur/${userCip}/contact/${contactCip}`);
+  const response = await api.post('/requeteAmi', {}, { params: { cip: userCip, destinataireCip: contactCip } });
+  return response.data;
+}
+
+export async function getFriendRequests(cip) {
+  const response = await api.get('/requeteAmi', { params: { cip } });
+  return response.data;
+}
+
+export async function getSentFriendRequests(cip) {
+  const response = await api.get('/requeteAmi/envoyees', { params: { cip } });
+  return response.data;
+}
+
+export async function acceptFriendRequest(userCip, senderCip) {
+  const response = await api.post('/requeteAmi/accepter', {}, { params: { cip: userCip, destinataireCip: senderCip } });
+  return response.data;
+}
+
+export async function refuseFriendRequest(userCip, senderCip) {
+  const response = await api.post('/requeteAmi/refuser', {}, { params: { cip: userCip, destinataireCip: senderCip } });
   return response.data;
 }
 

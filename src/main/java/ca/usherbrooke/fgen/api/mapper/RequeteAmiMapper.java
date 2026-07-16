@@ -13,4 +13,6 @@ public interface RequeteAmiMapper {
     void deleteRequete(@Param("cip") String cip, @Param("destinataireCip") String destinataireCip);
 
     List<String> selectRequetes(@Param("cip") String cip);
+
+    List<String> selectRequetesEnvoyees(@Param("cip") String cip);
 }

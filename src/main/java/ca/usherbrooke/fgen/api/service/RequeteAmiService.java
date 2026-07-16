@@ -33,6 +33,16 @@ public class RequeteAmiService {
         return requeteAmiMapper.selectRequetes(cip);
     }
 
+    @GET
+    @Path("/envoyees")
+    public List<String> getRequetesEnvoyees(@QueryParam("cip") String cip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        return requeteAmiMapper.selectRequetesEnvoyees(cip);
+    }
+
     @POST
     public String insertRequete(@QueryParam("cip") String cip, @QueryParam("destinataireCip") String destinataireCip) {
         String cipConnecte = (String) jwt.getClaim("cip");
@@ -55,6 +65,7 @@ public class RequeteAmiService {
         contactMapper.insertContact(cip, destinataireCip);
         contactMapper.insertContact(destinataireCip, cip);
         requeteAmiMapper.deleteRequete(destinataireCip, cip);
+        requeteAmiMapper.deleteRequete(cip,destinataireCip);
         return destinataireCip;
     }
 
