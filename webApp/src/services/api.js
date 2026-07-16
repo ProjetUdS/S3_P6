@@ -259,4 +259,19 @@ export async function deleteAssignee(tacheId, cip) {
   return response.data;
 }
 
+export async function getNotifications(cip) {
+  const response = await api.get('/notification', { params: { cip } });
+  return response.data;
+}
+
+export async function getUnreadCount(cip) {
+  const response = await api.get('/notification/unread', { params: { cip } });
+  return response.data;
+}
+
+export async function markAllNotificationsAsRead(cip) {
+  const response = await api.post('/notification/read-all', undefined, { params: { cip } });
+  return response.data;
+}
+
 export default api;

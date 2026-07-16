@@ -20,6 +20,8 @@ public class AssigneeService {
 
     @Inject
     AssigneeMapper assigneeMapper;
+    @Inject
+    NotificationService notificationService;
 
     @Inject
     TacheMapper tacheMapper;
@@ -59,6 +61,8 @@ public class AssigneeService {
         }
 
         assigneeMapper.insertAssignee(tacheId, cip);
+        notificationService.creerNotification(cip, "taskAssigned",
+                "Une tache vous a ete assignee");
         return cip;
     }
 
