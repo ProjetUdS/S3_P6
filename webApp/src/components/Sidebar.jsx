@@ -6,7 +6,7 @@ import settingIcon from '../assets/icons/setting.png';
 import messageIcon from '../assets/icons/message.png'
 
 export default function Sidebar({ activeView, onNav, hasNotif }) {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
 
     const initials = user?.preferred_username
         ? user.preferred_username.substring(0, 2).toUpperCase()
@@ -38,6 +38,14 @@ export default function Sidebar({ activeView, onNav, hasNotif }) {
             <div className="sidebar-spacer" />
             <button className="sidebar-icon" aria-label="Settings" title="Settings">
                 <img src={settingIcon} alt="" />
+            </button>
+            <button
+                className="sidebar-icon"
+                onClick={logout}
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
+            >
+                🚪
             </button>
             <div className="sidebar-avatar-wrap">
                 <Avatar
