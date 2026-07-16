@@ -20,11 +20,13 @@ public class TacheWebSocket {
 
     @OnOpen
     public void onOpen() {
+        String id = connection.id();
         connections.put(connection.id(), connection);
     }
 
     @OnClose
     public void onClose() {
+        String id = connection.id();
         connections.remove(connection.id());
     }
 
@@ -32,8 +34,18 @@ public class TacheWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String equipeId, String tacheJson) {
-        connections.values().stream()
+        /*connections.values().stream()
                 .filter(c -> equipeId.equals(c.pathParam("equipeId")))
                 .forEach(c -> c.sendTextAndAwait(tacheJson));
+    }*/
+        connections.forEach((id, conn) -> {
+            try {
+                if (equipeId.equals(conn.pathParam("equipeId"))) {
+                    conn.sendTextAndAwait(tacheJson);
+                }
+            } catch (Exception e) {
+                connections.remove(id);
+            }
+        });
     }
 }

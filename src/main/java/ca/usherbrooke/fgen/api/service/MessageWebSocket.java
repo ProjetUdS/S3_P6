@@ -20,20 +20,28 @@ public class MessageWebSocket {
 
     @OnOpen
     public void onOpen() {
-        connections.put(connection.id(), connection);
+        String id = connection.id();
+        connections.put(id, connection);
     }
 
     @OnClose
     public void onClose() {
-        connections.remove(connection.id());
+        String id = connection.id();
+        connections.remove(id);
     }
 
     @OnTextMessage
     public void onMessage(String message) {}
 
     public static void broadcast(String discussionId, String messageJson) {
-        connections.values().stream()
-                .filter(c -> discussionId.equals(c.pathParam("discussionId")))
-                .forEach(c -> c.sendTextAndAwait(messageJson));
+        connections.forEach((id, conn) -> {
+            try {
+                if (discussionId.equals(conn.pathParam("discussionId"))) {
+                    conn.sendTextAndAwait(messageJson);
+                }
+            } catch (Exception e) {
+                connections.remove(id);
+            }
+        });
     }
 }

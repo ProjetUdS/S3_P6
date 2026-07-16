@@ -20,11 +20,13 @@ public class RequeteAmiWebSocket {
 
     @OnOpen
     public void onOpen() {
+        String id = connection.id();
         connections.put(connection.id(), connection);
     }
 
     @OnClose
     public void onClose() {
+        String id = connection.id();
         connections.remove(connection.id());
     }
 
@@ -32,8 +34,18 @@ public class RequeteAmiWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String cip, String requeteJson) {
-        connections.values().stream()
+        /*connections.values().stream()
                 .filter(c -> cip.equals(c.pathParam("cip")))
                 .forEach(c -> c.sendTextAndAwait(requeteJson));
+    }*/
+        connections.forEach((id, conn) -> {
+            try {
+                if (cip.equals(conn.pathParam("cip"))) {
+                    conn.sendTextAndAwait(requeteJson);
+                }
+            } catch (Exception e) {
+                connections.remove(id);
+            }
+        });
     }
 }
