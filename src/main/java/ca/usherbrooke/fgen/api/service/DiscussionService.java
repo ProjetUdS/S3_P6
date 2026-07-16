@@ -6,6 +6,8 @@ import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.List;
 
@@ -13,11 +15,12 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class DiscussionService {
-
     @Inject
     DiscussionMapper discussionMapper;
     @Inject
     DiscussionMemberMapper discussionMemberMapper;
+    @Inject
+    JsonWebToken jwt;
 
     // GET /api/discussion  → liste les discussions des utilisateurs donnés
     @GET
@@ -39,6 +42,11 @@ public class DiscussionService {
     @DELETE
     @Path("/{discussionId}")
     public String deleteDiscussion(@PathParam("discussionId") String discussionId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Discussion discussion = discussionMapper.selectOne(discussionId);
+        if(discussion == null|| !discussion.members.contains(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         discussionMapper.deleteOne(discussionId);
         return discussionId;
     }
@@ -48,6 +56,11 @@ public class DiscussionService {
   public String createDiscussion(Discussion discussion) {
     if (discussion.discussionId == null) {
       discussion.discussionId = discussionMapper.getNewId();
+    }
+
+    String cipConnecte = (String) jwt.getClaim("cip");
+    if(discussion.members.isEmpty() || !discussion.members.contains(cipConnecte)) {
+        throw new WebApplicationException(Response.Status.FORBIDDEN);
     }
 
     discussionMapper.insertDiscussion(discussion);

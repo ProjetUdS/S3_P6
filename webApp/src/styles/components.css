@@ -571,6 +571,29 @@
 .member-info { flex: 1; }
 .member-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
 .member-role { font-size: 10px; color: var(--text-tertiary); }
+.member-remove-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+.member-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+.member-row:hover .member-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 
 .event-card {
   border-radius: var(--radius-sm);

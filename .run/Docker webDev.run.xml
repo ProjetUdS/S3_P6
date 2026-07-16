@@ -12,8 +12,6 @@
         <option name="sourceFilePath" value="docker/docker-compose.yml" />
       </settings>
     </deployment>
-    <method v="2">
-      <option name="RunConfigurationTask" enabled="true" run_configuration_name="sync-env webApp" run_configuration_type="PythonConfigurationType" />
-    </method>
+    <method v="2" />
   </configuration>
 </component>

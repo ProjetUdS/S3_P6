@@ -57,6 +57,16 @@
         VALUES (#{cip}, #{cip_contact})
     </insert>
 
+    <update id="updateUtilisateur">
+        UPDATE app.utilisateur
+        SET pseudo             = coalesce(#{pseudo}, pseudo),
+            courriel           = coalesce(#{courriel}, courriel),
+            nom                = coalesce(#{nom}, nom),
+            prenom             = coalesce(#{prenom}, prenom),
+            photo_de_profil_id = coalesce(#{photoProfilId}, photo_de_profil_id)
+        WHERE cip = #{cip}
+    </update>
+
     <select id="getContacts" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
         SELECT u.cip, u.pseudo, u.courriel, u.nom, u.prenom, u.photo_de_profil_id
         FROM app.Contact c

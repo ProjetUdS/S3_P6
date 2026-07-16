@@ -1,7 +1,7 @@
 // src/components/friends/AddFriendModal.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { searchUsers, addContact } from '../../services/api';
+import { searchUsers, addContact, getSentFriendRequests } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
@@ -11,7 +11,16 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(new Set());
+  const [sentRequests, setSentRequests] = useState(new Set());
   const searchTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.cip) {
+      getSentFriendRequests(user.cip)
+        .then(data => setSentRequests(new Set(data || [])))
+        .catch(err => console.error('Failed to load sent requests:', err));
+    }
+  }, [user?.cip]);
 
   const performSearch = useCallback(async (searchQuery) => {
     if (searchQuery.length < 2) {
@@ -42,10 +51,11 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
   }, [query, performSearch]);
 
   async function handleAdd(cip) {
-    if (!user?.cip || added.has(cip)) return;
+    if (!user?.cip || added.has(cip) || sentRequests.has(cip)) return;
     try {
       await addContact(user.cip, cip);
       setAdded(prev => new Set(prev).add(cip));
+      setSentRequests(prev => new Set(prev).add(cip));
       onAdded?.();
     } catch (err) {
       console.error('Failed to add friend:', err);
@@ -80,6 +90,7 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
           <ul className="suggestion-list" aria-label="Search results">
             {results.map(u => {
               const isExisting = existingCipSet.has(u.cip);
+              const isSent = sentRequests.has(u.cip);
               return (
                 <li key={u.cip} className="suggestion-item">
                   <Avatar initials={initialsFromUser(u)} gradient={gradientForCip(u.cip)} size="md" />
@@ -91,9 +102,9 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
                     className="suggestion-add"
                     onClick={() => handleAdd(u.cip)}
                     aria-label={`Add ${u.pseudo}`}
-                    disabled={added.has(u.cip) || isExisting}
+                    disabled={added.has(u.cip) || isSent || isExisting}
                   >
-                    {added.has(u.cip) ? '✓ Added' : isExisting ? 'Already friend' : '+ Add'}
+                    {added.has(u.cip) || isSent ? '✓ Requested' : isExisting ? 'Already friend' : '+ Add'}
                   </button>
                 </li>
               );

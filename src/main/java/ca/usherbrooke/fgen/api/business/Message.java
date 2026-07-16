@@ -13,6 +13,7 @@ public class Message {
   public String contenu;
   public String cip;
   public String discussionId;
+  public String destinataireCip;
 
   public List<FichierJoint> fichiers;
 }
