@@ -56,8 +56,8 @@ export default function Sidebar({ activeView, onNav, hasNotif }) {
                 />
             </div>
             <a
-                href="https://www.flaticon.com/free-icons/people"
-                title="People icons"
+                href="https://www.flaticon.com/authors/freepik"
+                title="Icons"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="sidebar-attribution"
