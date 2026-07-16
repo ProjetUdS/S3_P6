@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Avatar } from './shared/Avatar';
 import { useAuth } from '../context/AuthContext';
 import teamIcon from '../assets/icons/team.png';
 import settingIcon from '../assets/icons/setting.png';
 import messageIcon from '../assets/icons/message.png'
+import SettingsModal from './parametres/SettingsModal';
 
 export default function Sidebar({ activeView, onNav, hasNotif }) {
     const { user, logout } = useAuth();
+    const [settingsOpen, setSettingsOpen] = useState(false);
 
     const initials = user?.preferred_username
         ? user.preferred_username.substring(0, 2).toUpperCase()
@@ -36,7 +38,12 @@ export default function Sidebar({ activeView, onNav, hasNotif }) {
                 </button>
             ))}
             <div className="sidebar-spacer" />
-            <button className="sidebar-icon" aria-label="Settings" title="Settings">
+            <button
+                className="sidebar-icon"
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Settings"
+                title="Settings"
+            >
                 <img src={settingIcon} alt="" />
             </button>
             <button
@@ -64,6 +71,8 @@ export default function Sidebar({ activeView, onNav, hasNotif }) {
             >
                 Icons by Freepik - Flaticon
             </a>
+
+            <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </aside>
     );
 }
