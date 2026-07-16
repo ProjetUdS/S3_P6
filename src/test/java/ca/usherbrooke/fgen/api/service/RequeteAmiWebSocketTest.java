@@ -11,7 +11,6 @@ import org.mockito.quality.Strictness;
 
 import java.lang.reflect.Field;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.Mockito.*;
 
@@ -28,9 +27,9 @@ class RequeteAmiWebSocketTest {
 
         Field field = RequeteAmiWebSocket.class.getDeclaredField("connections");
         field.setAccessible(true);
-        Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
+        Map<String, WebSocketConnection> connections = (Map<String, WebSocketConnection>) field.get(null);
+        connections.clear();
         connections.put("conn1", mockConnection);
-        field.set(null, connections);
     }
 
     @Test
