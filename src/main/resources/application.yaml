@@ -9,6 +9,10 @@ quarkus:
         api:
           paths: /api/*
           policy: authenticated
+        # Ajout exception pour les routes WebSocket
+        websocket:
+          paths: /ws/*
+          policy: permit
         # Règle 2 : Laisser tout le reste public (index.html, Swagger, etc.)
         public:
           paths:
@@ -29,7 +33,6 @@ quarkus:
         - http://localhost:8888
         - http://localhost:8180
         - ${HTTP_TYPE}://${SERVER_IP}
-        - "*"
       methods:
         - GET
         - PUT
@@ -71,8 +74,18 @@ quarkus:
       url: "jdbc:postgresql://localhost:5444/postgres"
       leak-detection-interval: 5M
 
-  # --- MyBatis Mapping Configuration ---
+   # --- MyBatis Mapping Configuration ---
   mybatis:
     xmlconfig:
       enable: false
     map-underscore-to-camel-case: true
+
+# MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
+minio:
+  url: "http://localhost:${MINIO_PORT}"
+  access:
+    key: ${MINIO_USER}
+  secret:
+    key: ${MINIO_PASSWORD}
+  bucket:
+    name: "chat-media"

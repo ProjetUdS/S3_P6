@@ -3,40 +3,37 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
-import EmojiPicker from '../shared/EmojiPicker';
-import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState } from '../../services/api';
+import ChatInput from '../shared/ChatInput';
+import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState, getUploadUrl, uploadToUrl, getDownloadUrl, default as api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
-export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged }) {
+export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged, activeFriend, onNotif }) {
   const { user } = useAuth();
   const myCip = user?.cip;
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
   const [localDiscussionId, setLocalDiscussionId] = useState(null);
   const [topbarMenuOpen, setTopbarMenuOpen] = useState(false);
   const [confirmDeleteConversation, setConfirmDeleteConversation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const pendingActionRef = useRef(null);
   const messagesAreaRef = useRef(null);
-  const inputRef = useRef(null);
 
-  const {
-    messages,
-    setMessages,
-    hoveredMsgId,
-    setHoveredMsgId,
-    menuMsgId,
-    setMenuMsgId,
-    confirmDelete,
-    isOwn,
-    getRelativeTime,
-    transformMessages,
-    handleDelete,
-    confirmDeleteMessage,
-    cancelDelete,
-  } = useChatMessages(myCip, messagesAreaRef);
+    const {
+        messages,
+        setMessages,
+        hoveredMsgId,
+        setHoveredMsgId,
+        menuMsgId,
+        setMenuMsgId,
+        confirmDelete,
+        isOwn,
+        getRelativeTime,
+        transformMessages,
+        handleDelete,
+        confirmDeleteMessage,
+        cancelDelete,
+        connectWebSocket,
+    } = useChatMessages(myCip, messagesAreaRef);
 
   const discussionId = propDiscussionId || localDiscussionId;
 
@@ -56,7 +53,9 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     }
     getFriendConversation(myCip, friend.cip, 100, 0)
       .then(data => {
-        setMessages(transformMessages(data));
+        const transformed = transformMessages(data);
+        setMessages(transformed);
+        console.debug('Loaded messages with fichiers:', transformed);
       })
       .catch(err => {
         console.error('Failed to load messages:', err);
@@ -70,12 +69,31 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     return () => document.removeEventListener('click', handler);
   }, [topbarMenuOpen]);
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || !myCip || !friend?.cip) return;
-    setSending(true);
-    let discussionId;
+    const isActiveConversationRef = useRef(false);
 
+    useEffect(() => {
+        isActiveConversationRef.current = true;
+        return () => {
+            isActiveConversationRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!discussionId || !friend?.cip) return;
+        const cleanup = connectWebSocket(
+            discussionId,
+            friend.cip,
+            () => isActiveConversationRef.current,
+            onNotif
+        );
+        return cleanup;
+    }, [discussionId, friend?.cip]);
+
+
+  async function handleSend(text, attachments) {
+    if (!myCip || !friend?.cip) return;
+
+    let discussionId;
     const existing = await getFriendConversation(myCip, friend.cip, 1, 0).catch(() => []);
     if (existing.length > 0) {
       discussionId = existing[0].discussionId;
@@ -88,45 +106,40 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         discussionId = discussionId.discussionId || discussionId;
       }
     }
-    if (!discussionId) { setSending(false); return; }
+    if (!discussionId) return;
+
+    const hasUploadedAttachments = (attachments || []).some(a => a.uploaded && a.fichierId);
+    if (!text && !hasUploadedAttachments) return;
+
+    const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
+      fichierId: a.fichierId,
+      nomOriginal: a.file.name,
+      typeMime: a.file.type,
+      tailleOctets: a.file.size,
+      cip: myCip,
+    }));
 
     try {
       await sendMessage({
         contenu: text,
         cip: myCip,
         discussionId,
+        destinataireCip: friend.cip,
+        fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
-      setInput('');
       const data = await getFriendConversation(myCip, friend.cip, 100, 0);
-      setMessages(transformMessages(data));
-      setTimeout(() => inputRef.current?.focus(), 0);
+      const transformed = transformMessages(data);
+      setMessages(transformed);
+      console.debug('Refreshed messages after send, fichiers:', transformed);
+      setTimeout(() => {
+        document.querySelector('.chat-text-input')?.focus();
+      }, 0);
     } catch (err) {
       console.error('Failed to send message:', err);
-    } finally {
-      setSending(false);
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  }
 
-  function handleEmojiSelect(emoji) {
-    const textarea = inputRef.current;
-    if (!textarea) return;
-    
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = input;
-    
-    setInput(text.substring(0, start) + emoji + text.substring(end));
-    
-    setTimeout(() => {
-      textarea.focus();
-      const cursorPos = start + emoji.length;
-      textarea.setSelectionRange(cursorPos, cursorPos);
-    }, 0);
-  }
 
   const isReadOnly = !['enabled', 'active'].includes(etat);
 
@@ -184,7 +197,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     pendingActionRef.current = null;
   }
 
- function getModalTitle() {
+  function getModalTitle() {
     const action = pendingActionRef.current;
     if (action === 'unarchive') return 'Désarchiver la conversation';
     if (action === 'unblock') return 'Débloquer la conversation';
@@ -225,6 +238,13 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     if (isUnarchiving) return 'Désarchiver';
     if (isBlocking) return 'Débloquer';
     return 'Réactiver';
+  }
+
+  function getPlaceholder() {
+    if (etat === 'archived') return 'Conversation archivée — lecture seule';
+    if (etat === 'disabled') return 'Conversation désactivée — lecture seule';
+    if (etat === 'blocked') return 'Conversation bloquée — lecture seule';
+    return `Message ${friend?.name || 'friend'}…`;
   }
 
   return (
@@ -292,16 +312,13 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         />
       </div>
 
-      {/* Emoji Picker */}
-      {emojiPickerOpen && (
-        <div className="emoji-picker-container">
-          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
-        </div>
-      )}
-
       {/* Input bar or action button for read-only */}
-      <div className="chat-input-bar">
-        {isReadOnly ? (
+      <ChatInput
+        onSend={handleSend}
+        placeholder={getPlaceholder()}
+        isReadOnly={isReadOnly}
+      >
+        {isReadOnly && (
           <button
             className="conversation-action-btn"
             onClick={() => {
@@ -316,36 +333,8 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
           >
             {getActionButtonText()}
           </button>
-        ) : (
-          <>
-            <div className="input-actions">
-              <button className="action-btn" aria-label="Send image">🖼️</button>
-              <button className="action-btn" aria-label="Send video">🎬</button>
-              <button className="action-btn" aria-label="Attach file">📎</button>
-              <button className="action-btn" aria-label="Emoji" onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>😊</button>
-            </div>
-            <textarea
-              ref={inputRef}
-              className="chat-text-input"
-              placeholder={etat === 'archived' ? 'Conversation archivée — lecture seule' : etat === 'disabled' ? 'Conversation désactivée — lecture seule' : etat === 'blocked' ? 'Conversation bloquée — lecture seule' : `Message ${friend?.name || 'friend'}…`}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              aria-label="Message input"
-              disabled={sending || !['enabled', 'active'].includes(etat)}
-              rows={1}
-              onInput={e => {
-                const el = e.target;
-                el.style.height = 'auto';
-                el.style.height = Math.min(el.scrollHeight, 80) + 'px';
-              }}
-            />
-            <button className="send-btn" onClick={handleSend} aria-label="Send message" disabled={sending || !input.trim()}>
-              ➤
-            </button>
-          </>
         )}
-      </div>
+      </ChatInput>
 
       {/* Delete message confirmation modal */}
       {confirmDelete && (
@@ -355,7 +344,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
             <div className="modal-subtitle">Are you sure you want to delete this message? This action cannot be undone.</div>
             <div className="modal-actions">
               <button className="btn-cancel" onClick={cancelDelete}>Cancel</button>
-              <button className="btn-primary" style={{ background: '#ef4444' }} onClick={confirmDeleteMessage}>Delete</button>
+              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={confirmDeleteMessage}>Delete</button>
             </div>
           </div>
         </div>

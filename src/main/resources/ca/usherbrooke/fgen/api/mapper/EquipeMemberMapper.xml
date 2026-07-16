@@ -22,4 +22,13 @@
                  INNER JOIN app.utilisateur u ON u.cip = ed.cip
         WHERE ed.equipe_id = #{equipeId}
     </select>
+
+    <select id="isMember" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM app.est_dans
+            WHERE equipe_id = #{equipeId}
+              AND cip = #{cip}
+        )
+    </select>
+
 </mapper>

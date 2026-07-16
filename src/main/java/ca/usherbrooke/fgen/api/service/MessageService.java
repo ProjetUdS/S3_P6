@@ -13,6 +13,11 @@ import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.UUID;
 
+import org.eclipse.microprofile.jwt.JsonWebToken;
+import ca.usherbrooke.fgen.api.mapper.ContactMapper;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+
 @Path("/api/message")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -37,21 +42,38 @@ public class MessageService {
         return messageMapper.selectOne(messageId);
     }
 
+
+    @Inject
+    JsonWebToken jwt;
+    @Inject
+    ContactMapper contactMapper;
+
     @DELETE
     @Path("/{messageId}")
     public void deleteMessage(@PathParam("messageId") String messageId, @QueryParam("discussionId") String discussionId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Message message = messageMapper.selectOne(messageId);
+        if (message == null || !message.cip.equals(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         messageMapper.deleteOne(messageId, discussionId);
     }
 
     @POST
     public void sendMessage(Message message) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(message.cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        if (!contactMapper.isContact(message.cip, message.destinataireCip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         message.id = UUID.randomUUID().toString();
         message.date = new java.util.Date();
         messageMapper.insertMessage(message);
         MessageWebSocket.broadcast(message.discussionId,
                 "{\"type\":\"messageReceived\",\"messageId\":\"" + message.id + "\",\"discussionId\":\"" + message.discussionId + "\"}");
-
-        if(message.fichiers != null && !message.fichiers.isEmpty()) {
+        if (message.fichiers != null && !message.fichiers.isEmpty()) {
             for (FichierJoint fichier : message.fichiers) {
                 fichier.messageId = message.id;
                 fichier.cip = message.cip;
@@ -77,6 +99,10 @@ public class MessageService {
     @GET
     @Path("/friendConversation")
     public List<Message> getFriendConversation(@QueryParam("cip1") String cip1, @QueryParam("cip2") String cip2, @QueryParam("limite") Integer limit, @QueryParam("decalage") Integer offset) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(cip1) || !contactMapper.isContact(cip1, cip2)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return messageMapper.getFriendConversation(cip1, cip2, limit, offset);
     }
 }

@@ -138,8 +138,8 @@ export async function updateTache(tacheId, tache) {
   if (tache.nomTache != null) params.set('nomTache', tache.nomTache);
   if (tache.status != null) params.set('status', tache.status);
   if (tache.description != null) params.set('description', tache.description);
-  if (tache.dateDebut != null) params.set('dateDebut', tache.dateDebut);
-  if (tache.dateFin != null) params.set('dateFin', tache.dateFin);
+  if (tache.dateDebut) params.set('dateDebut', tache.dateDebut.replace(/-/g, '/'));
+  if (tache.dateFin) params.set('dateFin', tache.dateFin.replace(/-/g, '/'));
   const response = await api.put(`/tache/${tacheId}?${params.toString()}`);
   return response.data;
 }
@@ -200,7 +200,7 @@ export async function getTeamMembers(equipeId) {
 }
 
 export async function addTeamMember(equipeId, memberCip) {
-  const response = await api.post(`/equipes/${equipeId}/member`, { memberCip });
+  const response = await api.post(`/equipeMember/${equipeId}?cip=${memberCip}`);
   return response.data;
 }
 
@@ -216,6 +216,21 @@ export async function changeDiscussionMemberState(discussionId, cip, etat) {
 
 export async function getConversations(cip) {
   const response = await api.get('/discussionMember/conversations', { params: { cip } });
+  return response.data;
+}
+
+export async function getAssignees(tacheId) {
+  const response = await api.get(`/assignee/${tacheId}`);
+  return response.data;
+}
+
+export async function addAssignee(tacheId, cip) {
+  const response = await api.post(`/assignee/${tacheId}?cip=${cip}`);
+  return response.data;
+}
+
+export async function deleteAssignee(tacheId, cip) {
+  const response = await api.delete(`/assignee/${tacheId}?cip=${cip}`);
   return response.data;
 }
 

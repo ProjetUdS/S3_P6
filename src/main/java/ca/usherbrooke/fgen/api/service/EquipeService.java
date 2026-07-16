@@ -9,6 +9,8 @@ import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.*;
 import java.util.UUID;
@@ -27,9 +29,12 @@ public class EquipeService {
     @Inject
     DiscussionMapper discussionMapper;
 
+    @Inject
+    JsonWebToken jwt;
+
     @GET
     public List<Equipe> select(
-            @QueryParam("usersCip") String[] usersCip,
+            @QueryParam("usersCip[]") String[] usersCip,
             @QueryParam("equipeId") String equipeId,
             @QueryParam("administrateur") String administrateur,
             @QueryParam("nomEquipe") String nomEquipe) {
@@ -51,29 +56,34 @@ public class EquipeService {
     @DELETE
     @Path("/{equipeId}")
     public String deleteOne(@PathParam("equipeId") String equipeId) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Equipe equipe = equipeMapper.selectOne(equipeId);
+        if (equipe == null || !equipe.administrateurCip.equals(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         equipeMapper.deleteOne(equipeId);
         return equipeId;
     }
 
     @POST
     public String insertEquipe(Equipe equipe, @QueryParam("membersCip") List<String> membersCip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(equipe.administrateurCip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         if (equipe.equipeId == null) {
             equipe.equipeId = UUID.randomUUID().toString().replace("-", "");
         }
-
-        if(equipe.discussionId == null) {
+        if (equipe.discussionId == null) {
             Discussion discussion = new Discussion();
-            discussion.discussionId  = UUID.randomUUID().toString().replace("-", "");
+            discussion.discussionId = UUID.randomUUID().toString().replace("-", "");
             discussionMapper.insertDiscussion(discussion);
             equipe.discussionId = discussion.discussionId;
         }
-
         equipeMapper.insertEquipe(equipe);
-
         for (String cip : membersCip) {
             equipeMemberMapper.insertMember(equipe.equipeId, cip);
         }
-
         return equipe.equipeId;
     }
 
