@@ -6,10 +6,9 @@
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMapper">
 
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
-        SELECT e.discussion_id, d.discussion_id
+        SELECT d.discussion_id
         FROM app.discussion d
-        JOIN app.equipe e ON e.discussion_id = d.discussion_id
-        JOIN app.fait_parti fp ON fp.equipe_id = e.equipe_id
+        JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
         <where>
             <if test="usersId != null">
                 AND fp.cip = ANY(#{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler})
