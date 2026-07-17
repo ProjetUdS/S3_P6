@@ -8,6 +8,8 @@ import TeamsPanel from './components/teams/TeamsPanel';
 import TeamArea from './components/teams/TeamArea';
 import { getContacts, getConversations, getEquipes } from './services/api';
 import { gradientForCip, initialsFromUser } from './utils/gradient';
+import messageIcon from './assets/icons/message.png';
+import teamIcon from './assets/icons/team.png'
 
 import './styles/globals.css';
 import './styles/layout.css';
@@ -161,7 +163,7 @@ export default function App() {
                         : (
                             <div className="main-area">
                                 <div className="empty-state">
-                                    <span className="empty-state-icon">💬</span>
+                                    <img src={messageIcon} alt="Message icon" className="empty-state-icon" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
                                     <span className="empty-state-text">Select a friend to start chatting</span>
                                 </div>
                             </div>
@@ -184,7 +186,7 @@ export default function App() {
                         : (
                             <div className="main-area">
                                 <div className="empty-state">
-                                    <span className="empty-state-icon">👥</span>
+                                    <img src={teamIcon} alt="Team icon" className="empty-state-icon" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
                                     <span className="empty-state-text">Select or create a team</span>
                                 </div>
                             </div>

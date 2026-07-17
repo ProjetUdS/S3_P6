@@ -3,6 +3,10 @@ import React, { useState } from 'react';
 import TeamChat from './TeamChat';
 import TeamPlanning from './TeamPlanning';
 
+import messageIcon from '../../assets/icons/message.png'
+import todoIcon from '../../assets/icons/todo.png';
+
+
 /**
  * TeamArea  — the main content for a selected team.
  * Contains a tab bar that switches between Chat and Planning views.
@@ -23,7 +27,10 @@ export default function TeamArea({ team }) {
           aria-selected={activeTab === 'chat'}
           onClick={() => setActiveTab('chat')}
         >
-          💬  Chat
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <img src={messageIcon} alt="Message" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                Chat
+            </h4>
         </button>
         <button
           role="tab"
@@ -31,7 +38,10 @@ export default function TeamArea({ team }) {
           aria-selected={activeTab === 'planning'}
           onClick={() => setActiveTab('planning')}
         >
-          📋  Planning
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <img src={todoIcon} alt="Todo" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                Planning
+            </h4>
         </button>
       </div>
 

@@ -2,6 +2,9 @@ import React, { useState, useRef } from 'react';
 import { getUploadUrl, uploadToUrl } from '../../services/api';
 import EmojiPicker from './EmojiPicker';
 
+import clipIcon from '../../assets/icons/clip.png'
+import emojiIcon from '../../assets/icons/happy-emoji.png'
+
 export default function ChatInput({
   onSend,
   placeholder,
@@ -101,10 +104,12 @@ export default function ChatInput({
       )}
 
       <div className="input-actions">
-        <button className="action-btn" aria-label="Send image">🖼️</button>
-        <button className="action-btn" aria-label="Send video">🎬</button>
-        <button className="action-btn" aria-label="Attach file" onClick={handleAttachClick}>📎</button>
-        <button className="action-btn" aria-label="Emoji" onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>😊</button>
+        <button className="action-btn" aria-label="Attach file" onClick={handleAttachClick}>
+            <img src={clipIcon} alt="Attach" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+        </button>
+        <button className="action-btn" aria-label="Emoji" onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>
+            <img src={emojiIcon} alt="Attach" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+        </button>
         <input ref={fileInputRef} type="file" style={{ display: 'none' }} multiple onChange={handleFilesSelected} />
       </div>
 

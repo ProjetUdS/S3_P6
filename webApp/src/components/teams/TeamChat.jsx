@@ -8,6 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import { getTeamMembers, getDiscussions, getMessages, sendMessage, createDiscussion } from '../../services/api';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
+import searchIcon from '../../assets/icons/search.png'
+import usersIcon from '../../assets/icons/users.png'
+import messageIcon from '../../assets/icons/message.png'
+
 export default function TeamChat({ team }) {
   const { user } = useAuth();
   const myCip = user?.cip;
@@ -150,8 +154,12 @@ export default function TeamChat({ team }) {
           <div className="chat-topbar-sub">{members.length} members</div>
         </div>
         <div className="topbar-actions">
-          <button className="topbar-btn" aria-label="Search in chat">🔍</button>
-          <button className="topbar-btn" aria-label="Members">👥</button>
+          <button className="topbar-btn" aria-label="Search in chat">
+            <img src={searchIcon} alt="Search" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+          </button>
+          <button className="topbar-btn" aria-label="Members">
+              <img src={usersIcon} alt="Users" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+          </button>
           <button className="topbar-btn" aria-label="More options">⋯</button>
         </div>
       </div>
@@ -171,7 +179,9 @@ export default function TeamChat({ team }) {
           isLoading={loading}
           emptyState={
             <div className="empty-state" style={{ margin: '40px auto' }}>
-              <span className="empty-state-icon">💬</span>
+              <span className="empty-state-icon">
+                  <img src={messageIcon} alt="Message" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+              </span>
               <span className="empty-state-text">No messages yet</span>
             </div>
           }

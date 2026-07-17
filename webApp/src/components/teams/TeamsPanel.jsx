@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 
 import CreateTeamModal from './CreateTeamModal';
 
+import searchIcon from '../../assets/icons/search.png'
+
 export default function TeamsPanel({ activeTeamId, teams: teamsProp, onSelectTeam, onTeamDeleted, onTeamCreated }) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -35,7 +37,7 @@ export default function TeamsPanel({ activeTeamId, teams: teamsProp, onSelectTea
       <div className="panel-header">
         <div className="panel-title">Équipes</div>
         <div className="search-bar">
-          <span>🔍</span>
+            <img src={searchIcon} alt="Search" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
           <input
             placeholder="Rechercher"
             value={search}
