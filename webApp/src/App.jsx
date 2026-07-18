@@ -128,6 +128,7 @@ export default function App() {
     return (
       <div className="app-shell">
         <div className="loading-screen">
+          <div className="loading-spinner" />
           <p>Authentification en cours...</p>
         </div>
       </div>
