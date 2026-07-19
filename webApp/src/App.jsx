@@ -24,13 +24,17 @@ export default function App() {
     const [conversations, setConversations] = useState([]);
     const [expandedSections, setExpandedSections] = useState({ active: true, archived: false, blocked: false });
     const [hasNotif, setHasNotif] = useState(false);
+    const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
 
     function handleNav(key) {
-        if (key === 'messages') setView('messages');
-        if (key === 'teams') setView('teams');
+        if (key === view) {
+            setIsLeftPanelVisible(prev => !prev);
+        } else {
+            setView(key);
+            setIsLeftPanelVisible(true);
+        }
         if (key === 'notifs') {
             setHasNotif(false);
-            setView('notifs');
         }
     }
 
@@ -88,6 +92,24 @@ export default function App() {
     }
   }
 
+  function handleSelectFriend(friend) {
+    setActiveFriend(friend);
+    if (friend && window.innerWidth <= 768) {
+      setIsLeftPanelVisible(false);
+    } else if (!friend) {
+      setIsLeftPanelVisible(true);
+    }
+  }
+
+  function handleSelectTeam(team) {
+    setActiveTeam(team);
+    if (team && window.innerWidth <= 768) {
+      setIsLeftPanelVisible(false);
+    } else if (!team) {
+      setIsLeftPanelVisible(true);
+    }
+  }
+
   useEffect(() => {
     const handleTeamLeft = (e) => {
       loadTeams();
@@ -136,14 +158,14 @@ export default function App() {
   }
 
     return (
-        <div className="app-shell">
+        <div className={`app-shell ${isLeftPanelVisible ? '' : 'left-panel-hidden'}`}>
             <Sidebar activeView={view} onNav={handleNav} hasNotif={hasNotif} />
 
             {view === 'messages' && (
                 <>
                     <FriendsPanel
                         activeFriendId={activeFriend?.id}
-                        onSelectFriend={setActiveFriend}
+                        onSelectFriend={handleSelectFriend}
                         conversations={conversations}
                         expandedSections={expandedSections}
                         onToggleSection={toggleSection}
@@ -156,7 +178,7 @@ export default function App() {
                             key={activeFriend.id}
                             conversations={conversations}
                             discussionId={activeFriend.discussionId}
-                            onDeleteConversation={() => setActiveFriend(null)}
+                            onDeleteConversation={() => handleSelectFriend(null)}
                             onStateChanged={loadConversations}
                             activeFriend={activeFriend}
                             onNotif={() => setHasNotif(true)}
@@ -178,7 +200,7 @@ export default function App() {
                     <TeamsPanel
                         activeTeamId={activeTeam?.equipeId}
                         teams={teams}
-                        onSelectTeam={setActiveTeam}
+                        onSelectTeam={handleSelectTeam}
                         onTeamDeleted={handleTeamDeleted}
                         onTeamCreated={loadTeams}
                     />

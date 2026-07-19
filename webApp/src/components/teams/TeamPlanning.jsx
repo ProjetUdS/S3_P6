@@ -20,7 +20,7 @@ import completedIcon from '../../assets/icons/check-mark.png'
  * Props:
  *   team  – team object with equipeId, nomEquipe, etc.
  */
-export default function TeamPlanning({ team }) {
+export default function TeamPlanning({ team, showPlanningInfo }) {
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -233,7 +233,7 @@ export default function TeamPlanning({ team }) {
   };
 
   return (
-    <div className="planning-layout">
+    <div className={`planning-layout ${showPlanningInfo ? 'info-open' : ''}`}>
       {/* ── Main scrollable area ── */}
       <div className="planning-main">
 

@@ -16,6 +16,12 @@ import todoIcon from '../../assets/icons/todo.png';
  */
 export default function TeamArea({ team }) {
   const [activeTab, setActiveTab] = useState('planning'); // 'chat' | 'planning'
+  const [showPlanningInfo, setShowPlanningInfo] = useState(false);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setShowPlanningInfo(false);
+  };
 
   return (
     <div className="main-area">
@@ -25,7 +31,7 @@ export default function TeamArea({ team }) {
           role="tab"
           className={`tab ${activeTab === 'chat' ? 'active' : ''}`}
           aria-selected={activeTab === 'chat'}
-          onClick={() => setActiveTab('chat')}
+          onClick={() => handleTabChange('chat')}
         >
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <img src={messageIcon} alt="Message" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
@@ -36,18 +42,29 @@ export default function TeamArea({ team }) {
           role="tab"
           className={`tab ${activeTab === 'planning' ? 'active' : ''}`}
           aria-selected={activeTab === 'planning'}
-          onClick={() => setActiveTab('planning')}
+          onClick={() => handleTabChange('planning')}
         >
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <img src={todoIcon} alt="Todo" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
                 Planning
             </h4>
         </button>
+
+        {activeTab === 'planning' && (
+          <button
+            className={`tab-info-btn ${showPlanningInfo ? 'active' : ''}`}
+            onClick={() => setShowPlanningInfo(prev => !prev)}
+            aria-label="Toggle planning info"
+            title="Info"
+          >
+            i
+          </button>
+        )}
       </div>
 
       {/* Tab Panels */}
       {activeTab === 'chat'     && <TeamChat team={team} />}
-      {activeTab === 'planning' && <TeamPlanning team={team} />}
+      {activeTab === 'planning' && <TeamPlanning team={team} showPlanningInfo={showPlanningInfo} />}
     </div>
   );
 }
