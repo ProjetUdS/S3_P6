@@ -5,6 +5,12 @@ import AddFriendModal from './AddFriendModal';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendRequests, acceptFriendRequest, refuseFriendRequest } from '../../services/api';
 import { gradientForCip } from '../../utils/gradient';
+import searchIcon from "../../assets/icons/search.png";
+import addIcon from "../../assets/icons/add.png";
+
+import boxIcon from "../../assets/icons/box.png";
+import forbiddenIcon from "../../assets/icons/forbidden.png";
+import pauseIcon from "../../assets/icons/pause-button.png";
 
 export default function FriendsPanel({ activeFriendId, onSelectFriend, conversations: conversationsProp, expandedSections, onToggleSection, existingCips, onFriendAdded }) {
   const [showModal, setShowModal] = useState(false);
@@ -82,7 +88,15 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
               <div className="list-item-sub">{convo.sub}</div>
             </div>
             <span className={`conversation-badge ${convo.etat}`}>
-              {convo.etat === 'archived' ? '📦' : convo.etat === 'disabled' ? '⏸️' : convo.etat === 'blocked' ? '🚫' : convo.etat === 'active' ? '🔵' : ''}
+              {convo.etat === 'archived' ? (
+                <img src={boxIcon} alt="Archived" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : convo.etat === 'disabled' ? (
+                <img src={pauseIcon} alt="Disabled" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : convo.etat === 'blocked' ? (
+                <img src={forbiddenIcon} alt="Blocked" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : (
+                ''
+              )}
             </span>
           </div>
         ))}
@@ -97,7 +111,9 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
         <div className="panel-header">
           <div className="panel-title">Messages</div>
           <div className="search-bar">
-            <span aria-hidden="true">🔍</span>
+            <span aria-hidden="true">
+                <img src={searchIcon} alt="Search" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+            </span>
             <input
               type="text"
               placeholder="Search friends…"
@@ -148,8 +164,8 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
           {renderSection('Bloquées', blocked, 'blocked')}
 
           <button className="panel-add-btn" onClick={() => setShowModal(true)}>
-            <span aria-hidden="true">➕</span>
-            Add a friend
+              <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
+              Add a friend
           </button>
         </div>
       </div>
