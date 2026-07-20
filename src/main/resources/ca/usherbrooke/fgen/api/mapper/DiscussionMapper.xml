@@ -5,7 +5,18 @@
 
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMapper">
 
-    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
+    <resultMap id="DiscussionResultMap" type="ca.usherbrooke.fgen.api.business.Discussion">
+        <id property="discussionId" column="discussion_id" />
+        <collection property="members" column="discussion_id" javaType="java.util.List" ofType="java.lang.String" select="selectDiscussionMembers" />
+    </resultMap>
+
+    <select id="selectDiscussionMembers" resultType="java.lang.String">
+        SELECT cip
+        FROM app.fait_parti
+        WHERE discussion_id = #{discussionId}
+    </select>
+
+    <select id="select" resultMap="DiscussionResultMap">
         SELECT d.discussion_id
         FROM app.discussion d
         JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
@@ -19,7 +30,7 @@
         </where>
     </select>
 
-    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Discussion">
+    <select id="selectOne" resultMap="DiscussionResultMap">
         SELECT discussion_id
         FROM app.discussion
         WHERE discussion_id = #{discussionId}
