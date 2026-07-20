@@ -62,4 +62,9 @@
         SELECT md5(random()::text || clock_timestamp()::text) AS new_id
     </select>
 
+    <select id="selectEquipeIdByDiscussionId" resultType="String">
+        SELECT equipe_id FROM app.equipe WHERE discussion_id = #{discussionId}
+    </select>
+
+
 </mapper>

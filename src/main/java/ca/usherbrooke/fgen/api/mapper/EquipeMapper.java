@@ -21,7 +21,9 @@ public interface EquipeMapper {
 
   void deleteOne(@Param("equipeId") String equipeId);
 
-  void insertEquipe(@Param("equipe") Equipe equipe);
+    void insertEquipe(@Param("equipe") Equipe equipe);
 
-  String getNewId();
+    String getNewId();
+
+    String selectEquipeIdByDiscussionId(@Param("discussionId") String discussionId);
 }

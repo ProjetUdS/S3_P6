@@ -1,5 +1,5 @@
 // src/components/teams/TeamChat.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Avatar, TeamIcon } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
@@ -17,7 +17,9 @@ export default function TeamChat({ team }) {
   const myCip = user?.cip;
   const [members, setMembers] = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [discussionId, setDiscussionId] = useState(null);
   const messagesAreaRef = useRef(null);
+  const wsRef = useRef(null);
 
   const {
     messages,
@@ -35,7 +37,17 @@ export default function TeamChat({ team }) {
     cancelDelete,
   } = useChatMessages(myCip, messagesAreaRef);
 
-  useEffect(() => {
+    const loadDiscussion = useCallback(async () => {
+        if (!team?.equipeId) return null;
+        const discussions = await getDiscussions(null, team.equipeId).catch(() => []);
+        if (discussions?.[0]) {
+            setDiscussionId(discussions[0].discussionId);
+            return discussions[0].discussionId;
+        }
+        return null;
+    }, [team?.equipeId]);
+
+    useEffect(() => {
     if (!team?.equipeId) {
       setLoading(false);
       return;
@@ -57,53 +69,65 @@ export default function TeamChat({ team }) {
           setMembers(transformed);
         })
         .catch(err => console.error('Failed to load team members:', err)),
-      getDiscussions(null, team.equipeId)
-        .then(discussions => {
-          if (!discussions?.[0]) {
+        loadDiscussion().then(did => {
+            if (!did) { setLoading(false); return; }
+            return getMessages(did, 50, 0)
+                .then(data => {
+                    setMessages(transformMessages(data));
             setLoading(false);
-            return;
-          }
-          const discussionId = discussions[0].discussionId;
-          return getMessages(discussionId, 50, 0)
-            .then(data => {
-              setMessages(transformMessages(data));
-              setLoading(false);
-            })
-            .catch(err => {
-              console.error('Failed to load messages:', err);
-              setLoading(false);
-            });
-        })
-        .catch(err => console.error('Failed to load discussions:', err)),
+                })
+                .catch(err => {
+                    console.error('Failed to load messages:', err);
+                    setLoading(false);
+                });
+        }),
     ]);
-  }, [team?.equipeId]);
+  }, [team?.equipeId, loadDiscussion]);
 
-  async function handleSend(text, attachments) {
+    useEffect(() => {
+        if (!discussionId) return;
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const ws = new WebSocket(`ws://localhost:8888/ws/message/${discussionId}`); //`${protocol}//${host}/ws/message/${discussionId}`
+        wsRef.current = ws;
+
+        ws.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'messageReceived') {
+                const updated = await getMessages(discussionId, 50, 0);
+                setMessages(transformMessages(updated));
+            }
+        };
+
+        ws.onerror = (err) => console.error('Team WebSocket error:', err);
+        ws.onclose = () => console.log('Team WebSocket fermé');
+
+        return () => {
+            ws.close();
+            wsRef.current = null;
+        };
+    }, [discussionId]);
+
+    async function handleSend(text, attachments) {
     if (!myCip || !team?.equipeId) return;
 
     const hasUploaded = (attachments || []).some(a => a.uploaded && a.fichierId);
     if (!text && !hasUploaded) return;
 
-    let discussionId = null;
-    const discussions = await getDiscussions(null, team.equipeId).catch(err => {
-      console.error('Failed to get discussions:', err);
-      return [];
-    });
-
-    if (discussions?.[0]) {
-      discussionId = discussions[0].discussionId;
-    } else {
-      const memberCips = (members || []).map(m => m.id);
-      const newDiscussion = await createDiscussion({ equipeId: team.equipeId, members: memberCips }).catch(err => {
+        let did = discussionId;
+        if (!did) {
+            const newDiscussion = await createDiscussion({ equipeId: team.equipeId, members: (members || []).map(m => m.id) }).catch(err => {
         console.error('Failed to create discussion:', err);
         return null;
       });
       if (newDiscussion) {
-        discussionId = newDiscussion.discussionId || newDiscussion;
+          did = newDiscussion.discussionId || newDiscussion;
+          setDiscussionId(did);
       }
     }
 
-    if (!discussionId) return;
+    if (!did) return;
 
     const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
       fichierId: a.fichierId,
@@ -117,11 +141,11 @@ export default function TeamChat({ team }) {
       await sendMessage({
         contenu: text,
         cip: myCip,
-        discussionId,
+        discussionId: did,
         fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
 
-      const updatedMessages = await getMessages(discussionId, 50, 0);
+      const updatedMessages = await getMessages(did, 50, 0);
       setMessages(transformMessages(updatedMessages));
     } catch (err) {
       console.error('Failed to send message:', err);

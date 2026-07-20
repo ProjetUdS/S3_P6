@@ -40,6 +40,14 @@ http:
         - web
         - websecure
       tls : { }
+    app-ws:
+      rule: "PathPrefix(`/ws`)"
+      service: app
+      priority: 10
+      entryPoints:
+        - web
+        - websecure
+      tls: { }
     auth:
       rule: "PathPrefix(`/auth`)"
       service: auth

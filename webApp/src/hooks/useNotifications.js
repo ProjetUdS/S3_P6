@@ -19,8 +19,9 @@ export function useNotifications(cip) {
             .catch(err => console.error('Failed to load unread count:', err));
 
         // 2. Connexion WebSocket pour le temps réel
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const url = `${protocol}//${window.location.host}/ws/notification/${cip}`;
+        //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        //const url = `${protocol}//${window.location.host}/ws/notification/${cip}`;
+        const url = `ws://localhost:8888/ws/notification/${cip}`;
         const socket = new WebSocket(url);
         socketRef.current = socket;
 

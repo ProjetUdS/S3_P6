@@ -71,4 +71,12 @@
         ORDER BY lastMessageDate DESC NULLS LAST
     </select>
 
+    <select id="isDiscussionParticipant" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM app.fait_parti
+            WHERE discussion_id = #{discussionId}
+              AND cip = #{cip}
+        )
+    </select>
+
 </mapper>

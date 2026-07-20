@@ -79,6 +79,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     }, []);
 
     useEffect(() => {
+        console.log('useEffect WebSocket - discussionId:', discussionId, 'friend?.cip:', friend?.cip);
         if (!discussionId || !friend?.cip) return;
         const cleanup = connectWebSocket(
             discussionId,
