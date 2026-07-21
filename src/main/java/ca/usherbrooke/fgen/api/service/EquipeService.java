@@ -3,6 +3,7 @@ package ca.usherbrooke.fgen.api.service;
 import ca.usherbrooke.fgen.api.business.Discussion;
 import ca.usherbrooke.fgen.api.business.Equipe;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMapper;
+import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.record.TeamMember;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
@@ -24,10 +25,13 @@ public class EquipeService {
     EquipeMapper equipeMapper;
 
     @Inject
-    EquipeMemberMapper equipeMemberMapper;
+    DiscussionMapper discussionMapper;
 
     @Inject
-    DiscussionMapper discussionMapper;
+    DiscussionMemberMapper discussionMemberMapper;
+
+    @Inject
+    EquipeMemberMapper equipeMemberMapper;
 
     @Inject
     JsonWebToken jwt;
@@ -95,6 +99,7 @@ public class EquipeService {
         equipeMapper.insertEquipe(equipe);
         for (String cip : membersCip) {
             equipeMemberMapper.insertMember(equipe.equipeId, cip);
+            discussionMemberMapper.insertMember(equipe.discussionId, cip);
         }
         return equipe.equipeId;
     }

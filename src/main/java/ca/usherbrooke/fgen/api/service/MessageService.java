@@ -3,7 +3,10 @@ package ca.usherbrooke.fgen.api.service;
 import ca.usherbrooke.fgen.api.business.FichierJoint;
 import ca.usherbrooke.fgen.api.business.Message;
 import ca.usherbrooke.fgen.api.mapper.ContactMapper;
+import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.FichierJointMapper;
+import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
+import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.MessageMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -32,6 +35,15 @@ public class MessageService {
     ContactMapper contactMapper;
 
     @Inject
+    DiscussionMemberMapper discussionMemberMapper;
+
+    @Inject
+    EquipeMapper equipeMapper;
+
+    @Inject
+    EquipeMemberMapper equipeMemberMapper;
+
+    @Inject
     JsonWebToken jwt;
 
     @GET
@@ -42,8 +54,11 @@ public class MessageService {
             @QueryParam("cip") String cip,
             @QueryParam("messageId") String messageId) {
         String cipConnecte = (String) jwt.getClaim("cip");
-        if (!cipConnecte.equals(cip)) {
+        if (cip != null && !cipConnecte.equals(cip)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        if (discussionId != null) {
+            ensureDiscussionAccess(discussionId, cipConnecte);
         }
         return messageMapper.select(discussionId, limit, offset, cip, messageId);
     }
@@ -76,9 +91,7 @@ public class MessageService {
         if (!cipConnecte.equals(message.cip)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
-        if (!contactMapper.isContact(message.cip, message.destinataireCip)) {
-            throw new WebApplicationException(Response.Status.FORBIDDEN);
-        }
+        ensureDiscussionAccess(message.discussionId, message.cip);
         message.id = UUID.randomUUID().toString();
         message.date = new java.util.Date();
         messageMapper.insertMessage(message);
@@ -123,5 +136,14 @@ public class MessageService {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         return messageMapper.getFriendConversation(cip1, cip2, limit, offset);
+    }
+
+    private void ensureDiscussionAccess(String discussionId, String cip) {
+        if (discussionMemberMapper.isDiscussionParticipant(discussionId, cip)) return;
+        String equipeId = equipeMapper.selectEquipeIdByDiscussionId(discussionId);
+        if (equipeId == null || !equipeMemberMapper.isMember(equipeId, cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        discussionMemberMapper.insertMember(discussionId, cip);
     }
 }

@@ -7,13 +7,15 @@ import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @WebSocket(path = "/ws/tache/{equipeId}")
 public class TacheWebSocket {
 
-    private static final Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
+    private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
 
     @Inject
     WebSocketConnection connection;
@@ -21,27 +23,40 @@ public class TacheWebSocket {
     @OnOpen
     public void onOpen() {
         String id = connection.id();
-        connections.put(connection.id(), connection);
+        String eqId = connection.pathParam("equipeId");
+        connections.put(id, new ConnectionInfo(connection, eqId));
     }
 
     @OnClose
     public void onClose() {
         String id = connection.id();
-        connections.remove(connection.id());
+        connections.remove(id);
     }
 
     @OnTextMessage
     public void onMessage(String message) {}
 
     public static void broadcast(String equipeId, String tacheJson) {
-        connections.forEach((id, conn) -> {
+        List<String> toRemove = new ArrayList<>();
+        connections.forEach((id, info) -> {
             try {
-                if (equipeId.equals(conn.pathParam("equipeId"))) {
-                    conn.sendTextAndAwait(tacheJson);
+                if (equipeId.equals(info.equipeId)) {
+                    info.connection.sendTextAndAwait(tacheJson);
                 }
             } catch (Exception e) {
-                connections.remove(id);
+                toRemove.add(id);
             }
         });
+        toRemove.forEach(connections::remove);
+    }
+
+    private static class ConnectionInfo {
+        final WebSocketConnection connection;
+        final String equipeId;
+
+        ConnectionInfo(WebSocketConnection connection, String equipeId) {
+            this.connection = connection;
+            this.equipeId = equipeId;
+        }
     }
 }

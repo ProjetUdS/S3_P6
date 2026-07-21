@@ -2,6 +2,7 @@ package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Equipe;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
+import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.record.TeamMember;
 import jakarta.inject.Inject;
@@ -22,6 +23,9 @@ public class EquipeMemberService {
 
     @Inject
     EquipeMapper equipeMapper;
+
+    @Inject
+    DiscussionMemberMapper discussionMemberMapper;
 
     @Inject
     JsonWebToken jwt;
@@ -45,6 +49,7 @@ public class EquipeMemberService {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         equipeMemberMapper.insertMember(equipeId, memberCip);
+        discussionMemberMapper.insertMember(equipe.discussionId, memberCip);
         return memberCip;
     }
 

@@ -79,6 +79,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     }, []);
 
     useEffect(() => {
+        console.log('useEffect WebSocket - discussionId:', discussionId, 'friend?.cip:', friend?.cip);
         if (!discussionId || !friend?.cip) return;
         const cleanup = connectWebSocket(
             discussionId,
@@ -89,6 +90,25 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         return cleanup;
     }, [discussionId, friend?.cip]);
 
+    const lastMsgCountRef = useRef(0);
+    useEffect(() => {
+        if (!friend?.cip || !myCip) return;
+        lastMsgCountRef.current = messages.length;
+    }, [friend?.cip, messages.length]);
+
+    useEffect(() => {
+        if (!friend?.cip || !myCip) return;
+        const timer = setInterval(async () => {
+            try {
+                const data = await getFriendConversation(myCip, friend.cip, 100, 0);
+                if (data.length !== lastMsgCountRef.current) {
+                    lastMsgCountRef.current = data.length;
+                    setMessages(transformMessages(data));
+                }
+            } catch (err) {}
+        }, 5000);
+        return () => clearInterval(timer);
+    }, [friend?.cip, myCip]);
 
   async function handleSend(text, attachments) {
     if (!myCip || !friend?.cip) return;
