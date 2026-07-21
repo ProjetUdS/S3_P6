@@ -5,4 +5,5 @@ import java.util.List;
 public class Discussion {
     public String discussionId;
     public List<String> members;
+    public String equipeId;
 }

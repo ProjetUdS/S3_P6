@@ -26,4 +26,6 @@ public interface EquipeMapper {
     String getNewId();
 
     String selectEquipeIdByDiscussionId(@Param("discussionId") String discussionId);
+
+    int updateDiscussionId(@Param("equipeId") String equipeId, @Param("discussionId") String discussionId);
 }

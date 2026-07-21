@@ -71,20 +71,24 @@ export function useChatMessages(myCip, messagesAreaRef) {
             wsRef.current.close();
         }
 
-        //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        //const host = window.location.host;
-        const ws = new WebSocket(`ws://localhost:8888/ws/message/${discussionId}`); //`${protocol}//${host}/ws/message/${discussionId}`
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const ws = new WebSocket(`${protocol}//${host}/ws/message/${discussionId}`);
         wsRef.current = ws;
 
         ws.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'messageReceived') {
-                if (isActiveConversation()) {
-                    const updated = await getFriendConversation(myCip, friendCip, 100, 0);
-                    setMessages(transformMessages(updated));
-                } else {
-                    onNotif?.();
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'messageReceived') {
+                    if (isActiveConversation()) {
+                        const updated = await getFriendConversation(myCip, friendCip, 100, 0);
+                        setMessages(transformMessages(updated));
+                    } else {
+                        onNotif?.();
+                    }
                 }
+            } catch (err) {
+                console.error('WebSocket message error:', err);
             }
         };
 

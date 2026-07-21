@@ -50,7 +50,10 @@
                                        FROM app.message m2
                                        WHERE m2.discussion_id = fp.discussion_id
                                    )
+        LEFT JOIN app.equipe e    ON e.discussion_id = fp.discussion_id
         WHERE fp.cip = #{cip}
+          AND e.equipe_id IS NULL
+          AND (SELECT COUNT(*) FROM app.fait_parti fp3 WHERE fp3.discussion_id = fp.discussion_id) = 2
         UNION ALL
         SELECT
             NULL                   as discussionId,

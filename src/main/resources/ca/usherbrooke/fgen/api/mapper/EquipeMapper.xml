@@ -28,7 +28,7 @@
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Equipe">
-        SELECT equipe_id, administrateur_cip, nom_equipe
+        SELECT equipe_id, administrateur_cip, nom_equipe, discussion_id
         FROM app.equipe
         WHERE equipe_id = #{equipeId}
     </select>
@@ -65,6 +65,10 @@
     <select id="selectEquipeIdByDiscussionId" resultType="String">
         SELECT equipe_id FROM app.equipe WHERE discussion_id = #{discussionId}
     </select>
+
+    <update id="updateDiscussionId">
+        UPDATE app.equipe SET discussion_id = #{discussionId} WHERE equipe_id = #{equipeId} AND discussion_id IS NULL
+    </update>
 
 
 </mapper>

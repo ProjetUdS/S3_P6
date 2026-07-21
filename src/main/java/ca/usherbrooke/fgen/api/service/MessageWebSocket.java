@@ -7,13 +7,15 @@ import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @WebSocket(path = "/ws/message/{discussionId}")
 public class MessageWebSocket {
 
-    private static final Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
+    private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
 
     @Inject
     WebSocketConnection connection;
@@ -21,7 +23,8 @@ public class MessageWebSocket {
     @OnOpen
     public void onOpen() {
         String id = connection.id();
-        connections.put(id, connection);
+        String discId = connection.pathParam("discussionId");
+        connections.put(id, new ConnectionInfo(connection, discId));
     }
 
     @OnClose
@@ -34,14 +37,26 @@ public class MessageWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String discussionId, String messageJson) {
-        connections.forEach((id, conn) -> {
+        List<String> toRemove = new ArrayList<>();
+        connections.forEach((id, info) -> {
             try {
-                if (discussionId.equals(conn.pathParam("discussionId"))) {
-                    conn.sendTextAndAwait(messageJson);
+                if (discussionId.equals(info.discussionId)) {
+                    info.connection.sendTextAndAwait(messageJson);
                 }
             } catch (Exception e) {
-                connections.remove(id);
+                toRemove.add(id);
             }
         });
+        toRemove.forEach(connections::remove);
+    }
+
+    private static class ConnectionInfo {
+        final WebSocketConnection connection;
+        final String discussionId;
+
+        ConnectionInfo(WebSocketConnection connection, String discussionId) {
+            this.connection = connection;
+            this.discussionId = discussionId;
+        }
     }
 }
