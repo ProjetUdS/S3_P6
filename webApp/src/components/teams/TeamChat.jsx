@@ -67,7 +67,6 @@ export default function TeamChat({ team }) {
             let did = discussions?.[0]?.discussionId;
 
             if (!did) {
-                console.log('TeamChat: creating discussion for equipe', team.equipeId);
                 const newDiscussion = await createDiscussion({
                     equipeId: team.equipeId,
                     members: memberCips,
@@ -77,16 +76,7 @@ export default function TeamChat({ team }) {
                 });
                 if (newDiscussion) {
                     did = newDiscussion.discussionId || newDiscussion;
-                    console.log('TeamChat: createDiscussion returned', did);
-                    const verify = await getDiscussions(null, team.equipeId).catch(() => []);
-                    if (verify?.[0]) {
-                        const verifiedDid = verify[0].discussionId;
-                        console.log('TeamChat: verify returned discussion', verifiedDid, '(was', did + ')');
-                        did = verifiedDid;
-                    }
                 }
-            } else {
-                console.log('TeamChat: found existing discussion', did);
             }
 
             if (!did || cancelled) {
@@ -94,7 +84,6 @@ export default function TeamChat({ team }) {
                 return;
             }
 
-            console.log('TeamChat: using discussion', did);
             setDiscussionId(did);
 
             const data = await getMessages(did, 50, 0).catch(err => {
@@ -117,20 +106,14 @@ export default function TeamChat({ team }) {
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        const wsUrl = `${protocol}//${host}/ws/message/${discussionId}`;
-        console.log('TeamChat WS connecting to', wsUrl);
         const ws = new WebSocket(`${protocol}//${host}/ws/message/${discussionId}`);
         wsRef.current = ws;
-
-        ws.onopen = () => console.log('TeamChat WS open for', discussionId);
 
         ws.onmessage = async (event) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log('TeamChat WS got', data.type, 'for', data.discussionId);
                 if (data.type === 'messageReceived') {
                     const updated = await getMessages(discussionId, 50, 0);
-                    console.log('TeamChat WS reloaded', updated.length, 'msgs');
                     setMessages(transformMessages(updated));
                 }
             } catch (err) {
@@ -139,34 +122,13 @@ export default function TeamChat({ team }) {
         };
 
         ws.onerror = (err) => console.error('Team WS err:', err);
-        ws.onclose = (e) => console.log('Team WS close:', e.code, e.reason);
+        ws.onclose = () => {};
 
         return () => {
-            console.log('TeamChat WS cleanup');
             ws.close();
             wsRef.current = null;
         };
     }, [discussionId]);
-
-/*
-    useEffect(() => {
-        if (!discussionId) return;
-
-        console.log('TeamChat start polling for', discussionId);
-        const timer = setInterval(async () => {
-            try {
-                const data = await getMessages(discussionId, 50, 0);
-
-        setMessages(transformMessages(data));
-    } catch (err) {
-        console.error('Team polling err:', err);
-    }
-}, 2000);
-return () => {
-    clearInterval(timer);
-    console.log('TeamChat stop polling');
-};
-}, [discussionId]);*/
 
     async function handleSend(text, attachments) {
         if (!myCip || !team?.equipeId || !discussionId) return;
@@ -183,17 +145,14 @@ return () => {
         }));
 
         try {
-            console.log('TeamChat: sending message to discussion', discussionId);
             await sendMessage({
                 contenu: text,
                 cip: myCip,
                 discussionId: discussionId,
                 fichiers: fichiersPayload.length ? fichiersPayload : undefined,
             });
-            console.log('TeamChat: message sent to discussion', discussionId);
 
             const updatedMessages = await getMessages(discussionId, 50, 0);
-            console.log('TeamChat: reloaded', updatedMessages.length, 'messages from discussion', discussionId);
             setMessages(transformMessages(updatedMessages));
         } catch (err) {
             console.error('Failed to send message:', err);
