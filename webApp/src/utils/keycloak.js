@@ -47,6 +47,6 @@ export async function updateToken(minValidity = 5) {
 export function logout() {
   const kc = getKeycloakInstance();
   if (kc) {
-    kc.logout({ redirectUri: window.location.origin });
+    kc.logout({ redirectUri: window.location.origin + import.meta.env.BASE_URL });
   }
 }
