@@ -32,7 +32,7 @@ http:
         replacement: "/usager/"
 
   routers:
-    app:
+    app-api:
       rule: "PathPrefix(`/api`)"
       service: app
       priority: 10
