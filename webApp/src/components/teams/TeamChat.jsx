@@ -148,7 +148,7 @@ export default function TeamChat({ team }) {
         };
     }, [discussionId]);
 
-
+/*
     useEffect(() => {
         if (!discussionId) return;
 
@@ -166,7 +166,7 @@ return () => {
     clearInterval(timer);
     console.log('TeamChat stop polling');
 };
-}, [discussionId]);
+}, [discussionId]);*/
 
     async function handleSend(text, attachments) {
         if (!myCip || !team?.equipeId || !discussionId) return;
