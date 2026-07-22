@@ -6,6 +6,8 @@ import ca.usherbrooke.fgen.api.business.Utilisateur;
 import ca.usherbrooke.fgen.api.mapper.UtilisateurMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
@@ -25,6 +27,12 @@ public class UtilisateurService {
 
     @Inject
     MinioStorageService minioStorageService;
+
+    @Inject
+    KeycloakAccountService keycloakAccountService;
+
+    @Context
+    HttpHeaders httpHeaders;
 
     @GET
     @Path("/login")
@@ -73,8 +81,10 @@ public class UtilisateurService {
     }
 
     /**
-     * Met à jour le pseudo de l'utilisateur. Les autres champs (nom, prenom,
-     * courriel, photo) ne sont pas touchés grâce au coalesce() du mapper.
+     * Met à jour le pseudo de l'utilisateur — à la fois dans Keycloak (le
+     * username utilisé pour se connecter) et dans notre BD (l'affichage).
+     * Keycloak est appelé en premier ("fail fast") : si ça échoue (pseudo
+     * déjà pris, etc.), on ne touche pas à la BD locale.
      */
     @PATCH
     @Path("/{cip}")
@@ -90,8 +100,19 @@ public class UtilisateurService {
         if (body.pseudo.length() > 32) {
             throw new WebApplicationException("Le pseudo est trop long (max 32 caractères).", Response.Status.BAD_REQUEST);
         }
+        String newPseudo = body.pseudo.trim();
 
-        utilisateurMapper.updateUtilisateur(cip, body.pseudo.trim(), null, null, null, null);
+        String authHeader = httpHeaders.getHeaderString(HttpHeaders.AUTHORIZATION);
+        String userJwtToken = authHeader != null ? authHeader.replaceFirst("(?i)^Bearer ", "") : null;
+
+        if (userJwtToken != null) {
+            // Peut lancer UsernameAlreadyTakenException / InvalidUsernameException /
+            // KeycloakAuthException — mappées automatiquement en réponses HTTP
+            // via WebApplicationException, donc pas besoin de try/catch ici.
+            keycloakAccountService.updateUsername(userJwtToken, newPseudo);
+        }
+
+        utilisateurMapper.updateUtilisateur(cip, newPseudo, null, null, null, null);
         return utilisateurMapper.selectOne(cip, null, null);
     }
 

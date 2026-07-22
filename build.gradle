@@ -65,4 +65,7 @@ dependencies {
     //Websockets
     implementation("io.quarkus:quarkus-websockets-next")
     implementation("io.quarkus:quarkus-scheduler")
+
+    // Pour changement pseudo dans Keycloak
+    implementation("io.quarkus:quarkus-rest-client-jackson")
 }
