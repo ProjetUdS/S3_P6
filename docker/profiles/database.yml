@@ -28,13 +28,6 @@ docker-compose:
     - POSTGRES_PASSWORD=${DB_PASSWORD}
     - POSTGRES_DATABASE=${DB_NAME}
 
-#
-# ============================================
-# CONFIGURATION TRAEFIK
-# ============================================
-traefik:
-  # Activer l'intégration Traefik
-  enabled: false
 
 # ============================================
 # SECRETS (optionnel)

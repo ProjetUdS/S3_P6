@@ -17,7 +17,7 @@ docker-compose:
 
   container_name: auth
   volumes:
-    - ./keycloak/data:/var/tmp
+    - ./keycloak/data:/var/tmp/configs:ro
     - ./keycloak/startup-scripts/init.sh:/init.sh
     - ./keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf
     - ./keycloak/customized:/opt/keycloak/themes/customized
@@ -37,7 +37,6 @@ docker-compose:
     - KC_SERVER_URL=${KC_SERVER_URL}
     - SERVER_IP=${SERVER_IP}
     - HTTP_TYPE=${HTTP_TYPE}
-
     # --- DB (fallbacks si DB_KC_* non définis) ---
     - KC_DB_USERNAME=${DB_KC_USER:-keycloak}
     - KC_DB_PASSWORD=${DB_KC_PASSWORD:-keycloak}

@@ -1,5 +1,5 @@
 
-name: minio
+name: minio-storage
 description: "Database pour stocker les fichiers"
 enabled: true  # false pour désactiver le service sans supprimer le profil
 always_active: true  # Si true, démarré automatiquement sans --profile
@@ -14,30 +14,15 @@ docker-compose:
   image: minio/minio:${MINIO_VERSION:-latest}
 
   container_name: minio-storage
-  environment:
-    MINIO_ROOT_USER: ${MINIO_USER:-local_admin}
-    MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-local_password}
-
   ports:
     - "${MINIO_PORT:-9000}:${MINIO_PORT:-9000}"   # S3 API port
     - "9001:9001"   # Web UI console port
-
   volumes:
     - ./minio/data:/data
   command: server /data --console-address ":9001"
-
-
-# ============================================
-# CONFIGURATION TRAEFIK
-# ============================================
-traefik:
-  enabled: false
-  prefix: /example
-  strip_prefix: true
-  docker_port: 9000
-  local_port: 9000
-  priority: 10
-  health_path: /
+  environment:
+    MINIO_ROOT_USER: ${MINIO_USER:-local_admin}
+    MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-local_password}
 
 # ============================================
 # SECRETS (optionnel)

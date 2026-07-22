@@ -27,9 +27,7 @@ shared_env:
 
   # Variables pour des services externes communs
   external_services:
-    - API_GATEWAY_URL=https://api.example.com
-    - AUTH_SERVICE_URL=https://auth.example.com
-    - MESSAGING_SERVICE_URL=https://messaging.example.com
+
 
   # Variables personnalisées (exemples)
   # custom:

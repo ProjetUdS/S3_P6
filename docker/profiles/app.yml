@@ -22,12 +22,16 @@ docker-compose:
 # ============================================
 traefik:
   enabled: true
-  prefix: /api
-  strip_prefix: false
+  routes:
+      - prefix: /api
+        strip_prefix: false
+        priority: 10
+      - prefix: /ws
+        strip_prefix: false
+        priority: 10
   docker_port: 8888
   local_port: 8888
   health_path: /q/health
-  priority: 10
 
 metadata:
   category: app

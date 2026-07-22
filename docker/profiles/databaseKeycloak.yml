@@ -26,14 +26,6 @@ docker-compose:
     - POSTGRES_PASSWORD=${DB_KC_PASSWORD}
     - POSTGRES_DB=${DB_KC_DB}
 
-
-# ============================================
-# CONFIGURATION TRAEFIK
-# ============================================
-traefik:
-  # Activer l'intégration Traefik
-  enabled: false
-
 secrets:
   - name: DB_KC_VERSION
     description: "Version de la db postgres utilisé par keycloak"
