@@ -1,18 +1,30 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { updatePseudo, uploadAvatar, removeAvatar } from '../../services/settingsApi';
+import { updatePseudo, uploadAvatar, removeAvatar, getAvatarUrl } from '../../services/settingsApi';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileSettings({ user }) {
+    const { updateUser } = useAuth();
     const fileInputRef = useRef(null);
 
-    const [pseudo, setPseudo] = useState(user?.preferred_username || '');
-    const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || null);
+    const [pseudo, setPseudo] = useState(user?.pseudo || user?.preferred_username || '');
+    const [avatarUrl, setAvatarUrl] = useState(null);
 
     const [savingPseudo, setSavingPseudo] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [error, setError] = useState(null);
     const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        if (user?.cip) {
+            getAvatarUrl(user.cip)
+                .then((url) => { if (!cancelled) setAvatarUrl(url); })
+                .catch(() => { /* pas grave, on retombe sur les initiales */ });
+        }
+        return () => { cancelled = true; };
+    }, [user?.cip]);
 
     const initials = initialsFromUser
         ? initialsFromUser(user)
@@ -22,7 +34,7 @@ export default function ProfileSettings({ user }) {
         ? gradientForCip(user.cip)
         : 'linear-gradient(135deg, #3b82f6, #60a5fa)';
 
-    const pseudoChanged = pseudo.trim() !== (user?.preferred_username || '');
+    const pseudoChanged = pseudo.trim() !== (user?.pseudo || user?.preferred_username || '');
 
     function flashSaved() {
         setSaved(true);
@@ -33,8 +45,9 @@ export default function ProfileSettings({ user }) {
         setError(null);
         setSavingPseudo(true);
         updatePseudo(user?.cip, pseudo)
-            .then(() => {
+            .then((updated) => {
                 setSavingPseudo(false);
+                updateUser({ pseudo: updated.pseudo });
                 flashSaved();
             })
             .catch((err) => {
@@ -56,6 +69,7 @@ export default function ProfileSettings({ user }) {
             .then((url) => {
                 setAvatarUrl(url);
                 setUploadingPhoto(false);
+                window.dispatchEvent(new CustomEvent('avatar-updated'));
                 flashSaved();
             })
             .catch((err) => {
@@ -74,6 +88,7 @@ export default function ProfileSettings({ user }) {
             .then(() => {
                 setAvatarUrl(null);
                 setUploadingPhoto(false);
+                window.dispatchEvent(new CustomEvent('avatar-updated'));
                 flashSaved();
             })
             .catch((err) => {

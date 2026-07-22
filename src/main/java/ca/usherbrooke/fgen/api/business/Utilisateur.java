@@ -8,10 +8,12 @@ public class Utilisateur {
     public String nom;
     public String prenom;
     public String courriel;
+    public String photoProfilId;
     public List roles;
 
     public String toString() {
         return "Person{cip='" + this.cip + "', last_name='" + this.nom + "', first_name='" +
-                this.prenom + "', email='" + this.courriel + "', roles=" + this.roles + "}";
+                this.prenom + "', email='" + this.courriel + "', photoProfilId='" + this.photoProfilId +
+                "', roles=" + this.roles + "}";
     }
 }

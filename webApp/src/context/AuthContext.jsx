@@ -15,18 +15,23 @@ export function AuthProvider({ children }) {
     const initAuth = async () => {
       const result = await initKeycloak();
       setAuthenticated(result.authenticated);
-      setUser(result.user);
       setToken(result.token);
       setLoading(false);
 
       if (result.authenticated) {
         try {
-          await fetch('/api/utilisateur/login', {
+          const res = await fetch('/api/utilisateur/login', {
             method: 'GET',
             headers: { Authorization: `Bearer ${result.token}` },
           });
+          const dbUser = await res.json();
+          // Fusionne le token Keycloak (cip, roles, etc.) avec les données
+          // BD (pseudo custom, photoProfilId...). dbUser a priorité sur les
+          // champs en commun car c'est la source de vérité pour le profil.
+          setUser({ ...result.user, ...dbUser });
         } catch (e) {
           console.error('Failed to sync user with backend:', e);
+          setUser(result.user);
         }
 
         interval = setInterval(async () => {
@@ -35,9 +40,14 @@ export function AuthProvider({ children }) {
           const kc = getKeycloakInstance();
           if (kc?.token) {
             setToken(kc.token);
-            setUser(kc.tokenParsed);
+            // IMPORTANT : on fusionne au lieu d'écraser, sinon ça efface
+            // le pseudo/photoProfilId chargés depuis la BD (le token
+            // Keycloak ne les connaît pas).
+            setUser((prev) => ({ ...prev, ...kc.tokenParsed }));
           }
         }, 60000);
+      } else {
+        setUser(result.user);
       }
     };
 
@@ -55,12 +65,23 @@ export function AuthProvider({ children }) {
     kcLogout();
   };
 
+  /**
+   * Met à jour l'utilisateur en mémoire sans refaire d'appel réseau.
+   * À utiliser après un PATCH/POST réussi (ex: changement de pseudo ou
+   * de photo) pour que le reste de l'app (Sidebar, paramètres...) reflète
+   * immédiatement le changement.
+   */
+  const updateUser = (partial) => {
+    setUser((prev) => ({ ...prev, ...partial }));
+  };
+
   const value = {
     authenticated,
     user,
     token,
     loading,
     logout: doLogout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

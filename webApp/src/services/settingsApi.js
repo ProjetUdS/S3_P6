@@ -1,65 +1,60 @@
 // src/services/settingsApi.js
-//
-// Ces fonctions sont volontairement isolées de services/api.js pour ne
-// rien casser en attendant que les vrais endpoints backend soient prêts.
-// Une fois l'API dispo, remplace le contenu de chaque fonction par un
-// vrai appel axios (le shape des paramètres/retour ne change pas,
-// donc ProfileSettings.jsx n'aura rien à modifier).
-
-const MOCK_DELAY = 500;
+import api, { getUploadUrl, uploadToUrl } from './api';
 
 /**
  * Met à jour le pseudo de l'utilisateur.
- * TODO backend: PUT /api/users/:cip  { pseudo }
+ * Backend: PATCH /api/utilisateur/:cip  { pseudo }
  */
-export function updatePseudo(cip, pseudo) {
-    // Exemple une fois le backend prêt :
-    // return api.put(`/users/${cip}`, { pseudo }).then(res => res.data);
-
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (!pseudo || pseudo.trim().length < 2) {
-                reject(new Error('Le pseudo doit contenir au moins 2 caractères.'));
-                return;
-            }
-            resolve({ cip, pseudo: pseudo.trim() });
-        }, MOCK_DELAY);
-    });
+export async function updatePseudo(cip, pseudo) {
+    const response = await api.patch(`/utilisateur/${cip}`, { pseudo });
+    return response.data; // Utilisateur à jour
 }
 
 /**
- * Upload une nouvelle photo de profil.
- * TODO backend: POST /api/users/:cip/avatar (multipart/form-data)
- * Retourne l'URL (ou dataURL en attendant) de l'avatar.
+ * Upload une nouvelle photo de profil, en 3 étapes :
+ * 1. demande une URL présignée au service /fichiers existant
+ * 2. PUT le fichier directement sur MinIO
+ * 3. confirme au backend utilisateur que ce fichier est la nouvelle photo
+ *
+ * Retourne l'URL de téléchargement à utiliser dans un <img src=...>.
  */
-export function uploadAvatar(cip, file) {
-    // Exemple une fois le backend prêt :
-    // const form = new FormData();
-    // form.append('avatar', file);
-    // return api.post(`/users/${cip}/avatar`, form).then(res => res.data.url);
+export async function uploadAvatar(cip, file) {
+    if (!file.type.startsWith('image/')) {
+        throw new Error('Le fichier doit être une image.');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Image trop grande (max 5 Mo).');
+    }
 
-    return new Promise((resolve, reject) => {
-        if (!file.type.startsWith('image/')) {
-            reject(new Error('Le fichier doit être une image.'));
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            reject(new Error('Image trop grande (max 5 Mo).'));
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => setTimeout(() => resolve(reader.result), MOCK_DELAY);
-        reader.onerror = () => reject(new Error('Impossible de lire le fichier.'));
-        reader.readAsDataURL(file);
-    });
+    const { fichierId, uploadUrl } = await getUploadUrl(file.name);
+    await uploadToUrl(uploadUrl, file);
+
+    await api.post(`/utilisateur/${cip}/photo/confirm`, { fichierId });
+
+    const { uploadUrl: downloadUrl } = await api.get(`/utilisateur/${cip}/photo/download-url`).then(r => r.data);
+    return downloadUrl;
 }
 
 /**
  * Retire la photo de profil (retour aux initiales).
- * TODO backend: DELETE /api/users/:cip/avatar
+ * Backend: DELETE /api/utilisateur/:cip/photo
  */
-export function removeAvatar(cip) {
-    return new Promise((resolve) => {
-        setTimeout(() => resolve({ cip, avatarUrl: null }), MOCK_DELAY);
-    });
+export async function removeAvatar(cip) {
+    const response = await api.delete(`/utilisateur/${cip}/photo`);
+    return response.data; // Utilisateur à jour (photoProfilId = null)
+}
+
+/**
+ * Récupère l'URL d'affichage de la photo de profil actuelle, si elle existe.
+ * `photoProfilId` vient de l'objet Utilisateur (ex: depuis useAuth()/user).
+ */
+export async function getAvatarUrl(cip) {
+    if (!cip) return null;
+    try {
+        const { data } = await api.get(`/utilisateur/${cip}/photo/download-url`);
+        return data.uploadUrl; // même champ que pour l'upload dans PresignedUrlResponse
+    } catch (err) {
+        if (err.response?.status === 404) return null; // pas de photo, pas grave
+        throw err;
+    }
 }

@@ -24,6 +24,8 @@ public interface UtilisateurMapper {
             @Param("prenom") String prenom,
             @Param("photoProfilId") String photoProfilId);
 
+    void clearPhoto(@Param("cip") String cip);
+
     List<Utilisateur> select(
             @Param("cip") String cip,
             @Param("pseudo") String pseudo,

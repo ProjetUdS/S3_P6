@@ -37,6 +37,7 @@ quarkus:
         - GET
         - PUT
         - POST
+        - PATCH
         - DELETE
         - OPTIONS
       headers:
