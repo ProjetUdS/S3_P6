@@ -1,6 +1,6 @@
 # Généré automatiquement par manage-profiles.sh
 # NE PAS ÉDITER MANUELLEMENT - Vos modifications seront écrasées
-# Dernière génération : 2026-07-22 02:01:02
+# Dernière génération : 2026-07-22 03:44:50
 name: devlocal
 
 services:
@@ -10,8 +10,9 @@ services:
     container_name: devlocal_traefik
     ports:
       - "80:80"
+      - "8080:80"
       - "443:443"
-#      - "8081:8080"
+      - "8081:8080"
     extra_hosts:
       - "external-ip:host-gateway"
     volumes:

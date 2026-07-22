@@ -26,7 +26,7 @@ detect_yq_version() {
 
     if yq --help 2>&1 | grep -q "eval"; then
         local version
-        version=$(yq --version 2>&1 | grep -oP 'version [v]?\K[0-9]+' | head -1)
+        version=$(yq --version 2>&1 | grep -oE 'version [v]?[0-9]+' | head -1 | grep -oE '[0-9]+')
         if [ -n "$version" ] && [ "$version" -ge 4 ]; then
             return 0
         fi
@@ -187,14 +187,50 @@ validate_values() {
         traefik_enabled=$(get_value "$profile" ".traefik.enabled" "false")
 
         if [ "$traefik_enabled" = "true" ]; then
-            local prefix
-            prefix=$(get_value "$profile" ".traefik.prefix")
-            if [ -z "$prefix" ] || [ "$prefix" = "null" ]; then
-                error "$basename" "traefik.prefix requis quand traefik est activé"
-                has_errors=1
-            elif [[ ! "$prefix" =~ ^/ ]]; then
-                error "$basename" "traefik.prefix doit commencer par '/' (trouvé: '$prefix')"
-                has_errors=1
+            # Check if routes array exists
+            local routes_count
+            if [ -n "$YQ_CMD" ]; then
+                routes_count=$(yq e '.traefik.routes | length' "$profile" 2>/dev/null || echo "0")
+            else
+                routes_count=0
+            fi
+
+            if [ "$routes_count" -gt 0 ] 2>/dev/null; then
+                # Validate routes array
+                for i in $(seq 0 $((routes_count - 1))); do
+                    local route_prefix
+                    route_prefix=$(yq e ".traefik.routes[$i].prefix" "$profile" 2>/dev/null)
+                    if [ -z "$route_prefix" ] || [ "$route_prefix" = "null" ]; then
+                        error "$basename" "traefik.routes[$i].prefix requis"
+                        has_errors=1
+                    elif [[ ! "$route_prefix" =~ ^/ ]]; then
+                        error "$basename" "traefik.routes[$i].prefix doit commencer par '/' (trouvé: '$route_prefix')"
+                        has_errors=1
+                    fi
+
+                    local route_priority
+                    route_priority=$(yq e ".traefik.routes[$i].priority // 10" "$profile" 2>/dev/null)
+                    if ! [[ "$route_priority" =~ ^[0-9]+$ ]]; then
+                        warning "$basename" "traefik.routes[$i].priority doit être un entier (trouvé: '$route_priority')"
+                    fi
+
+                    local route_strip
+                    route_strip=$(yq e ".traefik.routes[$i].strip_prefix // false" "$profile" 2>/dev/null)
+                    if [ "$route_strip" != "true" ] && [ "$route_strip" != "false" ]; then
+                        warning "$basename" "traefik.routes[$i].strip_prefix doit être true ou false (trouvé: '$route_strip')"
+                    fi
+                done
+            else
+                # Legacy single prefix validation
+                local prefix
+                prefix=$(get_value "$profile" ".traefik.prefix")
+                if [ -z "$prefix" ] || [ "$prefix" = "null" ]; then
+                    error "$basename" "traefik.prefix requis quand traefik est activé"
+                    has_errors=1
+                elif [[ ! "$prefix" =~ ^/ ]]; then
+                    error "$basename" "traefik.prefix doit commencer par '/' (trouvé: '$prefix')"
+                    has_errors=1
+                fi
             fi
 
             local docker_port
