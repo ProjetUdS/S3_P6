@@ -5,11 +5,11 @@ import io.quarkus.websockets.next.OnOpen;
 import io.quarkus.websockets.next.OnTextMessage;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
-import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @WebSocket(path = "/ws/requeteAmi/{cip}")
@@ -17,20 +17,25 @@ public class RequeteAmiWebSocket {
 
     private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
 
-    @Inject
-    WebSocketConnection connection;
-
     @OnOpen
-    public void onOpen() {
-        String id = connection.id();
-        String targetCip = connection.pathParam("cip");
-        connections.put(id, new ConnectionInfo(connection, targetCip));
+    public void onOpen(WebSocketConnection conn) {
+        String id = UUID.randomUUID().toString();
+        String targetCip = conn.pathParam("cip");
+        connections.put(id, new ConnectionInfo(conn, targetCip));
     }
 
     @OnClose
-    public void onClose() {
-        String id = connection.id();
-        connections.remove(id);
+    public void onClose(WebSocketConnection conn) {
+        String removeId = null;
+        for (Map.Entry<String, ConnectionInfo> entry : connections.entrySet()) {
+            if (entry.getValue().connection == conn) {
+                removeId = entry.getKey();
+                break;
+            }
+        }
+        if (removeId != null) {
+            connections.remove(removeId);
+        }
     }
 
     @OnTextMessage
