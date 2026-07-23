@@ -107,9 +107,6 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
           text: t.nomTache,
           status: getTaskStatus(t),
           assignees,
-          priority: t.status === 'termine' ? 'done' :
-                   t.status === 'urgent' ? 'high' :
-                   t.status === 'important' ? 'med' : 'low',
           originalStatus: t.status,
         };
       }));
@@ -275,8 +272,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
                       <div
                         className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -395,8 +391,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
                       <div
                         className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -475,8 +470,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
                       <div
                         className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -761,18 +755,6 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
       </div>
     );
   }
-
-// ── PriorityTag ──────────────────────────────────────────────────────────────
-function PriorityTag({ priority }) {
-  const map = {
-    high: { label: 'High', cls: 'priority-high' },
-    med:  { label: 'Med',  cls: 'priority-med'  },
-    low:  { label: 'Low',  cls: 'priority-low'  },
-    done: { label: 'Done', cls: 'priority-done' },
-  };
-  const { label, cls } = map[priority] || map.low;
-  return <span className={`priority-tag ${cls}`}>{label}</span>;
-}
 
 // ── MiniCalendar ─────────────────────────────────────────────────────────────
 function MiniCalendar({ equipeId }) {
