@@ -43,17 +43,14 @@ public class MessageWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String discussionId, String messageJson) {
-        List<String> toRemove = new ArrayList<>();
         connections.forEach((id, info) -> {
-            try {
-                if (discussionId.equals(info.discussionId)) {
-                    info.connection.sendTextAndAwait(messageJson);
-                }
-            } catch (Exception e) {
-                toRemove.add(id);
+            if (discussionId.equals(info.discussionId)) {
+                info.connection.sendText(messageJson).subscribe().with(
+                        v -> {},
+                        err -> connections.remove(id)
+                );
             }
         });
-        toRemove.forEach(connections::remove);
     }
 
     static class ConnectionInfo {

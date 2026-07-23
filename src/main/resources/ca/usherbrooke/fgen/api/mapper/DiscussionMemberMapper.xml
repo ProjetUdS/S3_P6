@@ -67,7 +67,12 @@
           AND NOT EXISTS (
               SELECT 1 FROM app.fait_parti fp
               WHERE fp.discussion_id IN (
-                  SELECT fp3.discussion_id FROM app.fait_parti fp3 WHERE fp3.cip = #{cip}
+                  SELECT fp3.discussion_id 
+                  FROM app.fait_parti fp3 
+                  LEFT JOIN app.equipe e2 ON e2.discussion_id = fp3.discussion_id
+                  WHERE fp3.cip = #{cip} 
+                    AND e2.equipe_id IS NULL
+                    AND (SELECT COUNT(*) FROM app.fait_parti fp4 WHERE fp4.discussion_id = fp3.discussion_id) = 2
               )
               AND fp.cip = c.cip_contact
           )

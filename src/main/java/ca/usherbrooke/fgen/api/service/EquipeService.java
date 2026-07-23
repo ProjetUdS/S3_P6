@@ -85,7 +85,7 @@ public class EquipeService {
     }
 
     @POST
-    public String insertEquipe(Equipe equipe, @QueryParam("membersCip") List<String> membersCip) {
+    public String insertEquipe(Equipe equipe, @QueryParam("membersCip") List<String> membersCip, @QueryParam("membersCip[]") List<String> membersCipBrackets) {
         String cipConnecte = (String) jwt.getClaim("cip");
         if (!cipConnecte.equals(equipe.administrateurCip)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
@@ -100,7 +100,17 @@ public class EquipeService {
             equipe.discussionId = discussion.discussionId;
         }
         equipeMapper.insertEquipe(equipe);
-        for (String cip : membersCip) {
+
+        // ALWAYS add the creator
+        equipeMemberMapper.insertMember(equipe.equipeId, cipConnecte);
+        discussionMemberMapper.insertMember(equipe.discussionId, cipConnecte);
+
+        List<String> allMembers = new ArrayList<>();
+        if (membersCip != null) allMembers.addAll(membersCip);
+        if (membersCipBrackets != null) allMembers.addAll(membersCipBrackets);
+
+        for (String cip : allMembers) {
+            if (cip.equals(cipConnecte)) continue; // Already added creator
             equipeMemberMapper.insertMember(equipe.equipeId, cip);
             discussionMemberMapper.insertMember(equipe.discussionId, cip);
 

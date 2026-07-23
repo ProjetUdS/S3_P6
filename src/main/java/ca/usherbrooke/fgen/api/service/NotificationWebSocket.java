@@ -42,17 +42,14 @@ public class NotificationWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String cip, String notificationJson) {
-        List<String> toRemove = new ArrayList<>();
         connections.forEach((id, info) -> {
-            try {
-                if (cip.equals(info.cip)) {
-                    info.connection.sendTextAndAwait(notificationJson);
-                }
-            } catch (Exception e) {
-                toRemove.add(id);
+            if (cip.equals(info.cip)) {
+                info.connection.sendText(notificationJson).subscribe().with(
+                        v -> {},
+                        err -> connections.remove(id)
+                );
             }
         });
-        toRemove.forEach(connections::remove);
     }
 
     static class ConnectionInfo {

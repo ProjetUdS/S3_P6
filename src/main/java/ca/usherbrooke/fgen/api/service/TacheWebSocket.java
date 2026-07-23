@@ -42,17 +42,14 @@ public class TacheWebSocket {
     public void onMessage(String message) {}
 
     public static void broadcast(String equipeId, String tacheJson) {
-        List<String> toRemove = new ArrayList<>();
         connections.forEach((id, info) -> {
-            try {
-                if (equipeId.equals(info.equipeId)) {
-                    info.connection.sendTextAndAwait(tacheJson);
-                }
-            } catch (Exception e) {
-                toRemove.add(id);
+            if (equipeId.equals(info.equipeId)) {
+                info.connection.sendText(tacheJson).subscribe().with(
+                        v -> {},
+                        err -> connections.remove(id)
+                );
             }
         });
-        toRemove.forEach(connections::remove);
     }
 
     static class ConnectionInfo {
