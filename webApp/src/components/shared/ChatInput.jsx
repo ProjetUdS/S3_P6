@@ -47,10 +47,31 @@ export default function ChatInput({
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    const newAttachments = files.map(f => ({ file: f, uploading: true, uploaded: false, fichierId: null, error: null }));
-    setAttachments(prev => [...prev, ...newAttachments]);
+    const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
+    const validFiles = [];
+    const oversizedFiles = [];
 
     for (const f of files) {
+      if (f.size > MAX_FILE_SIZE) {
+        oversizedFiles.push(f);
+      } else {
+        validFiles.push(f);
+      }
+    }
+
+    if (oversizedFiles.length > 0) {
+      alert(`Les fichiers suivants dépassent la limite de 500 Mo :\n${oversizedFiles.map(f => f.name).join('\n')}`);
+    }
+
+    if (!validFiles.length) {
+      e.target.value = '';
+      return;
+    }
+
+    const newAttachments = validFiles.map(f => ({ file: f, uploading: true, uploaded: false, fichierId: null, error: null }));
+    setAttachments(prev => [...prev, ...newAttachments]);
+
+    for (const f of validFiles) {
       try {
         const presigned = await getUploadUrl(f.name);
         await uploadToUrl(presigned.uploadUrl, f);
@@ -118,7 +139,7 @@ export default function ChatInput({
           {attachments.map((a, i) => (
             <div key={i} className="attachment-chip">
               <span className="attachment-name">{a.file.name}</span>
-              <span className="attachment-state">{a.uploading ? 'Uploading…' : a.uploaded ? '✓' : a.error ? '✕' : ''}</span>
+              <span className="attachment-state" title={a.error || ''}>{a.uploading ? 'Uploading…' : a.uploaded ? '✓' : a.error ? '✕' : ''}</span>
               <button className="attachment-remove" onClick={() => removeAttachment(a.file)} aria-label="Remove attachment">✕</button>
             </div>
           ))}
