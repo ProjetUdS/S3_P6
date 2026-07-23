@@ -1,7 +1,7 @@
 // src/components/teams/TeamPlanning.jsx
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
+
 import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache, getAssignees, removeTeamMember } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
@@ -107,9 +107,6 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
           text: t.nomTache,
           status: getTaskStatus(t),
           assignees,
-          priority: t.status === 'termine' ? 'done' :
-                   t.status === 'urgent' ? 'high' :
-                   t.status === 'important' ? 'med' : 'low',
           originalStatus: t.status,
         };
       }));
@@ -275,8 +272,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
                       <div
                         className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -395,8 +391,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
                       <div
                         className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -475,8 +470,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
                       <div
                         className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -526,38 +520,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
           </div>
         </section>
 
-        {/* Upcoming meetings */}
-        <section aria-labelledby="meetings-heading">
-          <div className="plan-section-header">
-            <div className="plan-section-title" id="meetings-heading">Upcoming Meetings</div>
-            <button className="plan-add-btn" aria-label="Schedule a meeting">
-                <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
-                Schedule</button>
-          </div>
-          <ul className="meeting-list" aria-label="Upcoming meetings">
-            {MEETINGS.map(m => (
-              <li
-                key={m.id}
-                className="meeting-item"
-                style={{ borderLeftColor: m.color }}
-              >
-                <div className="meeting-time-block">
-                  <div className="meeting-time" style={{ color: m.color }}>{m.time}</div>
-                  <div className="meeting-dur">{m.duration}</div>
-                </div>
-                <div className="meeting-info">
-                  <div className="meeting-name">{m.name}</div>
-                  <div className="meeting-when">{m.when}</div>
-                </div>
-                <div className="attendee-stack" aria-label="Attendees">
-                  {m.attendees.map((a, i) => (
-                    <Avatar key={i} initials={a.initials} gradient={a.gradient} size="sm" />
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
+
 
         {/* Today's Deadlines */}
         <section aria-labelledby="deadlines-heading">
@@ -698,22 +661,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
           )}
         </div>
 
-        <div className="ps-divider" />
 
-        {/* Today's events */}
-        <div>
-          <div className="ps-section-title">Today's Events</div>
-          {TODAY_EVENTS.map(ev => (
-            <div
-              key={ev.id}
-              className="event-card"
-              style={{ background: ev.bg, borderColor: ev.border }}
-            >
-              <div className="event-time" style={{ color: ev.color }}>{ev.time}</div>
-              <div className="event-name">{ev.name}</div>
-            </div>
-          ))}
-        </div>
 
         <div className="ps-divider" />
 
@@ -807,18 +755,6 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
       </div>
     );
   }
-
-// ── PriorityTag ──────────────────────────────────────────────────────────────
-function PriorityTag({ priority }) {
-  const map = {
-    high: { label: 'High', cls: 'priority-high' },
-    med:  { label: 'Med',  cls: 'priority-med'  },
-    low:  { label: 'Low',  cls: 'priority-low'  },
-    done: { label: 'Done', cls: 'priority-done' },
-  };
-  const { label, cls } = map[priority] || map.low;
-  return <span className={`priority-tag ${cls}`}>{label}</span>;
-}
 
 // ── MiniCalendar ─────────────────────────────────────────────────────────────
 function MiniCalendar({ equipeId }) {
