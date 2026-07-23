@@ -20,10 +20,10 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ activeView, onNav, hasNotif }) {
-    const { user, logout } = useAuth();
+    const { user, token, logout } = useAuth();
     const [settingsOpen, setSettingsOpen] = useState(false);
     const { avatarUrl } = useAvatarUrl(user?.cip);
-    const {unreadCount} = useNotifications(user?.cip);
+    const {unreadCount} = useNotifications(user?.cip, token);
 
     const initials = initialsFromUser
         ? initialsFromUser(user)

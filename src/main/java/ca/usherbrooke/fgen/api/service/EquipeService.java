@@ -15,6 +15,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.*;
 import java.util.UUID;
+import java.util.Map;
 
 @Path("/api/equipes")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -114,14 +115,14 @@ public class EquipeService {
             equipeMemberMapper.insertMember(equipe.equipeId, cip);
             discussionMemberMapper.insertMember(equipe.discussionId, cip);
 
-            EquipeWebSocket.broadcast(cip, "{\"type\":\"teamCreated\"}");
+            EquipeWebSocket.broadcast(cip, JsonUtil.toJson(Map.of("type", "teamCreated")));
             try {
                 notificationService.creerNotification(cip, "teamCreated", "Vous avez été ajouté à l'équipe: " + equipe.nomEquipe);
             } catch (Exception e) {
                 // non-critical
             }
         }
-        EquipeWebSocket.broadcast(cipConnecte, "{\"type\":\"teamCreated\"}");
+        EquipeWebSocket.broadcast(cipConnecte, JsonUtil.toJson(Map.of("type", "teamCreated")));
         return equipe.equipeId;
     }
 

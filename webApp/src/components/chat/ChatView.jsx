@@ -10,7 +10,7 @@ import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 import { useAvatarUrl } from '../../hooks/useAvatarUrl';
 
 export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged, activeFriend, onNotif }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const myCip = user?.cip;
   const { avatarUrl: friendAvatarUrl } = useAvatarUrl(friend?.cip);
   const [localDiscussionId, setLocalDiscussionId] = useState(null);
@@ -81,16 +81,16 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     }, []);
 
     useEffect(() => {
-        console.log('useEffect WebSocket - discussionId:', discussionId, 'friend?.cip:', friend?.cip);
         if (!discussionId || !friend?.cip) return;
         const cleanup = connectWebSocket(
             discussionId,
             friend.cip,
+            token,
             () => isActiveConversationRef.current,
             onNotif
         );
         return cleanup;
-    }, [discussionId, friend?.cip]);
+    }, [discussionId, friend?.cip, token]);
 
   async function handleSend(text, attachments) {
     if (!myCip || !friend?.cip) return;

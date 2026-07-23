@@ -16,6 +16,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Path("/api/message")
@@ -96,7 +97,14 @@ public class MessageService {
         message.date = new java.util.Date();
         messageMapper.insertMessage(message);
         MessageWebSocket.broadcast(message.discussionId,
-                "{\"type\":\"messageReceived\",\"messageId\":\"" + message.id + "\",\"discussionId\":\"" + message.discussionId + "\"}");
+                JsonUtil.toJson(Map.of(
+                        "type", "messageReceived",
+                        "messageId", message.id,
+                        "discussionId", message.discussionId,
+                        "cip", message.cip,
+                        "date", message.date != null ? message.date.toString() : "",
+                        "contenu", message.contenu != null ? message.contenu : ""
+                )));
         if (message.fichiers != null && !message.fichiers.isEmpty()) {
             for (FichierJoint fichier : message.fichiers) {
                 fichier.messageId = message.id;

@@ -48,7 +48,7 @@ function MemberAvatar({ member, size = 'sm', status, dotSize }) {
 }
 
 export default function TeamPlanning({ team, showPlanningInfo }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +174,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
     ]).finally(() => setLoading(false));
   }, [team?.equipeId]);
 
-    useTaskWebSocket(team?.equipeId, fetchTasks);
+    useTaskWebSocket(team?.equipeId, token, fetchTasks);
 
   async function handleCreateTask() {
     if (!newTaskName.trim() || !team?.equipeId || !user?.cip) return;

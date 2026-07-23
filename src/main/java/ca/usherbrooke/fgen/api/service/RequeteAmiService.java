@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.List;
+import java.util.Map;
 
 @Path("/api/requeteAmi")
 @Produces(MediaType.APPLICATION_JSON)
@@ -54,7 +55,7 @@ public class RequeteAmiService {
         }
         requeteAmiMapper.insertRequete(cip, destinataireCip);
         RequeteAmiWebSocket.broadcast(destinataireCip,
-                "{\"type\":\"friendRequest\",\"de\":\"" + cip + "\",\"a\":\"" + destinataireCip + "\"}");
+                JsonUtil.toJson(Map.of("type", "friendRequest", "de", cip, "a", destinataireCip)));
         try {
             notificationService.creerNotification(destinataireCip, "friendRequest", "Vous avez reçu une demande d'ami de " + cip);
         } catch (Exception e) {
@@ -72,7 +73,8 @@ public class RequeteAmiService {
         }
         contactMapper.insertContact(cip, destinataireCip);
         contactMapper.insertContact(destinataireCip, cip);
-        RequeteAmiWebSocket.broadcast(destinataireCip, "{\"type\":\"friendAccept\",\"de\":\"" + cip + "\",\"a\":\"" + destinataireCip + "\"}");
+        RequeteAmiWebSocket.broadcast(destinataireCip,
+                JsonUtil.toJson(Map.of("type", "friendAccept", "de", cip, "a", destinataireCip)));
         requeteAmiMapper.deleteRequete(destinataireCip, cip);
         requeteAmiMapper.deleteRequete(cip,destinataireCip);
         return destinataireCip;

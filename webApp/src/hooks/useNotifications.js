@@ -1,48 +1,58 @@
 import { useState, useEffect, useRef } from 'react';
 import { getUnreadCount } from '../services/api';
 
-/**
- * Gère le compteur de notifications non lues.
- * Charge le compte initial via l'API, puis écoute le WebSocket
- * pour l'incrémenter en temps réel à chaque nouvelle notification.
- */
-export function useNotifications(cip) {
+export function useNotifications(cip, token) {
     const [unreadCount, setUnreadCount] = useState(0);
-    const socketRef = useRef(null);
+    const wsRef = useRef(null);
+    const retryRef = useRef(null);
+    const retryCount = useRef(0);
+    const cleanupRef = useRef(false);
 
     useEffect(() => {
         if (!cip) return;
+        cleanupRef.current = false;
+        retryCount.current = 0;
 
-        // 1. Compte initial (les notifications déjà en base)
         getUnreadCount(cip)
             .then(count => setUnreadCount(count))
             .catch(err => console.error('Failed to load unread count:', err));
 
-        // 2. Connexion WebSocket pour le temps réel
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const url = `${protocol}//${window.location.host}/ws/notification/${cip}`;
-        const socket = new WebSocket(url);
-        socketRef.current = socket;
+        function connect() {
+            if (cleanupRef.current) return;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const baseUrl = `${protocol}//${window.location.host}/ws/notification/${cip}`;
+            const url = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
+            const socket = new WebSocket(url);
+            wsRef.current = socket;
 
-        socket.onmessage = () => {
-            // Une notification est arrivée : on incrémente le badge
-            setUnreadCount(prev => prev + 1);
-        };
+            socket.onmessage = () => {
+                retryCount.current = 0;
+                setUnreadCount(prev => prev + 1);
+            };
 
-        socket.onerror = (err) => {
-            console.error('Notification WebSocket error:', err);
-        };
+            socket.onopen = () => { retryCount.current = 0; };
+            socket.onerror = () => {};
+            socket.onclose = () => {
+                if (cleanupRef.current) return;
+                const delay = Math.min(1000 * Math.pow(2, retryCount.current), 30000);
+                retryCount.current++;
+                retryRef.current = setTimeout(connect, delay);
+            };
+        }
+
+        connect();
 
         const handleReadEvent = () => setUnreadCount(0);
         window.addEventListener('notifications-read', handleReadEvent);
 
-        // 3. Nettoyage à la déconnexion / changement d'utilisateur
         return () => {
+            cleanupRef.current = true;
             window.removeEventListener('notifications-read', handleReadEvent);
-            socket.close();
-            socketRef.current = null;
+            if (retryRef.current) clearTimeout(retryRef.current);
+            if (wsRef.current) wsRef.current.close();
+            wsRef.current = null;
         };
-    }, [cip]);
+    }, [cip, token]);
 
     return { unreadCount, setUnreadCount };
 }

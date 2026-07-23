@@ -24,11 +24,11 @@ class MessageWebSocketTest {
     void setUp() throws Exception {
         mockConnection = Mockito.mock(WebSocketConnection.class);
         when(mockConnection.pathParam("discussionId")).thenReturn("67");
-        when(mockConnection.sendText(anyString())).thenReturn(io.smallrye.mutiny.Uni.createFrom().voidItem());
 
         Field field = MessageWebSocket.class.getDeclaredField("connections");
         field.setAccessible(true);
-        Map<String, Object> connections = (Map<String, Object>) field.get(null);
+        Map<String, MessageWebSocket.ConnectionInfo> connections =
+                (Map<String, MessageWebSocket.ConnectionInfo>) field.get(null);
         connections.clear();
         connections.put("conn1", new MessageWebSocket.ConnectionInfo(mockConnection, "67"));
     }
@@ -37,13 +37,13 @@ class MessageWebSocketTest {
     void testBroadcastEnvoieAuBonneDiscussion() {
         String messageJson = "{\"type\":\"messageReceived\",\"messageId\":\"69\",\"discussionId\":\"67\"}";
         MessageWebSocket.broadcast("67", messageJson);
-        verify(mockConnection).sendText(messageJson);
+        verify(mockConnection).sendTextAndAwait(messageJson);
     }
 
     @Test
     void testBroadcastNEnvoiePasAuMauvaiseDiscussion() {
         String messageJson = "{\"type\":\"messageReceived\",\"messageId\":\"69\",\"discussionId\":\"67\"}";
         MessageWebSocket.broadcast("999", messageJson);
-        verify(mockConnection, never()).sendText(any());
+        verify(mockConnection, never()).sendTextAndAwait(any());
     }
 }

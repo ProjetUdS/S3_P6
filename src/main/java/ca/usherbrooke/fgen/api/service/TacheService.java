@@ -12,6 +12,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.time.LocalDate;
 
@@ -88,7 +89,7 @@ public class TacheService {
         String equipeId = tache.equipeId;
         tacheMapper.deleteOne(tacheId);
         TacheWebSocket.broadcast(equipeId,
-                "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + equipeId + "\"}");
+                JsonUtil.toJson(Map.of("type", "taskUpdated", "tacheId", tacheId, "equipeId", equipeId)));
     }
 
     @POST
@@ -101,7 +102,7 @@ public class TacheService {
         tache.dateCreation = new java.util.Date();
         tacheMapper.insertTache(tache);
         TacheWebSocket.broadcast(tache.equipeId,
-                "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tache.id + "\",\"equipeId\":\"" + tache.equipeId + "\"}");
+                JsonUtil.toJson(Map.of("type", "taskUpdated", "tacheId", tache.id, "equipeId", tache.equipeId)));
     }
 
     @POST
@@ -114,7 +115,7 @@ public class TacheService {
         }
         tacheMapper.setStatus(tacheId, status);
         TacheWebSocket.broadcast(tache.equipeId,
-                "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + tache.equipeId + "\"}");
+                JsonUtil.toJson(Map.of("type", "taskUpdated", "tacheId", tacheId, "equipeId", tache.equipeId)));
     }
 
     @GET
@@ -141,7 +142,7 @@ public class TacheService {
         tache = tacheMapper.selectOne(tacheId);
         if (tache != null) {
             TacheWebSocket.broadcast(tache.equipeId,
-                    "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + tache.equipeId + "\"}");
+                    JsonUtil.toJson(Map.of("type", "taskUpdated", "tacheId", tacheId, "equipeId", tache.equipeId)));
             List<String> assignees = assigneeMapper.selectAssignees(tacheId);
             for (String assignee : assignees) {
                 if (!assignee.equals(cipConnecte)) {
