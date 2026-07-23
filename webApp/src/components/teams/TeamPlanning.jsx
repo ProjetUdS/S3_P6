@@ -9,13 +9,18 @@ import EditTaskModal from './EditTaskModal';
 import InviteMemberModal from './InviteMemberModal';
 import AssigneesModal from './AssigneesModal';
 
+import todoIcon from '../../assets/icons/todo.png';
+import unknownPersonIcon from '../../assets/icons/unknownPerson.png';
+import addIcon from '../../assets/icons/add.png';
+import workingIcon from '../../assets/icons/gears.png';
+import completedIcon from '../../assets/icons/check-mark.png'
 /**
  * TeamPlanning  — Planning tab: Kanban board, meetings, calendar, right sidebar.
  *
  * Props:
  *   team  – team object with equipeId, nomEquipe, etc.
  */
-export default function TeamPlanning({ team }) {
+export default function TeamPlanning({ team, showPlanningInfo }) {
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -82,7 +87,7 @@ export default function TeamPlanning({ team }) {
     if (!team?.equipeId) return;
     try {
       const data = await getTaches(team.equipeId);
-      
+
       const tasksWithAssignees = await Promise.all((data || []).map(async t => {
         let assigneeCips = [];
         try {
@@ -90,7 +95,7 @@ export default function TeamPlanning({ team }) {
         } catch (e) {
           console.error(`Failed to fetch assignees for task ${t.id}`, e);
         }
-        
+
         const assignees = assigneeCips.map(cip => ({
           cip,
           initials: initialsFromUser({ cip, pseudo: cip }),
@@ -108,7 +113,7 @@ export default function TeamPlanning({ team }) {
           originalStatus: t.status,
         };
       }));
-      
+
       setTasks(tasksWithAssignees);
 
       const dData = await getDeadlines(team.equipeId);
@@ -228,7 +233,7 @@ export default function TeamPlanning({ team }) {
   };
 
   return (
-    <div className="planning-layout">
+    <div className={`planning-layout ${showPlanningInfo ? 'info-open' : ''}`}>
       {/* ── Main scrollable area ── */}
       <div className="planning-main">
 
@@ -245,7 +250,10 @@ export default function TeamPlanning({ team }) {
               onDrop={() => handleDrop('todo')}
             >
               <div className="kanban-column-header">
-                <h3>📝 Todo</h3>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <img src={todoIcon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                      Todo
+                  </h3>
                 <span className="kanban-count">{columns.todo.length}</span>
               </div>
               <div className="kanban-tasks">
@@ -269,8 +277,8 @@ export default function TeamPlanning({ team }) {
                     <span className="kanban-task-text">{task.text}</span>
                     <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <PriorityTag priority={task.priority} />
-                      <div 
-                        className="attendee-stack" 
+                      <div
+                        className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -284,8 +292,8 @@ export default function TeamPlanning({ team }) {
                               initials={assignee.initials}
                               gradient={assignee.gradient}
                               size="sm"
-                              style={{ 
-                                marginLeft: idx > 0 ? '-8px' : '0', 
+                              style={{
+                                marginLeft: idx > 0 ? '-8px' : '0',
                                 border: '2px solid var(--bg-primary)',
                                 zIndex: 10 - idx
                               }}
@@ -306,7 +314,7 @@ export default function TeamPlanning({ team }) {
                             }}
                             title="Aucun assigné"
                           >
-                            👤
+                            <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
                           </div>
                         )}
                       </div>
@@ -349,7 +357,8 @@ export default function TeamPlanning({ team }) {
                     onClick={() => setShowTaskForm(true)}
                     aria-label="Create new task"
                   >
-                    ➕ New task
+                      <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
+                      New task
                   </button>
                 )}
               </div>
@@ -362,7 +371,9 @@ export default function TeamPlanning({ team }) {
               onDrop={() => handleDrop('doing')}
             >
               <div className="kanban-column-header">
-                <h3>⚙️ Doing</h3>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <img src={workingIcon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                    Doing</h3>
                 <span className="kanban-count">{columns.doing.length}</span>
               </div>
               <div className="kanban-tasks">
@@ -386,8 +397,8 @@ export default function TeamPlanning({ team }) {
                     <span className="kanban-task-text">{task.text}</span>
                     <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <PriorityTag priority={task.priority} />
-                      <div 
-                        className="attendee-stack" 
+                      <div
+                        className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -401,8 +412,8 @@ export default function TeamPlanning({ team }) {
                               initials={assignee.initials}
                               gradient={assignee.gradient}
                               size="sm"
-                              style={{ 
-                                marginLeft: idx > 0 ? '-8px' : '0', 
+                              style={{
+                                marginLeft: idx > 0 ? '-8px' : '0',
                                 border: '2px solid var(--bg-primary)',
                                 zIndex: 10 - idx
                               }}
@@ -423,7 +434,7 @@ export default function TeamPlanning({ team }) {
                             }}
                             title="Aucun assigné"
                           >
-                            👤
+                              <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
                           </div>
                         )}
                       </div>
@@ -440,7 +451,9 @@ export default function TeamPlanning({ team }) {
               onDrop={() => handleDrop('done')}
             >
               <div className="kanban-column-header">
-                <h3>✅ Done</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <img src={completedIcon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                    Done</h3>
                 <span className="kanban-count">{columns.done.length}</span>
               </div>
               <div className="kanban-tasks">
@@ -464,8 +477,8 @@ export default function TeamPlanning({ team }) {
                     <span className="kanban-task-text">{task.text}</span>
                     <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                       <PriorityTag priority={task.priority} />
-                      <div 
-                        className="attendee-stack" 
+                      <div
+                        className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -479,8 +492,8 @@ export default function TeamPlanning({ team }) {
                               initials={assignee.initials}
                               gradient={assignee.gradient}
                               size="sm"
-                              style={{ 
-                                marginLeft: idx > 0 ? '-8px' : '0', 
+                              style={{
+                                marginLeft: idx > 0 ? '-8px' : '0',
                                 border: '2px solid var(--bg-primary)',
                                 zIndex: 10 - idx
                               }}
@@ -501,7 +514,7 @@ export default function TeamPlanning({ team }) {
                             }}
                             title="Aucun assigné"
                           >
-                            👤
+                              <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
                           </div>
                         )}
                       </div>
@@ -517,7 +530,9 @@ export default function TeamPlanning({ team }) {
         <section aria-labelledby="meetings-heading">
           <div className="plan-section-header">
             <div className="plan-section-title" id="meetings-heading">Upcoming Meetings</div>
-            <button className="plan-add-btn" aria-label="Schedule a meeting">➕ Schedule</button>
+            <button className="plan-add-btn" aria-label="Schedule a meeting">
+                <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
+                Schedule</button>
           </div>
           <ul className="meeting-list" aria-label="Upcoming meetings">
             {MEETINGS.map(m => (
@@ -612,7 +627,8 @@ export default function TeamPlanning({ team }) {
               e.currentTarget.style.color = 'var(--text-secondary)';
             }}
           >
-            <span>➕</span> Inviter un membre
+              <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
+              Inviter un membre
           </button>
 
           {loading ? (

@@ -32,7 +32,7 @@ Authorization: Bearer {{auth_token}}
 
 
 ### ajouteContacte
-@cip_adder = tura2517
+@cip_adder = test1234
 @cip_contact = belx8646
 POST {{base_}}/
     {{cip_adder}}/

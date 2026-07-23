@@ -23,16 +23,12 @@
 
         <!-- Filter by the array of user CIPs if provided -->
         <if test="usersCip != null and usersCip.length > 0">
-            AND ed.cip IN
-            <foreach item="item" index="index" collection="usersCip"
-                     open="(" separator="," close=")">
-                #{item}
-            </foreach>
+            AND ed.cip = ANY(#{usersCip, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler})
         </if>
     </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Equipe">
-        SELECT equipe_id, administrateur_cip, nom_equipe
+        SELECT equipe_id, administrateur_cip, nom_equipe, discussion_id
         FROM app.equipe
         WHERE equipe_id = #{equipeId}
     </select>
@@ -65,5 +61,14 @@
     <select id="getNewId" resultType="String">
         SELECT md5(random()::text || clock_timestamp()::text) AS new_id
     </select>
+
+    <select id="selectEquipeIdByDiscussionId" resultType="String">
+        SELECT equipe_id FROM app.equipe WHERE discussion_id = #{discussionId}
+    </select>
+
+    <update id="updateDiscussionId">
+        UPDATE app.equipe SET discussion_id = #{discussionId} WHERE equipe_id = #{equipeId} AND discussion_id IS NULL
+    </update>
+
 
 </mapper>

@@ -2,6 +2,9 @@
 import React from 'react';
 import { MessageGroup } from './MessageGroup';
 
+import messageIcon from '../../assets/icons/message.png'
+import searchIcon from "../../assets/icons/search.png";
+
 export function ChatMessagesList({
   messages,
   isOwn,
@@ -23,7 +26,9 @@ export function ChatMessagesList({
   if (messages.length === 0) {
     return emptyState || (
       <div className="empty-state" style={{ margin: '40px auto' }}>
-        <span className="empty-state-icon">💬</span>
+        <span className="empty-state-icon">
+            <img src={messageIcon} alt="Search" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+        </span>
         <span className="empty-state-text">No messages yet</span>
       </div>
     );

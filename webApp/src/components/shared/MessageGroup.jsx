@@ -4,6 +4,7 @@ import { Avatar } from './Avatar';
 import { getDownloadUrl } from '../../services/api';
 import api from '../../services/api';
 import SecureImage from '../SecureImage';
+import clipIcon from '../../assets/icons/clip.png';
 
 export function MessageGroup({
   msg,
@@ -95,7 +96,8 @@ export function MessageGroup({
                   return (
                     <div key={i} className={`attachment-bubble bubble ${own ? 'own' : ''}`}>
                       <button className="attachment-link" onClick={() => handleDownload(f)} disabled={downloadingId === f.fichierId}>
-                        📎 {f.nomOriginal} ({(f.tailleOctets / 1024).toFixed(1)}KB) {downloadingId === f.fichierId && '...'}
+                        <img src={clipIcon} alt="Attachment" style={{ width: '14px', height: '14px', marginRight: '4px', verticalAlign: 'middle' }} />
+                        {f.nomOriginal} ({(f.tailleOctets / 1024).toFixed(1)}KB) {downloadingId === f.fichierId && '...'}
                       </button>
                     </div>
                   );

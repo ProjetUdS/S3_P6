@@ -972,3 +972,54 @@
   transform: scale(1.2);
 }
 
+/* ─── Mobile Planning Toggle ──────────────────────────────────── */
+.tab-info-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .tab-info-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    margin: auto 16px auto auto; /* Push to the far right of the flex container */
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tab-info-btn:hover {
+    background: var(--border-light);
+    color: var(--text-primary);
+  }
+  .tab-info-btn.active {
+    background: var(--blue);
+    color: white;
+    border-color: var(--blue);
+  }
+
+  /* By default, hide the planning sidebar on mobile */
+  .planning-layout .planning-sidebar {
+    display: none;
+    width: 100% !important;
+    border-left: none;
+  }
+  
+  /* Minimize/hide planning-main when planning sidebar is active on mobile */
+  .planning-layout.info-open .planning-main {
+    display: none !important;
+  }
+  
+  /* Show planning sidebar when active on mobile */
+  .planning-layout.info-open .planning-sidebar {
+    display: block !important;
+  }
+}
+

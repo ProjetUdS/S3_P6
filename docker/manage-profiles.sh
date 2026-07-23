@@ -30,7 +30,7 @@ detect_yq() {
     if yq --help 2>&1 | grep -q "eval"; then
         # Vérifier la version (v4+)
         local version
-        version=$(yq --version 2>&1 | grep -oP 'version [v]?\K[0-9]+' | head -1)
+        version=$(yq --version 2>&1 | grep -oE 'version [v]?[0-9]+' | head -1 | grep -oE '[0-9]+')
         if [ -n "$version" ] && [ "$version" -ge 4 ]; then
             YQ_CMD="yq"
             return 0
@@ -184,6 +184,9 @@ load_config() {
             DOZZLE_ENABLED=$(yq e '.dozzle_enabled // true' "$CONFIG_FILE" 2>/dev/null)
             DOZZLE_PORT=$(yq e '.dozzle_port // 9999' "$CONFIG_FILE" 2>/dev/null)
             NAMESPACE=$(yq e '.namespace // "devlocal"' "$CONFIG_FILE" 2>/dev/null)
+            TLS_ENABLED=$(yq e '.tls.enabled // false' "$CONFIG_FILE" 2>/dev/null)
+            TLS_CERT_FILE=$(yq e '.tls.certFile // ""' "$CONFIG_FILE" 2>/dev/null)
+            TLS_KEY_FILE=$(yq e '.tls.keyFile // ""' "$CONFIG_FILE" 2>/dev/null)
         else
             if grep -q "dozzle_enabled: false" "$CONFIG_FILE" 2>/dev/null; then
                 DOZZLE_ENABLED=false
@@ -204,6 +207,12 @@ load_config() {
                     NAMESPACE="devlocal"
                 fi
             fi
+
+            # TLS config (fallback grep/sed)
+            TLS_ENABLED=$(grep -A 2 "^tls:" "$CONFIG_FILE" 2>/dev/null | grep "enabled:" | head -1 | sed 's/.*enabled: *//; s/ *#.*//' | tr -d '\r')
+            [ -z "$TLS_ENABLED" ] && TLS_ENABLED="false"
+            TLS_CERT_FILE=$(grep -A 3 "^tls:" "$CONFIG_FILE" 2>/dev/null | grep "certFile:" | head -1 | sed 's/.*certFile: *//; s/ *#.*//' | tr -d '\r')
+            TLS_KEY_FILE=$(grep -A 3 "^tls:" "$CONFIG_FILE" 2>/dev/null | grep "keyFile:" | head -1 | sed 's/.*keyFile: *//; s/ *#.*//' | tr -d '\r')
         fi
     fi
 }
@@ -450,13 +459,72 @@ add_profile() {
     enable_traefik="false"
     traefik_prefix="/"
     strip_prefix="false"
+    traefik_priority="10"
+    traefik_routes=""
+    traefik_docker_port="80"
+    traefik_local_port="80"
+    traefik_health_path="/health"
     
     if [ "$enable_traefik_input" = "o" ]; then
         enable_traefik="true"
-        read -p "Préfixe de route (ex: /api, /app): " traefik_prefix
-        [ -z "$traefik_prefix" ] && traefik_prefix="/$name"
-        read -p "Supprimer le préfixe avant transmission ? (O/n): " strip_prefix_input
-        [ "$strip_prefix_input" != "n" ] && strip_prefix="true"
+        read -p "Utiliser plusieurs routes ? (o/N): " multi_routes_input
+        
+        if [ "$multi_routes_input" = "o" ]; then
+            echo -e "\n\033[96m📋 Configuration des routes multiples\033[0m"
+            echo "Chaque route: préfixe, strip_prefix, priorité (défaut: 10)"
+            echo "Exemple: /api, false, 10"
+            echo ""
+            
+            route_count=0
+            while true; do
+                read -p "Route $((route_count + 1)) - Préfixe (ex: /api, /ws) ou vide pour terminer: " route_prefix
+                [ -z "$route_prefix" ] && break
+                
+                read -p "  Supprimer le préfixe ? (o/N): " route_strip
+                [ "$route_strip" = "o" ] && route_strip="true" || route_strip="false"
+                
+                read -p "  Priorité (défaut 10): " route_priority
+                [ -z "$route_priority" ] && route_priority="10"
+                
+                # Sanitize prefix for naming (remove leading /, replace non-alphanum with -)
+                route_suffix=$(echo "$route_prefix" | sed 's|^/||; s|[^a-zA-Z0-9]|-|g; s|--*|-|g; s|^-||; s|-$||')
+                [ -z "$route_suffix" ] && route_suffix="route$route_count"
+                
+                # Build routes array entry
+                traefik_routes="${traefik_routes}    - prefix: \"$route_prefix\""$'\n'"      strip_prefix: $route_strip"$'\n'"      priority: $route_priority"$'\n'
+                
+                # Use first route as legacy defaults for backward compat
+                if [ $route_count -eq 0 ]; then
+                    traefik_prefix="$route_prefix"
+                    strip_prefix="$route_strip"
+                    traefik_priority="$route_priority"
+                fi
+                
+                ((route_count++))
+            done
+            
+            # Ask for common docker port / local port / health path
+            read -p "Port interne du conteneur (défaut 80): " traefik_docker_port
+            [ -z "$traefik_docker_port" ] && traefik_docker_port="80"
+            read -p "Port exposé localement via Traefik (défaut 80): " traefik_local_port
+            [ -z "$traefik_local_port" ] && traefik_local_port="80"
+            read -p "Chemin health check (défaut /health): " traefik_health_path
+            [ -z "$traefik_health_path" ] && traefik_health_path="/health"
+        else
+            # Single route (legacy mode)
+            read -p "Préfixe de route (ex: /api, /app): " traefik_prefix
+            [ -z "$traefik_prefix" ] && traefik_prefix="/$name"
+            read -p "Supprimer le préfixe avant transmission ? (O/n): " strip_prefix_input
+            [ "$strip_prefix_input" != "n" ] && strip_prefix="true"
+            read -p "Priorité (défaut 10): " traefik_priority
+            [ -z "$traefik_priority" ] && traefik_priority="10"
+            read -p "Port interne du conteneur (défaut 80): " traefik_docker_port
+            [ -z "$traefik_docker_port" ] && traefik_docker_port="80"
+            read -p "Port exposé localement via Traefik (défaut 80): " traefik_local_port
+            [ -z "$traefik_local_port" ] && traefik_local_port="80"
+            read -p "Chemin health check (défaut /health): " traefik_health_path
+            [ -z "$traefik_health_path" ] && traefik_health_path="/health"
+        fi
     fi
     
     echo -e "\n\033[93m🔐 Variables d'environnement\033[0m"
@@ -521,10 +589,11 @@ traefik:
   enabled: $enable_traefik
   prefix: $traefik_prefix
   strip_prefix: $strip_prefix
-  local_port: $local_port
-  docker_port: $docker_port
-  priority: 10
-$secrets_section
+  local_port: $traefik_local_port
+  docker_port: $traefik_docker_port
+  priority: $traefik_priority
+  health_path: $traefik_health_path
+$traefik_routes$secrets_section
 metadata:
   category: custom
   tags:
@@ -665,7 +734,7 @@ EOF
 
         # Extraire la section docker-compose:
         local compose_section
-        compose_section=$(awk '/^docker-compose:/{found=1; next} found && /^traefik:/{found=0} found && found && !/^#/' "$profile")
+        compose_section=$(awk '/^docker-compose:/{found=1; next} found && /^[^[:space:]#]/{found=0} found && !/^#/' "$profile")
 
         # Traiter la section environment pour injecter les variables partagées
         local filtered_compose=""
@@ -790,16 +859,55 @@ generate_traefik_dynamic() {
     
     mkdir -p "traefik"
     
+    # Load TLS config
+    load_config
+    
     # Buffers
     local routers=""
     local middlewares=""
     local services=""
+    local tls_config=""
+    
+    # Fonction pour sanitizer un préfixe en suffixe valide
+    sanitize_prefix() {
+        echo "$1" | sed 's|^/||; s|[^a-zA-Z0-9]|-|g; s|--*|-|g; s|^-||; s|-$||'
+    }
+    
+    # Fonction pour générer la config d'une route unique
+    # Args: name, route_prefix, route_strip_prefix, route_priority, docker_port, local_port, health_path, router_suffix
+    generate_route_config() {
+        local name="$1"
+        local route_prefix="$2"
+        local route_strip_prefix="$3"
+        local route_priority="$4"
+        local docker_port="$5"
+        local local_port="$6"
+        local health_path="$7"
+        local router_suffix="$8"
+        
+        local router_name="${name}${router_suffix}"
+        
+        # --- Middleware ---
+        local middleware_ref=""
+        if [ "$route_strip_prefix" = "true" ]; then
+            middleware_ref=$'\n'"      middlewares:"$'\n'"        - ${router_name}-forward-prefix"$'\n'"        - ${router_name}-strip"
+            middlewares="${middlewares}"$'\n'"    ${router_name}-forward-prefix:"$'\n'"      headers:"$'\n'"        customRequestHeaders:"$'\n'"          X-Forwarded-Prefix: \"$route_prefix\""
+            middlewares="${middlewares}"$'\n'"    ${router_name}-strip:"$'\n'"      stripPrefix:"$'\n'"        prefixes:"$'\n'"          - \"$route_prefix\""
+        fi
+        
+        # --- Router ---
+        local tls_router=""
+        if [ "$TLS_ENABLED" = "true" ]; then
+            tls_router=$'\n'"      tls: {}"
+        fi
+        
+        routers="${routers}"$'\n'"    ${router_name}:"$'\n'"      rule: \"PathPrefix(\`$route_prefix\`)\""$'\n'"      service: ${name}"$'\n'"      priority: $route_priority${middleware_ref}${tls_router}"$'\n'"      entryPoints:"$'\n'"        - web"$'\n'"        - websecure"
+    }
     
     # Générer les services pour chaque profil
     for profile in "$PROFILES_DIR"/*.yml; do
         [ -f "$profile" ] || continue
-
-        # Parse avec yq si disponible, sinon fallback grep/sed
+        
         local enabled
         local traefik_enabled
         local name
@@ -809,37 +917,77 @@ generate_traefik_dynamic() {
         local prefix
         local strip_prefix
         local priority
-
+        local has_routes=false
+        local route_count=0
+        local route_prefixes=()
+        local route_strip_prefixes=()
+        local route_priorities=()
+        
         if [ -n "$YQ_CMD" ]; then
             # Parsing avec yq (mikefarah v4+)
             enabled=$(yq e '.enabled // true' "$profile" 2>/dev/null)
             traefik_enabled=$(yq e '.traefik.enabled // false' "$profile" 2>/dev/null)
-
+            
             if [ "$enabled" != "true" ] || [ "$traefik_enabled" != "true" ]; then
                 continue
             fi
-
+            
             name=$(yq e '.name' "$profile" 2>/dev/null)
             [ "$name" = "null" ] || [ -z "$name" ] && name=$(basename "$profile" .yml)
-
+            
             local_port=$(yq e '.traefik.local_port // 80' "$profile" 2>/dev/null)
             docker_port=$(yq e '.traefik.docker_port // 80' "$profile" 2>/dev/null)
             health_path=$(yq e '.traefik.health_path // "/health"' "$profile" 2>/dev/null)
-            prefix=$(yq e ".traefik.prefix // \"/$name\"" "$profile" 2>/dev/null)
-            strip_prefix=$(yq e '.traefik.strip_prefix // false' "$profile" 2>/dev/null)
-            priority=$(yq e '.traefik.priority // 10' "$profile" 2>/dev/null)
+            
+            # Check if routes array exists and has elements
+            route_count=$(yq e '.traefik.routes | length' "$profile" 2>/dev/null || echo 0)
+            if [ -n "$route_count" ] && [ "$route_count" -gt 0 ] 2>/dev/null; then
+                has_routes=true
+            fi
+            
+            if [ "$has_routes" = "true" ]; then
+                # Parse each route
+                for i in $(seq 0 $((route_count - 1))); do
+                    local route_prefix
+                    local route_strip_prefix
+                    local route_priority
+                    
+                    route_prefix=$(yq e ".traefik.routes[$i].prefix" "$profile" 2>/dev/null)
+                    route_strip_prefix=$(yq e ".traefik.routes[$i].strip_prefix // false" "$profile" 2>/dev/null)
+                    route_priority=$(yq e ".traefik.routes[$i].priority // 10" "$profile" 2>/dev/null)
+                    
+                    [ "$route_prefix" = "null" ] || [ -z "$route_prefix" ] && continue
+                    
+                    route_prefixes+=("$route_prefix")
+                    route_strip_prefixes+=("$route_strip_prefix")
+                    route_priorities+=("$route_priority")
+                done
+            else
+                # Legacy single prefix fallback
+                prefix=$(yq e ".traefik.prefix // \"/$name\"" "$profile" 2>/dev/null)
+                strip_prefix=$(yq e '.traefik.strip_prefix // false' "$profile" 2>/dev/null)
+                priority=$(yq e '.traefik.priority // 10' "$profile" 2>/dev/null)
+                
+                [ "$prefix" = "null" ] || [ -z "$prefix" ] && prefix="/$name"
+                [ "$strip_prefix" = "null" ] && strip_prefix="false"
+                [ "$priority" = "null" ] && priority="10"
+                
+                route_prefixes+=("$prefix")
+                route_strip_prefixes+=("$strip_prefix")
+                route_priorities+=("$priority")
+            fi
         else
-            # Fallback: parsing avec grep/sed
+            # Fallback: parsing avec grep/sed (legacy only, no routes array support)
             enabled=$(grep -m1 "^enabled:" "$profile" | sed 's/enabled: *//; s/ *#.*//' | tr -d '\r' || echo "true")
             traefik_enabled=$(grep -A 10 "^traefik:" "$profile" | grep "enabled:" | head -1 | sed 's/.*enabled: *//; s/ *#.*//' | tr -d '\r' || echo "false")
-
+            
             if [ "$enabled" != "true" ] || [ "$traefik_enabled" != "true" ]; then
                 continue
             fi
-
+            
             name=$(grep -m1 "^name:" "$profile" | sed 's/name: *//; s/ *#.*//' | tr -d '\r')
             [ -z "$name" ] && name=$(basename "$profile" .yml)
-
+            
             local_port=$(grep -A 10 "^traefik:" "$profile" | grep "local_port:" | head -1 | sed 's/.*local_port: *//; s/ *#.*//' | tr -d '\r' || echo "80")
             docker_port=$(grep -A 10 "^traefik:" "$profile" | grep "docker_port:" | head -1 | sed 's/.*docker_port: *//; s/ *#.*//' | tr -d '\r' || echo "80")
             health_path=$(grep -A 10 "^traefik:" "$profile" | grep "health_path:" | head -1 | sed 's/.*health_path: *//; s/ *#.*//' | tr -d '\r' || echo "/health")
@@ -847,47 +995,64 @@ generate_traefik_dynamic() {
             [ -z "$prefix" ] && prefix="/$name"
             strip_prefix=$(grep -A 10 "^traefik:" "$profile" | grep "strip_prefix:" | head -1 | sed 's/.*strip_prefix: *//; s/ *#.*//' | tr -d '\r' || echo "false")
             priority=$(grep -A 10 "^traefik:" "$profile" | grep "priority:" | head -1 | sed 's/.*priority: *//; s/ *#.*//' | tr -d '\r' || echo "10")
+            
+            route_prefixes+=("$prefix")
+            route_strip_prefixes+=("$strip_prefix")
+            route_priorities+=("$priority")
         fi
-
-        # --- Middleware ---
-        local middleware_ref=""
-        if [ "$strip_prefix" = "true" ]; then
-             middleware_ref=$'\n'"      middlewares:"$'\n'"        - ${name}-forward-prefix"$'\n'"        - ${name}-strip"
-             middlewares="${middlewares}"$'\n'"    ${name}-forward-prefix:"$'\n'"      headers:"$'\n'"        customRequestHeaders:"$'\n'"          X-Forwarded-Prefix: \"$prefix\""
-             middlewares="${middlewares}"$'\n'"    ${name}-strip:"$'\n'"      stripPrefix:"$'\n'"        prefixes:"$'\n'"          - \"$prefix\""
+        
+        # Determine router suffixes based on route count
+        local num_routes=${#route_prefixes[@]}
+        local router_suffixes=()
+        
+        if [ $num_routes -eq 1 ]; then
+            # Single route: use just the service name (e.g., "app")
+            router_suffixes+=("")
+        else
+            # Multiple routes: use index-based suffix (e.g., "app-0", "app-1", "app-2")
+            for i in $(seq 0 $((num_routes - 1))); do
+                router_suffixes+=("-$i")
+            done
         fi
-
-        # --- Router ---
-        # Utilisation de backticks escaped pour la règle PathPrefix
-        routers="${routers}"$'\n'"    ${name}:"$'\n'"      rule: \"PathPrefix(\`$prefix\`)\""$'\n'"      service: ${name}"$'\n'"      priority: $priority${middleware_ref}"$'\n'"      entryPoints:"$'\n'"        - web"$'\n'"        - websecure"
-
-        # --- Service ---
+        
+        # Generate route configs
+        for i in $(seq 0 $((num_routes - 1))); do
+            generate_route_config "$name" "${route_prefixes[$i]}" "${route_strip_prefixes[$i]}" "${route_priorities[$i]}" "$docker_port" "$local_port" "$health_path" "${router_suffixes[$i]}"
+        done
+        
+        # --- Service (shared across all routes for this profile) ---
         services="${services}"$'\n'"    ${name}:"$'\n'"      failover:"$'\n'"        service: ${name}-host"$'\n'"        fallback: ${name}-docker"
         services="${services}"$'\n'"    ${name}-host:"$'\n'"      loadBalancer:"$'\n'"        healthCheck:"$'\n'"          path: $health_path"$'\n'"          interval: 5s"$'\n'"          timeout: 1s"$'\n'"        servers:"$'\n'"          - url: \"http://external-ip:${local_port}\""$'\n'"        passHostHeader: true"
         services="${services}"$'\n'"    ${name}-docker:"$'\n'"      loadBalancer:"$'\n'"        healthCheck:"$'\n'"          path: $health_path"$'\n'"          interval: 5s"$'\n'"          timeout: 1s"$'\n'"        servers:"$'\n'"          - url: \"http://${name}:${docker_port}\""$'\n'"        passHostHeader: true"
     done
     
-    # Écriture du fichier header
+    # Generate TLS config if enabled
+    if [ "$TLS_ENABLED" = "true" ] && [ -n "$TLS_CERT_FILE" ] && [ -n "$TLS_KEY_FILE" ]; then
+        tls_config=$'\n'"tls:"$'\n'"  stores:"$'\n'"    default:"$'\n'"      defaultCertificate:"$'\n'"        certFile: \"$TLS_CERT_FILE\""$'\n'"        keyFile: \"$TLS_KEY_FILE\""
+    fi
+    
+    # Écriture du fichier header - TLS first (root level), then http:
     cat > "$TRAEFIK_DYNAMIC_FILE" << EOF
 # Généré automatiquement par manage-profiles.sh
 # NE PAS ÉDITER MANUELLEMENT - Vos modifications seront écrasées
+${tls_config}
 http:
 EOF
-
+    
     # Middleware de redirection racine (toujours ajouté)
     middlewares="${middlewares}"$'\n'"    root-redirect:"$'\n'"      redirectRegex:"$'\n'"        regex: \"^/$\""$'\n'"        replacement: \"/usager/\""
-
+    
     # Ajout des middlewares
     if [ -n "$middlewares" ]; then
         echo "" >> "$TRAEFIK_DYNAMIC_FILE"
         echo "  middlewares:$middlewares" >> "$TRAEFIK_DYNAMIC_FILE"
     fi
-
+    
     # Ajout des routers
     if [ -n "$routers" ] || [ "$DOZZLE_ENABLED" = "true" ]; then
         echo "" >> "$TRAEFIK_DYNAMIC_FILE"
         echo "  routers:$routers" >> "$TRAEFIK_DYNAMIC_FILE"
-
+        
         # Ajouter un router catch-all pour la racine
         echo "    root:" >> "$TRAEFIK_DYNAMIC_FILE"
         echo '      rule: "PathPrefix(`/`)"' >> "$TRAEFIK_DYNAMIC_FILE"
@@ -898,7 +1063,10 @@ EOF
         echo "      entryPoints:" >> "$TRAEFIK_DYNAMIC_FILE"
         echo "        - web" >> "$TRAEFIK_DYNAMIC_FILE"
         echo "        - websecure" >> "$TRAEFIK_DYNAMIC_FILE"
-
+        if [ "$TLS_ENABLED" = "true" ]; then
+            echo "      tls: {}" >> "$TRAEFIK_DYNAMIC_FILE"
+        fi
+        
         # Ajouter le router Dozzle si activé
         if [ "$DOZZLE_ENABLED" = "true" ]; then
             echo "    dozzle-logs:" >> "$TRAEFIK_DYNAMIC_FILE"
@@ -908,9 +1076,12 @@ EOF
             echo "      entryPoints:" >> "$TRAEFIK_DYNAMIC_FILE"
             echo "        - web" >> "$TRAEFIK_DYNAMIC_FILE"
             echo "        - websecure" >> "$TRAEFIK_DYNAMIC_FILE"
+            if [ "$TLS_ENABLED" = "true" ]; then
+                echo "      tls: {}" >> "$TRAEFIK_DYNAMIC_FILE"
+            fi
         fi
     fi
-
+    
     # Ajout des services
     if [ -n "$services" ] || [ "$DOZZLE_ENABLED" = "true" ]; then
         echo "" >> "$TRAEFIK_DYNAMIC_FILE"
@@ -919,7 +1090,7 @@ EOF
         echo "      loadBalancer:" >> "$TRAEFIK_DYNAMIC_FILE"
         echo "        servers:" >> "$TRAEFIK_DYNAMIC_FILE"
         echo '          - url: "http://127.0.0.1:1"' >> "$TRAEFIK_DYNAMIC_FILE"
-
+        
         # Ajouter le service Dozzle si activé
         if [ "$DOZZLE_ENABLED" = "true" ]; then
             echo "    dozzle:" >> "$TRAEFIK_DYNAMIC_FILE"
@@ -933,7 +1104,7 @@ EOF
             echo "        passHostHeader: true" >> "$TRAEFIK_DYNAMIC_FILE"
         fi
     fi
-
+    
     echo -e "\033[92m✅ traefik/dynamic.yml généré\033[0m"
 }
 

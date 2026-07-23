@@ -20,6 +20,8 @@ public class AssigneeService {
 
     @Inject
     AssigneeMapper assigneeMapper;
+    @Inject
+    NotificationService notificationService;
 
     @Inject
     TacheMapper tacheMapper;
@@ -33,13 +35,13 @@ public class AssigneeService {
     @GET
     @Path("/{tacheId}")
     public List<String> getAssignees(@PathParam("tacheId") String tacheId) {
-        String cipConnecte = jwt.getClaim("cipConnecte");
+        String cipConnecte = (String)jwt.getClaim("cip");
 
         Tache tache = tacheMapper.selectOne(tacheId);
         String equipeId = tache.equipeId;
         Equipe equipe = equipeMapper.selectOne(equipeId);
 
-        if(equipe == null || !equipeMapper.selectMembers(equipeId).contains(cipConnecte)) {
+        if(equipe == null || equipeMapper.selectMembers(equipeId).stream().noneMatch(m -> m.cip().equals(cipConnecte))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         return assigneeMapper.selectAssignees(tacheId);
@@ -48,30 +50,32 @@ public class AssigneeService {
     @POST
     @Path("/{tacheId}")
     public String insertAssignee(@PathParam("tacheId") String tacheId, @QueryParam("cip") String cip) {
-        String cipConnecte = jwt.getClaim("cipConnecte");
+        String cipConnecte = (String)jwt.getClaim("cip");
 
         Tache tache = tacheMapper.selectOne(tacheId);
         String equipeId = tache.equipeId;
         Equipe equipe = equipeMapper.selectOne(equipeId);
 
-        if(equipe == null || !equipeMapper.selectMembers(equipeId).contains(cipConnecte)) {
+        if(equipe == null || equipeMapper.selectMembers(equipeId).stream().noneMatch(m -> m.cip().equals(cipConnecte))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 
         assigneeMapper.insertAssignee(tacheId, cip);
+        notificationService.creerNotification(cip, "taskAssigned",
+                "Une tache vous a ete assignee");
         return cip;
     }
 
     @DELETE
     @Path("/{tacheId}")
     public String deleteAssignee(@PathParam("tacheId") String tacheId, @QueryParam("cip") String cip) {
-        String cipConnecte = jwt.getClaim("cipConnecte");
+        String cipConnecte = (String)jwt.getClaim("cip");
 
         Tache tache = tacheMapper.selectOne(tacheId);
         String equipeId = tache.equipeId;
         Equipe equipe = equipeMapper.selectOne(equipeId);
 
-        if(equipe == null || !equipeMapper.selectMembers(equipeId).contains(cipConnecte)) {
+        if(equipe == null || equipeMapper.selectMembers(equipeId).stream().noneMatch(m -> m.cip().equals(cipConnecte))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 

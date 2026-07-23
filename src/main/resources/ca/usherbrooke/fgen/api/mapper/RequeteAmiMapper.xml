@@ -18,8 +18,14 @@
     </delete>
 
     <select id="selectRequetes" resultType="String">
-        SELECT destinataire_cip
+        SELECT cip
         FROM app.RequeteAmi
+        WHERE destinataire_cip = #{cip}
+    </select>
+
+    <select id="selectRequetesEnvoyees" resultType="String">
+        SELECT destinataire_cip
+        FROM app.requeteami
         WHERE cip = #{cip}
     </select>
 
