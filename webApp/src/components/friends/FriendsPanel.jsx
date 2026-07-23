@@ -31,7 +31,13 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
     loadRequests();
   }, [user?.cip]);
 
-  useFriendRequestWebSocket(user?.cip, loadRequests);
+  useFriendRequestWebSocket(user?.cip, (type) => {
+    if (type === 'friendRequest') {
+      loadRequests();
+    } else if (type === 'friendAccept') {
+      onFriendAdded?.();
+    }
+  });
 
   async function handleAcceptRequest(senderCip) {
     if (!user?.cip) return;

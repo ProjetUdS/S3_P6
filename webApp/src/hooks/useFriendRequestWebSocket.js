@@ -14,8 +14,8 @@ export function useFriendRequestWebSocket(cip, onRequestReceived) {
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.type === 'friendRequest') {
-                    onRequestReceived?.();
+                if (data.type === 'friendRequest'|| data.type === 'friendAccept') {
+                    onRequestReceived?.(data.type);
                 }
             } catch (err) {
                 console.error('FriendRequest WebSocket error:', err);
