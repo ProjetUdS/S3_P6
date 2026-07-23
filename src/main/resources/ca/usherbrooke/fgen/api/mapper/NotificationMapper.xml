@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.NotificationMapper">
+
+    <select id="selectByCip" resultType="ca.usherbrooke.fgen.api.business.Notification">
+        select notification_id as id,
+               cip,
+               type,
+               contenu,
+               lu,
+               date_creation   as dateCreation
+        from app.Notification
+        where cip = #{cip}
+        order by date_creation desc
+    </select>
+
+    <select id="countUnread" resultType="int">
+        select count(*)
+        from app.Notification
+        where cip = #{cip}
+          and lu = false
+    </select>
+
+    <insert id="insertNotification">
+        insert into app.Notification(notification_id,
+                                     cip,
+                                     type,
+                                     contenu,
+                                     lu,
+                                     date_creation)
+        values (#{notification.id},
+                #{notification.cip},
+                #{notification.type},
+                #{notification.contenu},
+                #{notification.lu},
+                #{notification.dateCreation})
+    </insert>
+
+    <update id="markAsRead">
+        update app.Notification
+        set lu = true
+        where notification_id = #{notificationId}
+    </update>
+
+    <update id="markAllAsRead">
+        update app.Notification
+        set lu = true
+        where cip = #{cip}
+    </update>
+
+    <delete id="deleteAll">
+        delete from app.Notification
+        where cip = #{cip}
+    </delete>
+
+</mapper>

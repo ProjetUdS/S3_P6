@@ -1,0 +1,59 @@
+package ca.usherbrooke.fgen.api.service;
+
+import io.quarkus.websockets.next.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+@WebSocket(path = "/ws/equipe/{cip}")
+public class EquipeWebSocket {
+    private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
+
+    @OnOpen
+    public void onOpen(WebSocketConnection conn) {
+        String id = UUID.randomUUID().toString();
+        String targetCip = conn.pathParam("cip");
+        connections.put(id, new ConnectionInfo(conn, targetCip));
+    }
+
+    @OnClose
+    public void onClose(WebSocketConnection conn) {
+        String removeId = null;
+        for (Map.Entry<String, ConnectionInfo> entry : connections.entrySet()) {
+            if (entry.getValue().connection == conn) {
+                removeId = entry.getKey();
+                break;
+            }
+        }
+        if (removeId != null) {
+            connections.remove(removeId);
+        }
+    }
+
+    @OnTextMessage
+    public void onMessage(String message) {}
+
+    public static void broadcast(String cip, String requeteJson) {
+        connections.forEach((id, info) -> {
+            if (cip.equals(info.cip)) {
+                info.connection.sendText(requeteJson).subscribe().with(
+                        v -> {},
+                        err -> connections.remove(id)
+                );
+            }
+        });
+    }
+
+    static class ConnectionInfo {
+        final WebSocketConnection connection;
+        final String cip;
+
+        ConnectionInfo(WebSocketConnection connection, String cip) {
+            this.connection = connection;
+            this.cip = cip;
+        }
+    }
+}

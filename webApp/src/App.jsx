@@ -6,21 +6,39 @@ import FriendsPanel from './components/friends/FriendsPanel';
 import ChatView from './components/chat/ChatView';
 import TeamsPanel from './components/teams/TeamsPanel';
 import TeamArea from './components/teams/TeamArea';
+import NotificationsPanel from './components/notifications/NotificationsPanel';
 import { getContacts, getConversations, getEquipes } from './services/api';
 import { gradientForCip, initialsFromUser } from './utils/gradient';
+import messageIcon from './assets/icons/message.png';
+import teamIcon from './assets/icons/team.png'
 
 import './styles/globals.css';
 import './styles/layout.css';
 import './styles/components.css';
+import {useEquipeWebSocket} from "./hooks/useEquipeWebSocket.js";
 
 export default function App() {
-  const { authenticated, user, loading } = useAuth();
-  const [view, setView] = useState('messages');
-  const [activeFriend, setActiveFriend] = useState(null);
-  const [activeTeam, setActiveTeam] = useState(null);
-  const [teams, setTeams] = useState([]);
-  const [conversations, setConversations] = useState([]);
-  const [expandedSections, setExpandedSections] = useState({ active: true, archived: false, blocked: false });
+    const { authenticated, user, loading } = useAuth();
+    const [view, setView] = useState('messages');
+    const [activeFriend, setActiveFriend] = useState(null);
+    const [activeTeam, setActiveTeam] = useState(null);
+    const [teams, setTeams] = useState([]);
+    const [conversations, setConversations] = useState([]);
+    const [expandedSections, setExpandedSections] = useState({ active: true, archived: false, blocked: false });
+    const [hasNotif, setHasNotif] = useState(false);
+    const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
+
+    function handleNav(key) {
+        if (key === view) {
+            setIsLeftPanelVisible(prev => !prev);
+        } else {
+            setView(key);
+            setIsLeftPanelVisible(true);
+        }
+        if (key === 'notifs') {
+            setHasNotif(false);
+        }
+    }
 
   function loadConversations() {
     if (!user?.cip) return;
@@ -76,6 +94,35 @@ export default function App() {
     }
   }
 
+  function handleSelectFriend(friend) {
+    setActiveFriend(friend);
+    if (friend && window.innerWidth <= 768) {
+      setIsLeftPanelVisible(false);
+    } else if (!friend) {
+      setIsLeftPanelVisible(true);
+    }
+  }
+
+  function handleSelectTeam(team) {
+    setActiveTeam(team);
+    if (team && window.innerWidth <= 768) {
+      setIsLeftPanelVisible(false);
+    } else if (!team) {
+      setIsLeftPanelVisible(true);
+    }
+  }
+
+  useEffect(() => {
+    const handleTeamLeft = (e) => {
+      loadTeams();
+      if (activeTeam?.equipeId === e.detail.equipeId) {
+        setActiveTeam(null);
+      }
+    };
+    window.addEventListener('team-left', handleTeamLeft);
+    return () => window.removeEventListener('team-left', handleTeamLeft);
+  }, [activeTeam]);
+
   useEffect(() => {
     if (authenticated && user?.cip) {
       loadConversations();
@@ -88,6 +135,10 @@ export default function App() {
       setActiveTeam(teams[0]);
     }
   }, [teams]);
+
+  useEquipeWebSocket(user?.cip, () => {
+      loadTeams();
+  });
 
   if (loading) {
     return (
@@ -104,68 +155,76 @@ export default function App() {
     return (
       <div className="app-shell">
         <div className="loading-screen">
+          <div className="loading-spinner" />
           <p>Authentification en cours...</p>
         </div>
       </div>
     );
   }
 
-  function handleNav(key) {
-    if (key === 'messages') setView('messages');
-    if (key === 'teams') setView('teams');
-  }
+    return (
+        <div className={`app-shell ${isLeftPanelVisible ? '' : 'left-panel-hidden'}`}>
+            <Sidebar activeView={view} onNav={handleNav} hasNotif={hasNotif} />
 
-  return (
-    <div className="app-shell">
-      <Sidebar activeView={view} onNav={handleNav} />
+            {view === 'messages' && (
+                <>
+                    <FriendsPanel
+                        activeFriendId={activeFriend?.id}
+                        onSelectFriend={handleSelectFriend}
+                        conversations={conversations}
+                        expandedSections={expandedSections}
+                        onToggleSection={toggleSection}
+                        existingCips={conversations.map(c => c.cip)}
+                        onFriendAdded={loadConversations}
+                    />
+                    {activeFriend
+                        ? <ChatView
+                            friend={activeFriend}
+                            key={activeFriend.id}
+                            conversations={conversations}
+                            discussionId={activeFriend.discussionId}
+                            onDeleteConversation={() => handleSelectFriend(null)}
+                            onStateChanged={loadConversations}
+                            activeFriend={activeFriend}
+                            onNotif={() => setHasNotif(true)}
+                        />
+                        : (
+                            <div className="main-area">
+                                <div className="empty-state">
+                                    <img src={messageIcon} alt="Message icon" className="empty-state-icon" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+                                    <span className="empty-state-text">Select a friend to start chatting</span>
+                                </div>
+                            </div>
+                        )
+                    }
+                </>
+            )}
 
-      {view === 'messages' && (
-        <>
-          <FriendsPanel
-            activeFriendId={activeFriend?.id}
-            onSelectFriend={setActiveFriend}
-            conversations={conversations}
-            expandedSections={expandedSections}
-            onToggleSection={toggleSection}
-            existingCips={conversations.map(c => c.cip)}
-            onFriendAdded={loadConversations}
-          />
-             {activeFriend
-            ? <ChatView friend={activeFriend} key={activeFriend.id} conversations={conversations} discussionId={activeFriend.discussionId} onDeleteConversation={() => setActiveFriend(null)} onStateChanged={loadConversations} />
-            : (
-              <div className="main-area">
-                <div className="empty-state">
-                  <span className="empty-state-icon">💬</span>
-                  <span className="empty-state-text">Select a friend to start chatting</span>
-                </div>
-              </div>
-            )
-          }
-        </>
-      )}
-
-      {view === 'teams' && (
-        <>
-          <TeamsPanel
-            activeTeamId={activeTeam?.equipeId}
-            teams={teams}
-            onSelectTeam={setActiveTeam}
-            onTeamDeleted={handleTeamDeleted}
-            onTeamCreated={loadTeams}
-          />
-          {activeTeam
-            ? <TeamArea team={activeTeam} key={activeTeam.id} />
-            : (
-              <div className="main-area">
-                <div className="empty-state">
-                  <span className="empty-state-icon">👥</span>
-                  <span className="empty-state-text">Select or create a team</span>
-                </div>
-              </div>
-            )
-          }
-        </>
-      )}
-    </div>
-  );
+            {view === 'teams' && (
+                <>
+                    <TeamsPanel
+                        activeTeamId={activeTeam?.equipeId}
+                        teams={teams}
+                        onSelectTeam={handleSelectTeam}
+                        onTeamDeleted={handleTeamDeleted}
+                        onTeamCreated={loadTeams}
+                    />
+                    {activeTeam
+                        ? <TeamArea team={activeTeam} key={activeTeam.id} />
+                        : (
+                            <div className="main-area">
+                                <div className="empty-state">
+                                    <img src={teamIcon} alt="Team icon" className="empty-state-icon" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+                                    <span className="empty-state-text">Select or create a team</span>
+                                </div>
+                            </div>
+                        )
+                    }
+                </>
+            )}
+            {view === 'notifs' && (
+                <NotificationsPanel />
+            )}
+        </div>
+    );
 }

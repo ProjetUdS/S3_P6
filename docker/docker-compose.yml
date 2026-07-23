@@ -1,6 +1,6 @@
 # Généré automatiquement par manage-profiles.sh
 # NE PAS ÉDITER MANUELLEMENT - Vos modifications seront écrasées
-# Dernière génération : 2026-07-04 09:33:57
+# Dernière génération : 2026-07-22 03:44:50
 name: devlocal
 
 services:
@@ -82,8 +82,6 @@ services:
       - MINIO_USER=${MINIO_USER}
       - MINIO_PASSWORD=${MINIO_PASSWORD}
       - MINIO_SERVER_URL=${MINIO_SERVER_URL}
-
-
     depends_on:
       - auth
     extra_hosts:
@@ -133,26 +131,26 @@ services:
     networks:
       - traefik-network
 
-  # Service: database-keycloak
-  database-keycloak:
-    image: postgres:18
-    
-    # Option 3 : Décomposition complète (maximum de flexibilité)
-    # image: ${EXAMPLE_REGISTRY:-docker.io}/${EXAMPLE_IMAGE:-nginx}:${EXAMPLE_TAG:-latest}
-    
-    container_name: database-keycloak
+  # Service: minio-storage
+  minio-storage:
+    image: minio/minio:${MINIO_VERSION:-latest}
+
+    container_name: minio-storage
     environment:
       # Variables partagées (depuis config.yml)
       - LOG_LEVEL=info
       - NODE_ENV=development
       - TZ=America/Toronto
       # Variables exclusives du service
-      - POSTGRES_USER=${DB_KC_USER}
-      - POSTGRES_PASSWORD=${DB_KC_PASSWORD}
-      - POSTGRES_DB=${DB_KC_DB}
+      - MINIO_ROOT_USER=${MINIO_USER:-local_admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD:-local_password}
 
+    ports:
+      - "${MINIO_PORT:-9000}:${MINIO_PORT:-9000}"   # S3 API port
+      - "9001:9001"   # Web UI console port
     volumes:
-      - ../../volumes/keycloak:/var/lib/postgresql
+      - ../../volumes/minIo:/data
+    command: server /data --console-address ":9001"
     extra_hosts:
       - "external-ip:host-gateway"
     networks:
@@ -179,6 +177,30 @@ services:
       - ./postgres/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./postgres/02_setdata.sql:/docker-entrypoint-initdb.d/02_setdata.sql
       - ../../volumes/db:/var/lib/postgresql/data
+    extra_hosts:
+      - "external-ip:host-gateway"
+    networks:
+      - traefik-network
+
+  # Service: database-keycloak
+  database-keycloak:
+    image: postgres:18
+
+    # Option 3 : Décomposition complète (maximum de flexibilité)
+    # image: ${EXAMPLE_REGISTRY:-docker.io}/${EXAMPLE_IMAGE:-nginx}:${EXAMPLE_TAG:-latest}
+
+    container_name: database-keycloak
+    environment:
+      # Variables partagées (depuis config.yml)
+      - LOG_LEVEL=info
+      - NODE_ENV=development
+      - TZ=America/Toronto
+      # Variables exclusives du service
+      - POSTGRES_USER=${DB_KC_USER}
+      - POSTGRES_PASSWORD=${DB_KC_PASSWORD}
+      - POSTGRES_DB=${DB_KC_DB}
+    volumes:
+      - ../../volumes/keycloak:/var/lib/postgresql
     extra_hosts:
       - "external-ip:host-gateway"
     networks:

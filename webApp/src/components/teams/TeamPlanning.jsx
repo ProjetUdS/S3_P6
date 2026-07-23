@@ -1,18 +1,53 @@
 // src/components/teams/TeamPlanning.jsx
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
-import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache } from '../../services/api';
+
+import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache, getAssignees, removeTeamMember } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
+import EditTaskModal from './EditTaskModal';
+import { useTaskWebSocket } from '../../hooks/useTaskWebSocket';
+import InviteMemberModal from './InviteMemberModal';
+import AssigneesModal from './AssigneesModal';
 
-/**
- * TeamPlanning  — Planning tab: Kanban board, meetings, calendar, right sidebar.
- *
- * Props:
- *   team  – team object with equipeId, nomEquipe, etc.
- */
-export default function TeamPlanning({ team }) {
+import todoIcon from '../../assets/icons/todo.png';
+import unknownPersonIcon from '../../assets/icons/unknownPerson.png';
+import addIcon from '../../assets/icons/add.png';
+import workingIcon from '../../assets/icons/gears.png';
+import completedIcon from '../../assets/icons/check-mark.png'
+
+
+function AssigneeAvatar({ assignee, size = 'sm', style }) {
+  const { avatarUrl } = useAvatarUrl(assignee.cip);
+  return (
+    <Avatar
+      initials={assignee.initials}
+      gradient={assignee.gradient}
+      size={size}
+      src={avatarUrl}
+      alt={assignee.initials}
+      style={style}
+    />
+  );
+}
+
+function MemberAvatar({ member, size = 'sm', status, dotSize }) {
+  const { avatarUrl } = useAvatarUrl(member.id || member.cip);
+  return (
+    <Avatar
+      initials={member.initials}
+      gradient={member.gradient}
+      size={size}
+      status={status}
+      dotSize={dotSize}
+      src={avatarUrl}
+      alt={member.name || member.initials}
+    />
+  );
+}
+
+export default function TeamPlanning({ team, showPlanningInfo }) {
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -23,6 +58,27 @@ export default function TeamPlanning({ team }) {
   const [draggedTask, setDraggedTask] = useState(null);
   const [todayDeadlines, setTodayDeadlines] = useState([]);
   const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState(null);
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [assigningTask, setAssigningTask] = useState(null);
+  const [memberToRemove, setMemberToRemove] = useState(null);
+
+  const isCurrentUserAdmin = user?.cip === team?.administrateurCip || members.some(m => m.id === user?.cip && m.status === 'Admin');
+
+  async function handleRemoveMember(memberCip) {
+    try {
+      await removeTeamMember(team.equipeId, memberCip);
+      if (memberCip === user?.cip) {
+        window.dispatchEvent(new CustomEvent('team-left', { detail: { equipeId: team.equipeId } }));
+      } else {
+        await fetchMembers();
+      }
+    } catch (err) {
+      console.error('Failed to remove team member:', err);
+    } finally {
+      setMemberToRemove(null);
+    }
+  }
 
   // Map task status to column state
   const getTaskStatus = (t) => {
@@ -33,6 +89,78 @@ export default function TeamPlanning({ team }) {
     return 'todo';
   };
 
+  const fetchMembers = async () => {
+    if (!team?.equipeId) return;
+    try {
+      const data = await getTeamMembers(team.equipeId);
+      const transformed = (data || []).map(m => {
+        const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
+        return {
+          id: m.cip,
+          name,
+          initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
+          role: m.role || 'Member',
+          gradient: gradientForCip(m.cip),
+          status: m.status, // "Admin" or other status values from backend
+        };
+      });
+      setMembers(transformed);
+    } catch (err) {
+      console.error('Failed to load team members:', err);
+    }
+  };
+
+  const fetchTasks = async () => {
+    if (!team?.equipeId) return;
+    try {
+      const data = await getTaches(team.equipeId);
+
+      const tasksWithAssignees = await Promise.all((data || []).map(async t => {
+        let assigneeCips = [];
+        try {
+          assigneeCips = await getAssignees(t.id);
+        } catch (e) {
+          console.error(`Failed to fetch assignees for task ${t.id}`, e);
+        }
+
+        const assignees = assigneeCips.map(cip => ({
+          cip,
+          initials: initialsFromUser({ cip, pseudo: cip }),
+          gradient: gradientForCip(cip),
+        }));
+
+        return {
+          id: t.id,
+          text: t.nomTache,
+          status: getTaskStatus(t),
+          assignees,
+          originalStatus: t.status,
+        };
+      }));
+
+      setTasks(tasksWithAssignees);
+
+      const dData = await getDeadlines(team.equipeId);
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const deadlines = (dData || [])
+        .filter(t => {
+          const fin = new Date(t.dateFin);
+          const finStr = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`;
+          return finStr === todayStr;
+        })
+        .map(t => ({
+          id: t.id,
+          nomTache: t.nomTache,
+          status: getTaskStatus(t),
+          dateFin: new Date(t.dateFin),
+        }));
+      setTodayDeadlines(deadlines);
+    } catch (err) {
+      console.error('Failed to fetch tasks/deadlines:', err);
+    }
+  };
+
   useEffect(() => {
     if (!team?.equipeId) {
       setLoading(false);
@@ -41,61 +169,12 @@ export default function TeamPlanning({ team }) {
 
     setLoading(true);
     Promise.all([
-      getTeamMembers(team.equipeId)
-        .then(data => {
-          const transformed = (data || []).map(m => {
-            const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
-            return {
-              id: m.cip,
-              name,
-              initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
-              role: m.role || 'Member',
-              gradient: gradientForCip(m.cip),
-              status: m.status || 'offline',
-            };
-          });
-          setMembers(transformed);
-        })
-        .catch(err => console.error('Failed to load team members:', err)),
-      getTaches(team.equipeId)
-        .then(data => {
-          const transformed = (data || []).map(t => ({
-            id: t.id,
-            text: t.nomTache,
-            status: getTaskStatus(t),
-            assignee: {
-              initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
-              gradient: gradientForCip(t.cip),
-            },
-            priority: t.status === 'termine' ? 'done' :
-                     t.status === 'urgent' ? 'high' :
-                     t.status === 'important' ? 'med' : 'low',
-            originalStatus: t.status,
-          }));
-          setTasks(transformed);
-        })
-        .catch(err => console.error('Failed to load tasks:', err)),
-      getDeadlines(team.equipeId)
-        .then(data => {
-          const today = new Date();
-          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-          const deadlines = (data || [])
-            .filter(t => {
-              const fin = new Date(t.dateFin);
-              const finStr = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`;
-              return finStr === todayStr;
-            })
-            .map(t => ({
-              id: t.id,
-              nomTache: t.nomTache,
-              status: getTaskStatus(t),
-              dateFin: new Date(t.dateFin),
-            }));
-          setTodayDeadlines(deadlines);
-        })
-        .catch(err => console.error('Failed to load deadlines:', err)),
+      fetchMembers(),
+      fetchTasks(),
     ]).finally(() => setLoading(false));
   }, [team?.equipeId]);
+
+    useTaskWebSocket(team?.equipeId, fetchTasks);
 
   async function handleCreateTask() {
     if (!newTaskName.trim() || !team?.equipeId || !user?.cip) return;
@@ -109,21 +188,7 @@ export default function TeamPlanning({ team }) {
       });
       setNewTaskName('');
       setShowTaskForm(false);
-      const data = await getTaches(team.equipeId);
-      const transformed = (data || []).map(t => ({
-        id: t.id,
-        text: t.nomTache,
-        status: getTaskStatus(t),
-        assignee: {
-          initials: initialsFromUser({ cip: t.cip, pseudo: t.cip }),
-          gradient: gradientForCip(t.cip),
-        },
-        priority: t.status === 'termine' ? 'done' :
-                 t.status === 'urgent' ? 'high' :
-                 t.status === 'important' ? 'med' : 'low',
-        originalStatus: t.status,
-      }));
-      setTasks(transformed);
+      await fetchTasks();
     } catch (err) {
       console.error('Failed to create task:', err);
     } finally {
@@ -194,7 +259,7 @@ export default function TeamPlanning({ team }) {
   };
 
   return (
-    <div className="planning-layout">
+    <div className={`planning-layout ${showPlanningInfo ? 'info-open' : ''}`}>
       {/* ── Main scrollable area ── */}
       <div className="planning-main">
 
@@ -211,7 +276,10 @@ export default function TeamPlanning({ team }) {
               onDrop={() => handleDrop('todo')}
             >
               <div className="kanban-column-header">
-                <h3>📝 Todo</h3>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <img src={todoIcon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                      Todo
+                  </h3>
                 <span className="kanban-count">{columns.todo.length}</span>
               </div>
               <div className="kanban-tasks">
@@ -221,6 +289,8 @@ export default function TeamPlanning({ team }) {
                     className="kanban-card"
                     draggable
                     onDragStart={() => handleDragStart(task)}
+                    onClick={() => setEditingTaskId(task.id)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <button
                       className="kanban-delete-btn"
@@ -231,13 +301,47 @@ export default function TeamPlanning({ team }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta">
-                      <Avatar
-                        initials={task.assignee.initials}
-                        gradient={task.assignee.gradient}
-                        size="sm"
-                      />
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+                      <div
+                        className="attendee-stack"
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigningTask({ id: task.id, text: task.text });
+                        }}
+                      >
+                        {task.assignees && task.assignees.length > 0 ? (
+                          task.assignees.map((assignee, idx) => (
+                            <AssigneeAvatar
+                              key={assignee.cip}
+                              assignee={assignee}
+                              size="sm"
+                              style={{
+                                marginLeft: idx > 0 ? '-8px' : '0',
+                                border: '2px solid var(--bg-primary)',
+                                zIndex: 10 - idx
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <div
+                            className="avatar avatar-sm"
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              border: '1.5px dashed var(--border)',
+                              color: 'var(--text-tertiary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 'normal'
+                            }}
+                            title="Aucun assigné"
+                          >
+                            <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -277,7 +381,8 @@ export default function TeamPlanning({ team }) {
                     onClick={() => setShowTaskForm(true)}
                     aria-label="Create new task"
                   >
-                    ➕ New task
+                      <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
+                      New task
                   </button>
                 )}
               </div>
@@ -290,7 +395,9 @@ export default function TeamPlanning({ team }) {
               onDrop={() => handleDrop('doing')}
             >
               <div className="kanban-column-header">
-                <h3>⚙️ Doing</h3>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <img src={workingIcon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                    Doing</h3>
                 <span className="kanban-count">{columns.doing.length}</span>
               </div>
               <div className="kanban-tasks">
@@ -300,6 +407,8 @@ export default function TeamPlanning({ team }) {
                     className="kanban-card"
                     draggable
                     onDragStart={() => handleDragStart(task)}
+                    onClick={() => setEditingTaskId(task.id)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <button
                       className="kanban-delete-btn"
@@ -310,13 +419,47 @@ export default function TeamPlanning({ team }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta">
-                      <Avatar
-                        initials={task.assignee.initials}
-                        gradient={task.assignee.gradient}
-                        size="sm"
-                      />
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+<div
+                        className="attendee-stack"
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigningTask({ id: task.id, text: task.text });
+                        }}
+                      >
+                        {task.assignees && task.assignees.length > 0 ? (
+                          task.assignees.map((assignee, idx) => (
+                            <AssigneeAvatar
+                              key={assignee.cip}
+                              assignee={assignee}
+                              size="sm"
+                              style={{
+                                marginLeft: idx > 0 ? '-8px' : '0',
+                                border: '2px solid var(--bg-primary)',
+                                zIndex: 10 - idx
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <div
+                            className="avatar avatar-sm"
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              border: '1.5px dashed var(--border)',
+                              color: 'var(--text-tertiary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 'normal'
+                            }}
+                            title="Aucun assigné"
+                          >
+                                <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -330,7 +473,9 @@ export default function TeamPlanning({ team }) {
               onDrop={() => handleDrop('done')}
             >
               <div className="kanban-column-header">
-                <h3>✅ Done</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <img src={completedIcon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                    Done</h3>
                 <span className="kanban-count">{columns.done.length}</span>
               </div>
               <div className="kanban-tasks">
@@ -340,6 +485,8 @@ export default function TeamPlanning({ team }) {
                     className="kanban-card done"
                     draggable
                     onDragStart={() => handleDragStart(task)}
+                    onClick={() => setEditingTaskId(task.id)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <button
                       className="kanban-delete-btn"
@@ -350,50 +497,53 @@ export default function TeamPlanning({ team }) {
                       ×
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
-                    <div className="kanban-task-meta">
-                      <Avatar
-                        initials={task.assignee.initials}
-                        gradient={task.assignee.gradient}
-                        size="sm"
-                      />
-                      <PriorityTag priority={task.priority} />
+                    <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+                      <div
+                        className="attendee-stack"
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssigningTask({ id: task.id, text: task.text });
+                        }}
+                      >
+                        {task.assignees && task.assignees.length > 0 ? (
+                          task.assignees.map((assignee, idx) => (
+                            <AssigneeAvatar
+                              key={assignee.cip}
+                              assignee={assignee}
+                              size="sm"
+                              style={{
+                                marginLeft: idx > 0 ? '-8px' : '0',
+                                border: '2px solid var(--bg-primary)',
+                                zIndex: 10 - idx
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <div
+                            className="avatar avatar-sm"
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              border: '1.5px dashed var(--border)',
+                              color: 'var(--text-tertiary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 'normal'
+                            }}
+                            title="Aucun assigné"
+                          >
+                              <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Upcoming meetings */}
-        <section aria-labelledby="meetings-heading">
-          <div className="plan-section-header">
-            <div className="plan-section-title" id="meetings-heading">Upcoming Meetings</div>
-            <button className="plan-add-btn" aria-label="Schedule a meeting">➕ Schedule</button>
-          </div>
-          <ul className="meeting-list" aria-label="Upcoming meetings">
-            {MEETINGS.map(m => (
-              <li
-                key={m.id}
-                className="meeting-item"
-                style={{ borderLeftColor: m.color }}
-              >
-                <div className="meeting-time-block">
-                  <div className="meeting-time" style={{ color: m.color }}>{m.time}</div>
-                  <div className="meeting-dur">{m.duration}</div>
-                </div>
-                <div className="meeting-info">
-                  <div className="meeting-name">{m.name}</div>
-                  <div className="meeting-when">{m.when}</div>
-                </div>
-                <div className="attendee-stack" aria-label="Attendees">
-                  {m.attendees.map((a, i) => (
-                    <Avatar key={i} initials={a.initials} gradient={a.gradient} size="sm" />
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
         </section>
 
         {/* Today's Deadlines */}
@@ -434,39 +584,108 @@ export default function TeamPlanning({ team }) {
         {/* Team members */}
         <div>
           <div className="ps-section-title">Team Members</div>
+          <button
+            onClick={() => setShowInviteModal(true)}
+            style={{
+              width: '100%',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.15s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--blue-bg)';
+              e.currentTarget.style.borderColor = 'var(--blue)';
+              e.currentTarget.style.color = 'var(--blue)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--bg-secondary)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+          >
+              <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
+              Inviter un membre
+          </button>
+
           {loading ? (
             <div className="loading-spinner" style={{ margin: '10px 0' }} />
           ) : members.length === 0 ? (
             <div className="panel-section">No members</div>
           ) : (
-            members.map(m => (
-              <div key={m.id} className="member-row">
-                <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status} dotSize="sm" />
-                <div className="member-info">
-                  <div className="member-name">{m.name}</div>
-                  <div className="member-role">{m.role}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Admins Category */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                  Admins ({members.filter(m => m.status === 'Admin').length})
                 </div>
+                {members.filter(m => m.status === 'Admin').map(m => (
+                  <div key={m.id} className="member-row" style={{ marginBottom: '6px' }}>
+                    <MemberAvatar member={m} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
+                    <div className="member-info">
+                      <div className="member-name">{m.name}</div>
+                      <div className="member-role">Admin</div>
+                    </div>
+                    {(isCurrentUserAdmin || m.id === user?.cip) && (
+                      <button
+                        className="member-remove-btn"
+                        onClick={(e) => { e.stopPropagation(); setMemberToRemove(m); }}
+                        title={m.id === user?.cip ? "Leave team" : "Remove member"}
+                        aria-label={m.id === user?.cip ? "Leave team" : "Remove member"}
+                      >
+                        &times;
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {members.filter(m => m.status === 'Admin').length === 0 && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', paddingLeft: '4px' }}>Aucun administrateur</div>
+                )}
               </div>
-            ))
+
+              {/* Members Category */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                  Membres ({members.filter(m => m.status !== 'Admin').length})
+                </div>
+                {members.filter(m => m.status !== 'Admin').map(m => (
+                  <div key={m.id} className="member-row" style={{ marginBottom: '6px' }}>
+                    <MemberAvatar member={m} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
+                    <div className="member-info">
+                      <div className="member-name">{m.name}</div>
+                      <div className="member-role">{m.role}</div>
+                    </div>
+                    {(isCurrentUserAdmin || m.id === user?.cip) && (
+                      <button
+                        className="member-remove-btn"
+                        onClick={(e) => { e.stopPropagation(); setMemberToRemove(m); }}
+                        title={m.id === user?.cip ? "Leave team" : "Remove member"}
+                        aria-label={m.id === user?.cip ? "Leave team" : "Remove member"}
+                      >
+                        &times;
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {members.filter(m => m.status !== 'Admin').length === 0 && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', paddingLeft: '4px' }}>Aucun membre</div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="ps-divider" />
 
-        {/* Today's events */}
-        <div>
-          <div className="ps-section-title">Today's Events</div>
-          {TODAY_EVENTS.map(ev => (
-            <div
-              key={ev.id}
-              className="event-card"
-              style={{ background: ev.bg, borderColor: ev.border }}
-            >
-              <div className="event-time" style={{ color: ev.color }}>{ev.time}</div>
-              <div className="event-name">{ev.name}</div>
-            </div>
-          ))}
-        </div>
 
         <div className="ps-divider" />
 
@@ -505,21 +724,61 @@ export default function TeamPlanning({ team }) {
            </div>
          </div>
        )}
-     </div>
-   );
- }
 
-// ── PriorityTag ──────────────────────────────────────────────────────────────
-function PriorityTag({ priority }) {
-  const map = {
-    high: { label: 'High', cls: 'priority-high' },
-    med:  { label: 'Med',  cls: 'priority-med'  },
-    low:  { label: 'Low',  cls: 'priority-low'  },
-    done: { label: 'Done', cls: 'priority-done' },
-  };
-  const { label, cls } = map[priority] || map.low;
-  return <span className={`priority-tag ${cls}`}>{label}</span>;
-}
+       {/* Remove member confirmation modal */}
+       {memberToRemove && (
+         <div className="modal-overlay" onClick={() => setMemberToRemove(null)}>
+           <div className="modal" onClick={e => e.stopPropagation()}>
+             <div className="modal-title">
+               {memberToRemove.id === user?.cip ? "Leave team" : "Remove member"}
+             </div>
+             <div className="modal-subtitle">
+               {memberToRemove.id === user?.cip
+                 ? "Are you sure you want to leave the team?"
+                 : `Are you sure you want to remove ${memberToRemove.name} from the team?`}
+             </div>
+             <div className="modal-actions">
+               <button className="btn-cancel" onClick={() => setMemberToRemove(null)}>Cancel</button>
+               <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleRemoveMember(memberToRemove.id)}>
+                 {memberToRemove.id === user?.cip ? "Leave" : "Remove"}
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
+
+        {/* Edit task modal */}
+        {editingTaskId && (
+          <EditTaskModal
+            taskId={editingTaskId}
+            onClose={() => setEditingTaskId(null)}
+            onUpdated={fetchTasks}
+          />
+        )}
+
+        {/* Invite member modal */}
+        {showInviteModal && (
+          <InviteMemberModal
+            equipeId={team.equipeId}
+            existingMemberCips={members.map(m => m.id)}
+            onClose={() => setShowInviteModal(false)}
+            onAdded={fetchMembers}
+          />
+        )}
+
+        {/* Assignees management modal */}
+        {assigningTask && (
+          <AssigneesModal
+            taskId={assigningTask.id}
+            taskName={assigningTask.text}
+            teamMembers={members}
+            onClose={() => setAssigningTask(null)}
+            onUpdated={fetchTasks}
+          />
+        )}
+      </div>
+    );
+  }
 
 // ── MiniCalendar ─────────────────────────────────────────────────────────────
 function MiniCalendar({ equipeId }) {

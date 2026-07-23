@@ -1,6 +1,9 @@
-// src/components/shared/ChatInput.jsx
 import React, { useState, useRef } from 'react';
 import { getUploadUrl, uploadToUrl } from '../../services/api';
+import EmojiPicker from './EmojiPicker';
+
+import clipIcon from '../../assets/icons/clip.png'
+import emojiIcon from '../../assets/icons/happy-emoji.png'
 
 export default function ChatInput({
   onSend,
@@ -13,8 +16,28 @@ export default function ChatInput({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  function handleEmojiSelect(emoji) {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = input;
+    const newValue = text.substring(0, start) + emoji + text.substring(end);
+
+    setInput(newValue);
+
+    // Update DOM directly and synchronously so that the caret position
+    // is preserved before the browser handles clicks or focus loss.
+    textarea.value = newValue;
+    const cursorPos = start + emoji.length;
+    textarea.focus();
+    textarea.setSelectionRange(cursorPos, cursorPos);
+  }
 
   async function handleAttachClick() {
     fileInputRef.current?.click();
@@ -73,11 +96,20 @@ export default function ChatInput({
 
   return (
     <div className="chat-input-bar">
+      {/* Emoji Picker */}
+      {emojiPickerOpen && (
+        <div className="emoji-picker-container">
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
+        </div>
+      )}
+
       <div className="input-actions">
-        <button className="action-btn" aria-label="Send image">🖼️</button>
-        <button className="action-btn" aria-label="Send video">🎬</button>
-        <button className="action-btn" aria-label="Attach file" disabled>📎</button>
-        {onEmojiClick && <button className="action-btn" aria-label="Emoji" onClick={() => onEmojiClick()}>😊</button>}
+        <button className="action-btn" aria-label="Attach file" onClick={handleAttachClick}>
+            <img src={clipIcon} alt="Attach" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+        </button>
+        <button className="action-btn" aria-label="Emoji" onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}>
+            <img src={emojiIcon} alt="Attach" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+        </button>
         <input ref={fileInputRef} type="file" style={{ display: 'none' }} multiple onChange={handleFilesSelected} />
       </div>
 

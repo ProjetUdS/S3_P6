@@ -15,5 +15,7 @@ public interface EquipeMemberMapper {
 
     List<TeamMember> selectMembers(@Param("equipeId") String equipeId);
 
+    boolean isMember(@Param("equipeId") String equipeId, @Param("cip") String cip);
+
     String getNewId();
 }

@@ -1,0 +1,12 @@
+# Ignore node dependencies and build outputs
+node_modules
+webApp/node_modules
+webApp/dist
+
+# Ignore version control and local IDE settings
+.git
+.gitignore
+.gradle
+.idea
+.run
+dist

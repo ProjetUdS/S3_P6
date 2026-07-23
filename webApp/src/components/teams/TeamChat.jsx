@@ -1,226 +1,243 @@
-// src/components/teams/TeamChat.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { TeamIcon } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
-import EmojiPicker from '../shared/EmojiPicker';
 import ChatInput from '../shared/ChatInput';
 import { useAuth } from '../../context/AuthContext';
 import { getTeamMembers, getDiscussions, getMessages, sendMessage, createDiscussion } from '../../services/api';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 
+import searchIcon from '../../assets/icons/search.png'
+import usersIcon from '../../assets/icons/users.png'
+import messageIcon from '../../assets/icons/message.png'
+
 export default function TeamChat({ team }) {
-  const { user } = useAuth();
-  const myCip = user?.cip;
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const messagesAreaRef = useRef(null);
+    const { user } = useAuth();
+    const myCip = user?.cip;
+    const [members, setMembers] = useState([]);
+    const [loading, setLoading]   = useState(true);
+    const [discussionId, setDiscussionId] = useState(null);
+    const messagesAreaRef = useRef(null);
+    const wsRef = useRef(null);
 
-  const {
-    messages,
-    setMessages,
-    hoveredMsgId,
-    setHoveredMsgId,
-    menuMsgId,
-    setMenuMsgId,
-    confirmDelete,
-    isOwn,
-    getRelativeTime,
-    transformMessages,
-    handleDelete,
-    confirmDeleteMessage,
-    cancelDelete,
-  } = useChatMessages(myCip, messagesAreaRef);
+    const {
+        messages,
+        setMessages,
+        hoveredMsgId,
+        setHoveredMsgId,
+        menuMsgId,
+        setMenuMsgId,
+        confirmDelete,
+        isOwn,
+        getRelativeTime,
+        transformMessages,
+        handleDelete,
+        confirmDeleteMessage,
+        cancelDelete,
+    } = useChatMessages(myCip, messagesAreaRef);
 
-  useEffect(() => {
-    if (!team?.equipeId) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    Promise.all([
-      getTeamMembers(team.equipeId)
-        .then(data => {
-          const transformed = (data || []).map(m => {
-            const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
-            return {
-              id: m.cip,
-              name,
-              initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
-              gradient: gradientForCip(m.cip),
-            };
-          });
-          setMembers(transformed);
-        })
-        .catch(err => console.error('Failed to load team members:', err)),
-      getDiscussions(null, team.equipeId)
-        .then(discussions => {
-          if (!discussions?.[0]) {
+    useEffect(() => {
+        if (!team?.equipeId || !myCip) {
             setLoading(false);
             return;
-          }
-          const discussionId = discussions[0].discussionId;
-          return getMessages(discussionId, 50, 0)
-            .then(data => {
-              setMessages(transformMessages(data));
-              setLoading(false);
-            })
-            .catch(err => {
-              console.error('Failed to load messages:', err);
-              setLoading(false);
+        }
+
+        setLoading(true);
+        let cancelled = false;
+
+        async function init() {
+            const memberData = await getTeamMembers(team.equipeId).catch(err => {
+                console.error('Failed to load team members:', err);
+                return [];
             });
-        })
-        .catch(err => console.error('Failed to load discussions:', err)),
-    ]);
-  }, [team?.equipeId]);
+            const transformed = (memberData || []).map(m => {
+                const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
+                return {
+                    id: m.cip,
+                    name,
+                    initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
+                    gradient: gradientForCip(m.cip),
+                };
+            });
+            if (cancelled) return;
+            setMembers(transformed);
 
-  async function handleSend(text, attachments) {
-    if (!myCip || !team?.equipeId) return;
+            const memberCips = transformed.map(m => m.id);
+            const discussions = await getDiscussions(null, team.equipeId).catch(() => []);
+            let did = discussions?.[0]?.discussionId;
 
-    const hasUploaded = (attachments || []).some(a => a.uploaded && a.fichierId);
-    if (!text && !hasUploaded) return;
+            if (!did) {
+                const newDiscussion = await createDiscussion({
+                    equipeId: team.equipeId,
+                    members: memberCips,
+                }).catch(err => {
+                    console.error('Failed to create discussion:', err);
+                    return null;
+                });
+                if (newDiscussion) {
+                    did = newDiscussion.discussionId || newDiscussion;
+                }
+            }
 
-    let discussionId = null;
-    const discussions = await getDiscussions(null, team.equipeId).catch(err => {
-      console.error('Failed to get discussions:', err);
-      return [];
-    });
+            if (!did || cancelled) {
+                if (!cancelled) setLoading(false);
+                return;
+            }
 
-    if (discussions?.[0]) {
-      discussionId = discussions[0].discussionId;
-    } else {
-      const memberCips = (members || []).map(m => m.id);
-      const newDiscussion = await createDiscussion({ equipeId: team.equipeId, members: memberCips }).catch(err => {
-        console.error('Failed to create discussion:', err);
-        return null;
-      });
-      if (newDiscussion) {
-        discussionId = newDiscussion.discussionId || newDiscussion;
-      }
+            setDiscussionId(did);
+
+            const data = await getMessages(did, 50, 0).catch(err => {
+                console.error('Failed to load messages:', err);
+                return [];
+            });
+            if (!cancelled) {
+                setMessages(transformMessages(data));
+                setLoading(false);
+            }
+        }
+
+        init();
+
+        return () => { cancelled = true; };
+    }, [team?.equipeId, myCip]);
+
+    useEffect(() => {
+        if (!discussionId) return;
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const ws = new WebSocket(`${protocol}//${host}/ws/message/${discussionId}`);
+        wsRef.current = ws;
+
+        ws.onmessage = async (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'messageReceived') {
+                    const updated = await getMessages(discussionId, 50, 0);
+                    setMessages(transformMessages(updated));
+                }
+            } catch (err) {
+                console.error('Team WS msg err:', err);
+            }
+        };
+
+        ws.onerror = (err) => console.error('Team WS err:', err);
+        ws.onclose = () => {};
+
+        return () => {
+            ws.close();
+            wsRef.current = null;
+        };
+    }, [discussionId]);
+
+    async function handleSend(text, attachments) {
+        if (!myCip || !team?.equipeId || !discussionId) return;
+
+        const hasUploaded = (attachments || []).some(a => a.uploaded && a.fichierId);
+        if (!text && !hasUploaded) return;
+
+        const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
+            fichierId: a.fichierId,
+            nomOriginal: a.file.name,
+            typeMime: a.file.type,
+            tailleOctets: a.file.size,
+            cip: myCip,
+        }));
+
+        try {
+            await sendMessage({
+                contenu: text,
+                cip: myCip,
+                discussionId: discussionId,
+                fichiers: fichiersPayload.length ? fichiersPayload : undefined,
+            });
+
+            const updatedMessages = await getMessages(discussionId, 50, 0);
+            setMessages(transformMessages(updatedMessages));
+        } catch (err) {
+            console.error('Failed to send message:', err);
+        }
     }
 
-    if (!discussionId) return;
 
-    const fichiersPayload = (attachments || []).filter(a => a.uploaded && a.fichierId).map(a => ({
-      fichierId: a.fichierId,
-      nomOriginal: a.file.name,
-      typeMime: a.file.type,
-      tailleOctets: a.file.size,
-      cip: myCip,
-    }));
 
-    try {
-      await sendMessage({
-        contenu: text,
-        cip: myCip,
-        discussionId,
-        fichiers: fichiersPayload.length ? fichiersPayload : undefined,
-      });
+    const MEMBER_MAP = Object.fromEntries(members.map(m => [m.id, m]));
 
-      const updatedMessages = await getMessages(discussionId, 50, 0);
-      setMessages(transformMessages(updatedMessages));
-    } catch (err) {
-      console.error('Failed to send message:', err);
+    function getSender(msg) {
+        if (isOwn(msg)) {
+            return { initials: initialsFromUser(user), gradient: gradientForCip(myCip), cip: myCip };
+        }
+        const member = MEMBER_MAP[msg.from];
+        return {
+            initials: member?.initials || '?',
+            gradient: member?.gradient || '#ccc',
+            name: member?.name,
+            cip: member?.id,
+        };
     }
-  }
 
-  function handleEmojiSelect(emoji) {
-    const textarea = inputRef.current;
-    if (!textarea) return;
-    
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = input;
-    
-    setInput(text.substring(0, start) + emoji + text.substring(end));
-    
-    setTimeout(() => {
-      textarea.focus();
-      const cursorPos = start + emoji.length;
-      textarea.setSelectionRange(cursorPos, cursorPos);
-    }, 0);
-  }
-
-  const MEMBER_MAP = Object.fromEntries(members.map(m => [m.id, m]));
-
-  function getSender(msg) {
-    if (isOwn(msg)) {
-      return { initials: initialsFromUser(user), gradient: gradientForCip(myCip) };
-    }
-    const member = MEMBER_MAP[msg.from];
-    return {
-      initials: member?.initials || '?',
-      gradient: member?.gradient || '#ccc',
-      name: member?.name,
-    };
-  }
-
-  return (
-    <>
-      {/* Topbar */}
-      <div className="chat-topbar">
-        <TeamIcon initials={(team?.nomEquipe || '?').substring(0, 1).toUpperCase()} gradient="var(--grad-sr)" size="md" />
-        <div className="chat-topbar-info">
-          <div className="chat-topbar-name">{team?.nomEquipe || 'Team'}</div>
-          <div className="chat-topbar-sub">{members.length} members</div>
-        </div>
-        <div className="topbar-actions">
-          <button className="topbar-btn" aria-label="Search in chat">🔍</button>
-          <button className="topbar-btn" aria-label="Members">👥</button>
-          <button className="topbar-btn" aria-label="More options">⋯</button>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="messages-area" ref={messagesAreaRef} role="log" aria-live="polite">
-        <ChatMessagesList
-          messages={messages}
-          isOwn={isOwn}
-          getRelativeTime={getRelativeTime}
-          hoveredMsgId={hoveredMsgId}
-          setHoveredMsgId={setHoveredMsgId}
-          menuMsgId={menuMsgId}
-          setMenuMsgId={setMenuMsgId}
-          handleDelete={handleDelete}
-          getSender={getSender}
-          isLoading={loading}
-          emptyState={
-            <div className="empty-state" style={{ margin: '40px auto' }}>
-              <span className="empty-state-icon">💬</span>
-              <span className="empty-state-text">No messages yet</span>
+    return (
+        <>
+            {/* Topbar */}
+            <div className="chat-topbar">
+                <TeamIcon initials={(team?.nomEquipe || '?').substring(0, 1).toUpperCase()} gradient="var(--grad-sr)" size="md" />
+                <div className="chat-topbar-info">
+                    <div className="chat-topbar-name">{team?.nomEquipe || 'Team'}</div>
+                    <div className="chat-topbar-sub">{members.length} members</div>
+                </div>
+                <div className="topbar-actions">
+                    <button className="topbar-btn" aria-label="Search in chat">
+                        <img src={searchIcon} alt="Search" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                    </button>
+                    <button className="topbar-btn" aria-label="Members">
+                        <img src={usersIcon} alt="Users" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                    </button>
+                    <button className="topbar-btn" aria-label="More options">⋯</button>
+                </div>
             </div>
-          }
-        />
-      </div>
 
-      {/* Emoji Picker */}
-      {emojiPickerOpen && (
-        <div className="emoji-picker-container">
-          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
-        </div>
-      )}
-
-      {/* Input */}
-      <ChatInput
-        onSend={handleSend}
-        placeholder={`Message ${team?.nomEquipe || 'team'}…`}
-        onEmojiClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
-      />
-
-      {confirmDelete && (
-        <div className="modal-overlay" onClick={cancelDelete}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Delete message</div>
-            <div className="modal-subtitle">Are you sure you want to delete this message? This action cannot be undone.</div>
-            <div className="modal-actions">
-              <button className="btn-cancel" onClick={cancelDelete}>Cancel</button>
-              <button className="btn-primary" style={{ background: '#ef4444' }} onClick={confirmDeleteMessage}>Delete</button>
+            {/* Messages */}
+            <div className="messages-area" ref={messagesAreaRef} role="log" aria-live="polite">
+                <ChatMessagesList
+                    messages={messages}
+                    isOwn={isOwn}
+                    getRelativeTime={getRelativeTime}
+                    hoveredMsgId={hoveredMsgId}
+                    setHoveredMsgId={setHoveredMsgId}
+                    menuMsgId={menuMsgId}
+                    setMenuMsgId={setMenuMsgId}
+                    handleDelete={handleDelete}
+                    getSender={getSender}
+                    isLoading={loading}
+                    emptyState={
+                        <div className="empty-state" style={{ margin: '40px auto' }}>
+              <span className="empty-state-icon">
+                  <img src={messageIcon} alt="Message" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+              </span>
+                            <span className="empty-state-text">No messages yet</span>
+                        </div>
+                    }
+                />
             </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+
+            {/* Input */}
+            <ChatInput
+                onSend={handleSend}
+                placeholder={`Message ${team?.nomEquipe || 'team'}…`}
+            />
+
+            {confirmDelete && (
+                <div className="modal-overlay" onClick={cancelDelete}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-title">Delete message</div>
+                        <div className="modal-subtitle">Are you sure you want to delete this message? This action cannot be undone.</div>
+                        <div className="modal-actions">
+                            <button className="btn-cancel" onClick={cancelDelete}>Cancel</button>
+                            <button className="btn-primary" style={{ background: '#ef4444' }} onClick={confirmDeleteMessage}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
 }

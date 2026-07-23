@@ -3,18 +3,17 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.TacheMapper">
-
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Tache">
-        select tache_id      as id,
-               nom_tache     as nomTache,
+        SELECT tache_id      AS id,
+               nom_tache     AS nomTache,
                status,
                description,
-               date_creation as dateCreation,
-               date_debut    as dateDebut,
-               date_fin      as dateFin,
-               equipe_id     as equipeId,
+               date_creation AS dateCreation,
+               date_debut    AS dateDebut,
+               date_fin      AS dateFin,
+               equipe_id     AS equipeId,
                cip
-        from app.Tache
+        FROM app.Tache
         where (equipe_id, nom_tache) =
               (coalesce(#{equipeId}, equipe_id),
                coalesce(#{nomTache}, nom_tache))
@@ -93,6 +92,21 @@
         where equipe_id = #{equipeId}
           and date_fin is not null
         order by date_fin asc
+    </select>
+
+    <select id="tachesAvecDeadlineDemain" resultType="ca.usherbrooke.fgen.api.business.Tache">
+        SELECT t.tache_id      as id,
+               t.nom_tache     as nomTache,
+               t.status,
+               t.description,
+               t.date_creation as dateCreation,
+               t.date_debut    as dateDebut,
+               t.date_fin      as dateFin,
+               t.equipe_id     as equipeId,
+               t.cip
+        FROM app.Tache t
+        WHERE DATE(t.date_fin) = CURRENT_DATE + INTERVAL '1 day'
+          AND t.status != 'terminé'
     </select>
 
     <delete id="deleteOne">

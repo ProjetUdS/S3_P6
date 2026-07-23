@@ -18,17 +18,15 @@
                 #{nom},
                 #{prenom},
                 #{photoProfilId}) on conflict (cip) do
-        update set
-            pseudo = excluded.pseudo,
-            courriel = excluded.courriel,
-            nom = excluded.nom,
-            prenom = excluded.prenom,
-            photo_de_profil_id = excluded.photo_de_profil_id
+            update set
+                       courriel = excluded.courriel,
+                       nom = excluded.nom,
+                       prenom = excluded.prenom
     </insert>
 
 
   <select id="select" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
-      SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
+      SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id AS photoProfilId
       FROM app.utilisateur
       WHERE ((#{cip, jdbcType=VARCHAR} IS NULL) OR (cip ILIKE CONCAT(#{cip, jdbcType=VARCHAR}, '%')))
         AND ((#{pseudo, jdbcType=VARCHAR} IS NULL) OR (pseudo ILIKE CONCAT(#{pseudo, jdbcType=VARCHAR}, '%')))
@@ -38,12 +36,14 @@
   </select>
 
     <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
-        SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id
+        SELECT cip, pseudo, nom, prenom, courriel, photo_de_profil_id AS photoProfilId
         FROM app.utilisateur
-        WHERE cip = coalesce(#{cip}, cip)
-          AND pseudo = coalesce(#{pseudo}, pseudo)
-          AND courriel = coalesce(#{courriel}, courriel)
-          AND (#{cip} IS NOT NULL OR #{pseudo} IS NOT NULL OR #{courriel} IS NOT NULL)
+        WHERE cip = coalesce(#{cip, jdbcType=VARCHAR}, cip)
+          AND pseudo = coalesce(#{pseudo, jdbcType=VARCHAR}, pseudo)
+          AND courriel = coalesce(#{courriel, jdbcType=VARCHAR}, courriel)
+          AND (#{cip, jdbcType=VARCHAR} IS NOT NULL
+            OR #{pseudo, jdbcType=VARCHAR} IS NOT NULL
+            OR #{courriel, jdbcType=VARCHAR} IS NOT NULL)
     </select>
 
     <delete id="deleteOne">
@@ -57,8 +57,24 @@
         VALUES (#{cip}, #{cip_contact})
     </insert>
 
+    <update id="updateUtilisateur">
+        UPDATE app.utilisateur
+        SET pseudo             = coalesce(#{pseudo}, pseudo),
+            courriel           = coalesce(#{courriel}, courriel),
+            nom                = coalesce(#{nom}, nom),
+            prenom             = coalesce(#{prenom}, prenom),
+            photo_de_profil_id = coalesce(#{photoProfilId}, photo_de_profil_id)
+        WHERE cip = #{cip}
+    </update>
+
+    <update id="clearPhoto">
+        UPDATE app.utilisateur
+        SET photo_de_profil_id = NULL
+        WHERE cip = #{cip}
+    </update>
+
     <select id="getContacts" resultType="ca.usherbrooke.fgen.api.business.Utilisateur">
-        SELECT u.cip, u.pseudo, u.courriel, u.nom, u.prenom, u.photo_de_profil_id
+        SELECT u.cip, u.pseudo, u.courriel, u.nom, u.prenom, u.photo_de_profil_id AS photoProfilId
         FROM app.Contact c
         JOIN app.Utilisateur u ON c.cip_contact = u.cip
         WHERE c.cip = #{cip}

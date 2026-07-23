@@ -6,6 +6,7 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.http.Method;
 import io.quarkus.runtime.StartupEvent;
+import io.minio.RemoveObjectArgs;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -134,6 +135,23 @@ public class MinioStorageService {
                         .object(fichierId)
                         .build()
         );
+    }
+
+    public void removeObject(String fichierId) {
+        if (!minioAvailable || fichierId == null) {
+            return;
+        }
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(fichierId)
+                            .build()
+            );
+        } catch (Exception e) {
+            // Non bloquant : un objet orphelin dans MinIO n'est pas critique
+            log.warnf("Failed to remove object %s from bucket %s: %s", fichierId, bucketName, e.getMessage());
+        }
     }
 
     public static class PresignedUrlResponse {

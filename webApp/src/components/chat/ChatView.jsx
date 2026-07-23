@@ -3,38 +3,39 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
-import EmojiPicker from '../shared/EmojiPicker';
 import ChatInput from '../shared/ChatInput';
-import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState} from '../../services/api';
+import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState, getUploadUrl, uploadToUrl, getDownloadUrl, default as api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
 
-export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged }) {
+export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged, activeFriend, onNotif }) {
   const { user } = useAuth();
   const myCip = user?.cip;
+  const { avatarUrl: friendAvatarUrl } = useAvatarUrl(friend?.cip);
   const [localDiscussionId, setLocalDiscussionId] = useState(null);
   const [topbarMenuOpen, setTopbarMenuOpen] = useState(false);
   const [confirmDeleteConversation, setConfirmDeleteConversation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const pendingActionRef = useRef(null);
   const messagesAreaRef = useRef(null);
 
-  const {
-    messages,
-    setMessages,
-    hoveredMsgId,
-    setHoveredMsgId,
-    menuMsgId,
-    setMenuMsgId,
-    confirmDelete,
-    isOwn,
-    getRelativeTime,
-    transformMessages,
-    handleDelete,
-    confirmDeleteMessage,
-    cancelDelete,
-  } = useChatMessages(myCip, messagesAreaRef);
+    const {
+        messages,
+        setMessages,
+        hoveredMsgId,
+        setHoveredMsgId,
+        menuMsgId,
+        setMenuMsgId,
+        confirmDelete,
+        isOwn,
+        getRelativeTime,
+        transformMessages,
+        handleDelete,
+        confirmDeleteMessage,
+        cancelDelete,
+        connectWebSocket,
+    } = useChatMessages(myCip, messagesAreaRef);
 
   const discussionId = propDiscussionId || localDiscussionId;
 
@@ -70,6 +71,27 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     return () => document.removeEventListener('click', handler);
   }, [topbarMenuOpen]);
 
+    const isActiveConversationRef = useRef(false);
+
+    useEffect(() => {
+        isActiveConversationRef.current = true;
+        return () => {
+            isActiveConversationRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        console.log('useEffect WebSocket - discussionId:', discussionId, 'friend?.cip:', friend?.cip);
+        if (!discussionId || !friend?.cip) return;
+        const cleanup = connectWebSocket(
+            discussionId,
+            friend.cip,
+            () => isActiveConversationRef.current,
+            onNotif
+        );
+        return cleanup;
+    }, [discussionId, friend?.cip]);
+
   async function handleSend(text, attachments) {
     if (!myCip || !friend?.cip) return;
 
@@ -104,6 +126,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         contenu: text,
         cip: myCip,
         discussionId,
+        destinataireCip: friend.cip,
         fichiers: fichiersPayload.length ? fichiersPayload : undefined,
       });
       const data = await getFriendConversation(myCip, friend.cip, 100, 0);
@@ -118,22 +141,7 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     }
   }
 
-  function handleEmojiSelect(emoji) {
-    const textarea = document.querySelector('.chat-text-input');
-    if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-
-    textarea.value = text.substring(0, start) + emoji + text.substring(end);
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
-    }, 0);
-  }
 
   const isReadOnly = !['enabled', 'active'].includes(etat);
 
@@ -245,7 +253,14 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     <div className="main-area">
       {/* Topbar */}
       <div className="chat-topbar">
-        <Avatar initials={friend?.initials} gradient={friend?.gradient} size="md" status={friend?.status} />
+        <Avatar
+          initials={friend?.initials}
+          gradient={friend?.gradient}
+          size="md"
+          status={friend?.status}
+          src={friendAvatarUrl}
+          alt={friend?.name || 'Photo de profil'}
+        />
         <div className="chat-topbar-info">
           <div className="chat-topbar-name">{friend?.name}</div>
           <div className="chat-topbar-sub">
@@ -295,8 +310,8 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
           setMenuMsgId={setMenuMsgId}
           handleDelete={handleDelete}
           getSender={(msg) => isOwn(msg)
-            ? { initials: initialsFromUser(user), gradient: gradientForCip(myCip) }
-            : { initials: friend?.initials, gradient: friend?.gradient, name: friend?.name }}
+            ? { initials: initialsFromUser(user), gradient: gradientForCip(myCip), cip: myCip }
+            : { initials: friend?.initials, gradient: friend?.gradient, name: friend?.name, cip: friend?.cip }}
           emptyState={
             <div className="empty-state" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="empty-state-icon">💬</span>
@@ -306,19 +321,11 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
         />
       </div>
 
-      {/* Emoji Picker */}
-      {emojiPickerOpen && (
-        <div className="emoji-picker-container">
-          <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
-        </div>
-      )}
-
       {/* Input bar or action button for read-only */}
       <ChatInput
         onSend={handleSend}
         placeholder={getPlaceholder()}
         isReadOnly={isReadOnly}
-        onEmojiClick={isReadOnly ? undefined : () => setEmojiPickerOpen(!emojiPickerOpen)}
       >
         {isReadOnly && (
           <button

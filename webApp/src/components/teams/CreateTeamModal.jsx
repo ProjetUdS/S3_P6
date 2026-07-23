@@ -2,18 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { getContacts, createEquipe } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
+
+function ContactAvatar({ contact }) {
+  const { avatarUrl } = useAvatarUrl(contact.cip);
+  return (
+    <Avatar
+      initials={contact.pseudo?.substring(0, 2).toUpperCase() || '?'}
+      gradient="var(--grad-sr)"
+      size="sm"
+      src={avatarUrl}
+      alt={contact.pseudo}
+    />
+  );
+}
 
 export default function CreateTeamModal({ onClose, onCreated }) {
   const { user } = useAuth();
   const [teamName, setTeamName] = useState('');
   const [contacts, setContacts] = useState([]);
   const [selectedCips, setSelectedCips] = useState(new Set());
-  const [loading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (user?.cip) {
-      getContacts(user.cip).then(setContacts).catch(() => setError('Failed to load contacts'));
+      getContacts(user.cip).then(setContacts).catch(() => setError('Failed to load contacts')).finally(() => setLoading(false));
     }
   }, [user]);
 
@@ -72,7 +86,7 @@ export default function CreateTeamModal({ onClose, onCreated }) {
                 border: `2px solid ${selectedCips.has(c.cip) ? 'var(--blue)' : 'var(--border)'}`,
                 flexShrink: 0,
               }} />
-              <Avatar initials={c.pseudo?.substring(0, 2).toUpperCase() || '?'} gradient="var(--grad-sr)" size="sm" />
+              <ContactAvatar contact={c} />
               <div className="suggestion-info">
                 <div className="suggestion-name">{c.prenom} {c.nom}</div>
                 <div className="suggestion-email">{c.courriel}</div>

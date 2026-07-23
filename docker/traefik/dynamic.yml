@@ -8,10 +8,6 @@ tls:
 http:
 
   middlewares:
-    root-redirect:
-      redirectRegex:
-        regex: "^/$"
-        replacement: "/usager/"
     auth-forward-prefix:
       headers:
         customRequestHeaders:
@@ -36,19 +32,34 @@ http:
       stripPrefix:
         prefixes:
           - "/usager"
+    root-redirect:
+      redirectRegex:
+        regex: "^/$"
+        replacement: "/usager/"
 
   routers:
-    app:
+    app-0:
       rule: "PathPrefix(`/api`)"
       service: app
       priority: 10
-      entryPoints:
-        - web
-        - websecure
       tls:
         certResolver: duckdns
         domains:
           - main: collabapp.duckdns.org
+      entryPoints:
+        - web
+        - websecure
+    app-1:
+      rule: "PathPrefix(`/ws`)"
+      service: app
+      priority: 10
+      tls:
+        certResolver: duckdns
+        domains:
+          - main: collabapp.duckdns.org
+      entryPoints:
+        - web
+        - websecure
     auth:
       rule: "PathPrefix(`/auth`)"
       service: auth
@@ -56,13 +67,13 @@ http:
       middlewares:
         - auth-forward-prefix
         - auth-strip
-      entryPoints:
-        - web
-        - websecure
       tls:
         certResolver: duckdns
         domains:
           - main: collabapp.duckdns.org
+      entryPoints:
+        - web
+        - websecure
     minio:
       rule: "PathPrefix(`/fichier`)"
       service: minio
@@ -84,13 +95,13 @@ http:
       middlewares:
         - webserver-forward-prefix
         - webserver-strip
-      entryPoints:
-        - web
-        - websecure
       tls:
         certResolver: duckdns
         domains:
           - main: collabapp.duckdns.org
+      entryPoints:
+        - web
+        - websecure
     root:
       rule: "PathPrefix(`/`)"
       service: root-noop
@@ -115,7 +126,6 @@ http:
         certResolver: duckdns
         domains:
           - main: collabapp.duckdns.org
-
   services:
     app:
       failover:
@@ -181,7 +191,7 @@ http:
           interval: 5s
           timeout: 1s
         servers:
-          - url: "http://minio:9000"
+          - url: "http://minio-storage:9000"
         passHostHeader: true
     webserver:
       failover:

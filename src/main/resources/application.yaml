@@ -9,6 +9,10 @@ quarkus:
         api:
           paths: /api/*
           policy: authenticated
+        # Ajout exception pour les routes WebSocket
+        websocket:
+          paths: /ws/*
+          policy: permit
         # Règle 2 : Laisser tout le reste public (index.html, Swagger, etc.)
         public:
           paths:
@@ -33,6 +37,7 @@ quarkus:
         - GET
         - PUT
         - POST
+        - PATCH
         - DELETE
         - OPTIONS
       headers:
@@ -46,17 +51,6 @@ quarkus:
     credentials:
       secret: ${OIDC_SECRET}
     application-type: service
-
-#
-#  tls:
-#    keycloak:
-#      trust-store:
-#        pem:
-#          certs: cert.pem
-
-  tls:
-    trust-all: true
-    hostname-verification-algorithm: NONE
 
   # --- Data Source Configuration ---
   datasource:
@@ -76,9 +70,15 @@ quarkus:
       enable: false
     map-underscore-to-camel-case: true
 
+  rest-client:
+    "keycloak-account-api":
+      url: ${HTTP_TYPE:http}://${SERVER_IP:localhost}${KEYCLOAK_PATH:}/${OIDC_REALM:realms/usager}
+      scope: jakarta.inject.Singleton
+      disable-default-mapper: true
+
 # MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
 minio:
-  url: "http://minio:${MINIO_PORT}"
+  url: "http://minio-storage:${MINIO_PORT}"
   access:
     key: ${MINIO_USER}
   secret:

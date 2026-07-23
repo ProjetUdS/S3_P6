@@ -5,17 +5,35 @@
 
 <mapper namespace="ca.usherbrooke.fgen.api.mapper.DiscussionMapper">
 
-<!--    TODO : fix filtre avec autre que équipe
-fp.cip = any (coalesce( #{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler},ARRAY[fp.cip]))
-        AND d.discussion_id = (coalesce(#{discussionId},d.discussion_id))
--->
-    <select id="select" resultType="ca.usherbrooke.fgen.api.business.Discussion">
-        SELECT e.discussion_id, d.discussion_id
-        FROM app.discussion d, app.equipe e
-        WHERE e.discussion_id = d.discussion_id
+    <resultMap id="DiscussionResultMap" type="ca.usherbrooke.fgen.api.business.Discussion">
+        <id property="discussionId" column="discussion_id" />
+        <collection property="members" column="discussion_id" javaType="java.util.List" ofType="java.lang.String" select="selectDiscussionMembers" />
+    </resultMap>
+
+    <select id="selectDiscussionMembers" resultType="java.lang.String">
+        SELECT cip
+        FROM app.fait_parti
+        WHERE discussion_id = #{discussionId}
     </select>
 
-    <select id="selectOne" resultType="ca.usherbrooke.fgen.api.business.Discussion">
+    <select id="select" resultMap="DiscussionResultMap">
+        SELECT d.discussion_id
+        FROM app.discussion d
+        LEFT JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
+        <where>
+            <if test="usersId != null">
+                AND fp.cip = ANY(#{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler})
+            </if>
+            <if test="equipeId != null">
+                AND d.discussion_id = (SELECT e.discussion_id FROM app.equipe e WHERE e.equipe_id = #{equipeId})
+            </if>
+            <if test="discussionId != null">
+                AND d.discussion_id = #{discussionId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectOne" resultMap="DiscussionResultMap">
         SELECT discussion_id
         FROM app.discussion
         WHERE discussion_id = #{discussionId}
