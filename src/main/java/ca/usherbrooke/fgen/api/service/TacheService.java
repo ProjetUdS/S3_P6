@@ -78,7 +78,10 @@ public class TacheService {
         if (tache == null || !equipeMemberMapper.isMember(tache.equipeId, cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
+        String equipeId = tache.equipeId;
         tacheMapper.deleteOne(tacheId);
+        TacheWebSocket.broadcast(equipeId,
+                "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + equipeId + "\"}");
     }
 
     @POST
@@ -90,6 +93,8 @@ public class TacheService {
         tache.id = UUID.randomUUID().toString();
         tache.dateCreation = new java.util.Date();
         tacheMapper.insertTache(tache);
+        TacheWebSocket.broadcast(tache.equipeId,
+                "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tache.id + "\",\"equipeId\":\"" + tache.equipeId + "\"}");
     }
 
     @POST
@@ -101,6 +106,8 @@ public class TacheService {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         tacheMapper.setStatus(tacheId, status);
+        TacheWebSocket.broadcast(tache.equipeId,
+                "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + tache.equipeId + "\"}");
     }
 
     @GET
