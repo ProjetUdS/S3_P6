@@ -1,7 +1,7 @@
 // src/components/teams/TeamPlanning.jsx
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { MEETINGS, TODAY_EVENTS } from '../../data/mockData';
+
 import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache, getAssignees, removeTeamMember } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
@@ -526,38 +526,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
           </div>
         </section>
 
-        {/* Upcoming meetings */}
-        <section aria-labelledby="meetings-heading">
-          <div className="plan-section-header">
-            <div className="plan-section-title" id="meetings-heading">Upcoming Meetings</div>
-            <button className="plan-add-btn" aria-label="Schedule a meeting">
-                <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
-                Schedule</button>
-          </div>
-          <ul className="meeting-list" aria-label="Upcoming meetings">
-            {MEETINGS.map(m => (
-              <li
-                key={m.id}
-                className="meeting-item"
-                style={{ borderLeftColor: m.color }}
-              >
-                <div className="meeting-time-block">
-                  <div className="meeting-time" style={{ color: m.color }}>{m.time}</div>
-                  <div className="meeting-dur">{m.duration}</div>
-                </div>
-                <div className="meeting-info">
-                  <div className="meeting-name">{m.name}</div>
-                  <div className="meeting-when">{m.when}</div>
-                </div>
-                <div className="attendee-stack" aria-label="Attendees">
-                  {m.attendees.map((a, i) => (
-                    <Avatar key={i} initials={a.initials} gradient={a.gradient} size="sm" />
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
+
 
         {/* Today's Deadlines */}
         <section aria-labelledby="deadlines-heading">
@@ -698,22 +667,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
           )}
         </div>
 
-        <div className="ps-divider" />
 
-        {/* Today's events */}
-        <div>
-          <div className="ps-section-title">Today's Events</div>
-          {TODAY_EVENTS.map(ev => (
-            <div
-              key={ev.id}
-              className="event-card"
-              style={{ background: ev.bg, borderColor: ev.border }}
-            >
-              <div className="event-time" style={{ color: ev.color }}>{ev.time}</div>
-              <div className="event-name">{ev.name}</div>
-            </div>
-          ))}
-        </div>
 
         <div className="ps-divider" />
 
