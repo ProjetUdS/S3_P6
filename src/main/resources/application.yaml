@@ -79,6 +79,8 @@ quarkus:
 # MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
 minio:
   url: "http://minio-storage:${MINIO_PORT}"
+  browser:
+    url: ${MINIO_SERVER_URL}
   access:
     key: ${MINIO_USER}
   secret:
