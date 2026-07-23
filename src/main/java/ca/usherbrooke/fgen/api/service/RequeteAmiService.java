@@ -24,6 +24,9 @@ public class RequeteAmiService {
     @Inject
     JsonWebToken jwt;
 
+    @Inject
+    NotificationService notificationService;
+
     @GET
     public List<String> getRequetes(@QueryParam("cip") String cip) {
         String cipConnecte = (String) jwt.getClaim("cip");
@@ -52,6 +55,11 @@ public class RequeteAmiService {
         requeteAmiMapper.insertRequete(cip, destinataireCip);
         RequeteAmiWebSocket.broadcast(destinataireCip,
                 "{\"type\":\"friendRequest\",\"de\":\"" + cip + "\",\"a\":\"" + destinataireCip + "\"}");
+        try {
+            notificationService.creerNotification(destinataireCip, "friendRequest", "Vous avez reçu une demande d'ami de " + cip);
+        } catch (Exception e) {
+            // non-critical
+        }
         return destinataireCip;
     }
 

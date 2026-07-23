@@ -3,6 +3,7 @@ package ca.usherbrooke.fgen.api.service;
 import ca.usherbrooke.fgen.api.business.Tache;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.TacheMapper;
+import ca.usherbrooke.fgen.api.mapper.AssigneeMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -24,6 +25,12 @@ public class TacheService {
 
     @Inject
     EquipeMemberMapper equipeMemberMapper;
+
+    @Inject
+    AssigneeMapper assigneeMapper;
+
+    @Inject
+    NotificationService notificationService;
 
     @Inject
     JsonWebToken jwt;
@@ -135,6 +142,14 @@ public class TacheService {
         if (tache != null) {
             TacheWebSocket.broadcast(tache.equipeId,
                     "{\"type\":\"taskUpdated\",\"tacheId\":\"" + tacheId + "\",\"equipeId\":\"" + tache.equipeId + "\"}");
+            List<String> assignees = assigneeMapper.selectAssignees(tacheId);
+            for (String assignee : assignees) {
+                if (!assignee.equals(cipConnecte)) {
+                    try {
+                        notificationService.creerNotification(assignee, "taskUpdated", "La tâche '" + tache.nomTache + "' a été mise à jour.");
+                    } catch (Exception e) {}
+                }
+            }
         }
     }
 }

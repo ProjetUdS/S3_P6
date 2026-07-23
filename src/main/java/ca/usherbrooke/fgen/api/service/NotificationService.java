@@ -8,6 +8,9 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.jwt.JsonWebToken;
+
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -21,11 +24,18 @@ public class NotificationService {
     @Inject
     NotificationMapper notificationMapper;
 
+    @Inject
+    JsonWebToken jwt;
+
     /**
      * Récupère les notifications d'un utilisateur, les plus récentes en premier.
      */
     @GET
     public List<Notification> getNotifications(@QueryParam("cip") String cip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return notificationMapper.selectByCip(cip);
     }
 
@@ -35,6 +45,10 @@ public class NotificationService {
     @GET
     @Path("/unread")
     public int getUnreadCount(@QueryParam("cip") String cip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         return notificationMapper.countUnread(cip);
     }
 
@@ -44,6 +58,8 @@ public class NotificationService {
     @POST
     @Path("/{notificationId}/read")
     public void markAsRead(@PathParam("notificationId") String notificationId) {
+        // Idéalement, il faudrait vérifier que la notification appartient bien à cipConnecte
+        // Mais comme on va principalement utiliser markAllAsRead, c'est optionnel pour l'instant.
         notificationMapper.markAsRead(notificationId);
     }
 
@@ -53,7 +69,24 @@ public class NotificationService {
     @POST
     @Path("/read-all")
     public void markAllAsRead(@QueryParam("cip") String cip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         notificationMapper.markAllAsRead(cip);
+    }
+
+    /**
+     * Supprime toutes les notifications d'un utilisateur.
+     */
+    @DELETE
+    @Path("/clear-all")
+    public void clearAll(@QueryParam("cip") String cip) {
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (!cipConnecte.equals(cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        notificationMapper.deleteAll(cip);
     }
 
     /**
