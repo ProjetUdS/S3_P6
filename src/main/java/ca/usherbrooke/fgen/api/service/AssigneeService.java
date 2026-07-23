@@ -61,8 +61,13 @@ public class AssigneeService {
         }
 
         assigneeMapper.insertAssignee(tacheId, cip);
-        notificationService.creerNotification(cip, "taskAssigned",
-                "Une tache vous a ete assignee");
+        try {
+            notificationService.creerNotification(cip, "taskAssigned",
+                    "Une tache vous a ete assignee");
+        } catch (Exception e) {
+            // non-critical
+        }
+        TacheWebSocket.broadcast(equipeId, "{\"type\":\"taskUpdated\"}");
         return cip;
     }
 
@@ -80,6 +85,7 @@ public class AssigneeService {
         }
 
         assigneeMapper.deleteAssignee(tacheId, cip);
+        TacheWebSocket.broadcast(equipeId, "{\"type\":\"taskUpdated\"}");
         return cip;
     }
 }
