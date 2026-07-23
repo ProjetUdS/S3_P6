@@ -48,41 +48,6 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
   const [friendRequests, setFriendRequests] = useState([]);
 
   const conversations = (conversationsProp || []).filter(c => c.cip !== user?.cip);
-
-  useEffect(() => {
-    loadRequests();
-  }, [user?.cip]);
-
-  useFriendRequestWebSocket(user?.cip, (type) => {
-    if (type === 'friendRequest') {
-      loadRequests();
-    } else if (type === 'friendAccept') {
-      onFriendAdded?.();
-    }
-  });
-
-  async function handleAcceptRequest(senderCip) {
-    if (!user?.cip) return;
-    try {
-      await acceptFriendRequest(user.cip, senderCip);
-      loadRequests();
-      onFriendAdded?.();
-    } catch (err) {
-      console.error('Failed to accept friend request:', err);
-    }
-  }
-
-  async function handleRefuseRequest(senderCip) {
-    if (!user?.cip) return;
-    try {
-      await refuseFriendRequest(user.cip, senderCip);
-      loadRequests();
-    } catch (err) {
-      console.error('Failed to refuse friend request:', err);
-    }
-  }
-
-  const conversations = conversationsProp || [];
   const active = conversations.filter(c => ['enabled', 'active'].includes(c.etat));
   const archived = conversations.filter(c => ['archived', 'disabled'].includes(c.etat));
   const blocked = conversations.filter(c => c.etat === 'blocked');
@@ -155,6 +120,16 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
       .then(setFriendRequests)
       .catch(() => setFriendRequests([]));
   }, [user?.cip]);
+
+  useFriendRequestWebSocket(user?.cip, (type) => {
+    if (type === 'friendRequest' && user?.cip) {
+      getFriendRequests(user.cip)
+        .then(setFriendRequests)
+        .catch(() => setFriendRequests([]));
+    } else if (type === 'friendAccept') {
+      onFriendAdded?.();
+    }
+  });
 
   return (
     <>

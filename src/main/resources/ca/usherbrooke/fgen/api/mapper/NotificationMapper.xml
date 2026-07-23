@@ -50,4 +50,9 @@
         where cip = #{cip}
     </update>
 
+    <delete id="deleteAll">
+        delete from app.Notification
+        where cip = #{cip}
+    </delete>
+
 </mapper>

@@ -6,6 +6,7 @@ import FriendsPanel from './components/friends/FriendsPanel';
 import ChatView from './components/chat/ChatView';
 import TeamsPanel from './components/teams/TeamsPanel';
 import TeamArea from './components/teams/TeamArea';
+import NotificationsPanel from './components/notifications/NotificationsPanel';
 import { getContacts, getConversations, getEquipes } from './services/api';
 import { gradientForCip, initialsFromUser } from './utils/gradient';
 import messageIcon from './assets/icons/message.png';
@@ -220,6 +221,9 @@ export default function App() {
                         )
                     }
                 </>
+            )}
+            {view === 'notifs' && (
+                <NotificationsPanel />
             )}
         </div>
     );

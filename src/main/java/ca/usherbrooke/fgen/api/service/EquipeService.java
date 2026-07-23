@@ -36,6 +36,9 @@ public class EquipeService {
     @Inject
     JsonWebToken jwt;
 
+    @Inject
+    NotificationService notificationService;
+
     @GET
     public List<Equipe> select(
             @QueryParam("usersCip[]") String[] usersCip,
@@ -102,6 +105,11 @@ public class EquipeService {
             discussionMemberMapper.insertMember(equipe.discussionId, cip);
 
             EquipeWebSocket.broadcast(cip, "{\"type\":\"teamCreated\"}");
+            try {
+                notificationService.creerNotification(cip, "teamCreated", "Vous avez été ajouté à l'équipe: " + equipe.nomEquipe);
+            } catch (Exception e) {
+                // non-critical
+            }
         }
         EquipeWebSocket.broadcast(cipConnecte, "{\"type\":\"teamCreated\"}");
         return equipe.equipeId;

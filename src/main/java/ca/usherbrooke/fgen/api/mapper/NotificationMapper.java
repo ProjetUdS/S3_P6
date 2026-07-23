@@ -45,4 +45,11 @@ public interface NotificationMapper {
      * @param cip l'identifiant de l'utilisateur
      */
     void markAllAsRead(@Param("cip") String cip);
+
+    /**
+     * Supprime toutes les notifications d'un utilisateur.
+     *
+     * @param cip l'identifiant de l'utilisateur
+     */
+    void deleteAll(@Param("cip") String cip);
 }

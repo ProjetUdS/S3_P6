@@ -33,8 +33,12 @@ export function useNotifications(cip) {
             console.error('Notification WebSocket error:', err);
         };
 
+        const handleReadEvent = () => setUnreadCount(0);
+        window.addEventListener('notifications-read', handleReadEvent);
+
         // 3. Nettoyage à la déconnexion / changement d'utilisateur
         return () => {
+            window.removeEventListener('notifications-read', handleReadEvent);
             socket.close();
             socketRef.current = null;
         };

@@ -274,4 +274,9 @@ export async function markAllNotificationsAsRead(cip) {
   return response.data;
 }
 
+export async function clearAllNotifications(cip) {
+  const response = await api.delete('/notification/clear-all', { params: { cip } });
+  return response.data;
+}
+
 export default api;

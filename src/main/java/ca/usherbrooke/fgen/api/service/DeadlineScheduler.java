@@ -21,6 +21,9 @@ public class DeadlineScheduler {
     @Inject
     TacheWebSocket tacheWebSocket;
 
+    @Inject
+    NotificationService notificationService;
+
     @Scheduled(cron = "0 0 8 * * ?")
     public void verifierDeadlines() {
         List<Tache> taches = tacheMapper.tachesAvecDeadlineDemain();
@@ -34,6 +37,9 @@ public class DeadlineScheduler {
 
             for (String cip : assignes) {
                 tacheWebSocket.broadcast(tache.equipeId, alerteJson);
+                try {
+                    notificationService.creerNotification(cip, "deadlineAlert", "La tâche '" + tache.nomTache + "' est due demain !");
+                } catch (Exception e) {}
             }
         }
     }
