@@ -13,6 +13,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Path("/api/notification")
@@ -109,6 +110,6 @@ public class NotificationService {
         notificationMapper.insertNotification(notification);
 
         NotificationWebSocket.broadcast(cip,
-                "{\"type\":\"" + type + "\",\"contenu\":\"" + contenu + "\"}");
+                JsonUtil.toJson(Map.of("type", type, "contenu", contenu)));
     }
 }

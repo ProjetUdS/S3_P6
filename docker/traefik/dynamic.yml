@@ -18,6 +18,14 @@ http:
       stripPrefix:
         prefixes:
           - "/auth"
+    minio-forward-prefix:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Prefix: "/fichier"
+    minio-strip:
+      stripPrefix:
+        prefixes:
+          - "/fichier"
     webserver-forward-prefix:
       headers:
         customRequestHeaders:
@@ -55,6 +63,17 @@ http:
       middlewares:
         - auth-forward-prefix
         - auth-strip
+      tls: {}
+      entryPoints:
+        - web
+        - websecure
+    minio:
+      rule: "PathPrefix(`/fichier`)"
+      service: minio
+      priority: 10
+      middlewares:
+        - minio-forward-prefix
+        - minio-strip
       tls: {}
       entryPoints:
         - web
@@ -133,6 +152,15 @@ http:
           timeout: 1s
         servers:
           - url: "http://auth:8180"
+        passHostHeader: true
+    minio:
+      loadBalancer:
+        healthCheck:
+          path: /minio/health/live
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://minio-storage:9000"
         passHostHeader: true
     webserver:
       failover:

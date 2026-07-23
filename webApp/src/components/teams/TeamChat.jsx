@@ -12,13 +12,12 @@ import usersIcon from '../../assets/icons/users.png'
 import messageIcon from '../../assets/icons/message.png'
 
 export default function TeamChat({ team }) {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const myCip = user?.cip;
     const [members, setMembers] = useState([]);
     const [loading, setLoading]   = useState(true);
     const [discussionId, setDiscussionId] = useState(null);
     const messagesAreaRef = useRef(null);
-    const wsRef = useRef(null);
 
     const {
         messages,
@@ -34,6 +33,7 @@ export default function TeamChat({ team }) {
         handleDelete,
         confirmDeleteMessage,
         cancelDelete,
+        connectWebSocket,
     } = useChatMessages(myCip, messagesAreaRef);
 
     useEffect(() => {
@@ -103,32 +103,15 @@ export default function TeamChat({ team }) {
 
     useEffect(() => {
         if (!discussionId) return;
-
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const ws = new WebSocket(`${protocol}//${host}/ws/message/${discussionId}`);
-        wsRef.current = ws;
-
-        ws.onmessage = async (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'messageReceived') {
-                    const updated = await getMessages(discussionId, 50, 0);
-                    setMessages(transformMessages(updated));
-                }
-            } catch (err) {
-                console.error('Team WS msg err:', err);
-            }
-        };
-
-        ws.onerror = (err) => console.error('Team WS err:', err);
-        ws.onclose = () => {};
-
-        return () => {
-            ws.close();
-            wsRef.current = null;
-        };
-    }, [discussionId]);
+        const cleanup = connectWebSocket(
+            discussionId,
+            null,
+            token,
+            () => true,
+            () => {}
+        );
+        return cleanup;
+    }, [discussionId, token]);
 
     async function handleSend(text, attachments) {
         if (!myCip || !team?.equipeId || !discussionId) return;

@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.List;
+import java.util.Map;
 
 @Path("/api/assignee")
 @Produces(MediaType.APPLICATION_JSON)
@@ -67,7 +68,7 @@ public class AssigneeService {
         } catch (Exception e) {
             // non-critical
         }
-        TacheWebSocket.broadcast(equipeId, "{\"type\":\"taskUpdated\"}");
+        TacheWebSocket.broadcast(equipeId, JsonUtil.toJson(Map.of("type", "taskUpdated")));
         return cip;
     }
 
@@ -85,7 +86,7 @@ public class AssigneeService {
         }
 
         assigneeMapper.deleteAssignee(tacheId, cip);
-        TacheWebSocket.broadcast(equipeId, "{\"type\":\"taskUpdated\"}");
+        TacheWebSocket.broadcast(equipeId, JsonUtil.toJson(Map.of("type", "taskUpdated")));
         return cip;
     }
 }

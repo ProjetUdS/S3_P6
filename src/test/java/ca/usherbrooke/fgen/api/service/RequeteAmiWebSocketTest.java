@@ -24,11 +24,11 @@ class RequeteAmiWebSocketTest {
     void setUp() throws Exception {
         mockConnection = Mockito.mock(WebSocketConnection.class);
         when(mockConnection.pathParam("cip")).thenReturn("dest123");
-        when(mockConnection.sendText(anyString())).thenReturn(io.smallrye.mutiny.Uni.createFrom().voidItem());
 
         Field field = RequeteAmiWebSocket.class.getDeclaredField("connections");
         field.setAccessible(true);
-        Map<String, Object> connections = (Map<String, Object>) field.get(null);
+        Map<String, RequeteAmiWebSocket.ConnectionInfo> connections =
+                (Map<String, RequeteAmiWebSocket.ConnectionInfo>) field.get(null);
         connections.clear();
         connections.put("conn1", new RequeteAmiWebSocket.ConnectionInfo(mockConnection, "dest123"));
     }
@@ -37,13 +37,13 @@ class RequeteAmiWebSocketTest {
     void testBroadcastEnvoieAuBonDestinataire() {
         String requeteJson = "{\"type\":\"friendRequest\",\"de\":\"belx8646\",\"a\":\"dest123\"}";
         RequeteAmiWebSocket.broadcast("dest123", requeteJson);
-        verify(mockConnection).sendText(requeteJson);
+        verify(mockConnection).sendTextAndAwait(requeteJson);
     }
 
     @Test
     void testBroadcastNEnvoiePasAuMauvaisDestinataire() {
         String requeteJson = "{\"type\":\"friendRequest\",\"de\":\"belx8646\",\"a\":\"dest123\"}";
         RequeteAmiWebSocket.broadcast("autrecip", requeteJson);
-        verify(mockConnection, never()).sendText(any());
+        verify(mockConnection, never()).sendTextAndAwait(any());
     }
 }

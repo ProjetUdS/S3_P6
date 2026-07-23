@@ -90,6 +90,8 @@ quarkus:
 # MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
 minio:
   url: "http://localhost:${MINIO_PORT:9000}"
+  browser:
+    url: "http://localhost:${MINIO_PORT:9000}"
   access:
     key: ${MINIO_USER:minioadmin}
   secret:

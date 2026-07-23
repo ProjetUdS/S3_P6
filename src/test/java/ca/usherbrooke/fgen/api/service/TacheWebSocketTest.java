@@ -24,11 +24,11 @@ class TacheWebSocketTest {
     void setUp() throws Exception {
         mockConnection = Mockito.mock(WebSocketConnection.class);
         when(mockConnection.pathParam("equipeId")).thenReturn("4321");
-        when(mockConnection.sendText(anyString())).thenReturn(io.smallrye.mutiny.Uni.createFrom().voidItem());
 
         Field field = TacheWebSocket.class.getDeclaredField("connections");
         field.setAccessible(true);
-        Map<String, Object> connections = (Map<String, Object>) field.get(null);
+        Map<String, TacheWebSocket.ConnectionInfo> connections =
+                (Map<String, TacheWebSocket.ConnectionInfo>) field.get(null);
         connections.clear();
         connections.put("conn1", new TacheWebSocket.ConnectionInfo(mockConnection, "4321"));
     }
@@ -37,13 +37,13 @@ class TacheWebSocketTest {
     void testBroadcastEnvoieALaBonneEquipe() {
         String tacheJson = "{\"type\":\"taskUpdated\",\"tacheId\":\"1234\",\"equipeId\":\"4321\"}";
         TacheWebSocket.broadcast("4321", tacheJson);
-        verify(mockConnection).sendText(tacheJson);
+        verify(mockConnection).sendTextAndAwait(tacheJson);
     }
 
     @Test
     void testBroadcastNEnvoiePasALaMauvaiseEquipe() {
         String tacheJson = "{\"type\":\"taskUpdated\",\"tacheId\":\"1234\",\"equipeId\":\"4321\"}";
         TacheWebSocket.broadcast("9999", tacheJson);
-        verify(mockConnection, never()).sendText(any());
+        verify(mockConnection, never()).sendTextAndAwait(any());
     }
 }

@@ -18,7 +18,7 @@ import './styles/components.css';
 import {useEquipeWebSocket} from "./hooks/useEquipeWebSocket.js";
 
 export default function App() {
-    const { authenticated, user, loading } = useAuth();
+    const { authenticated, user, token, loading } = useAuth();
     const [view, setView] = useState('messages');
     const [activeFriend, setActiveFriend] = useState(null);
     const [activeTeam, setActiveTeam] = useState(null);
@@ -136,7 +136,7 @@ export default function App() {
     }
   }, [teams]);
 
-  useEquipeWebSocket(user?.cip, () => {
+  useEquipeWebSocket(user?.cip, token, () => {
       loadTeams();
   });
 

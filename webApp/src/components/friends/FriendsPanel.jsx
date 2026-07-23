@@ -44,7 +44,7 @@ function RequestAvatar({ cip }) {
 export default function FriendsPanel({ activeFriendId, onSelectFriend, conversations: conversationsProp, expandedSections, onToggleSection, existingCips, onFriendAdded }) {
   const [showModal, setShowModal] = useState(false);
   const [query, setQuery] = useState('');
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [friendRequests, setFriendRequests] = useState([]);
 
   const conversations = (conversationsProp || []).filter(c => c.cip !== user?.cip);
@@ -121,7 +121,7 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
       .catch(() => setFriendRequests([]));
   }, [user?.cip]);
 
-  useFriendRequestWebSocket(user?.cip, (type) => {
+  useFriendRequestWebSocket(user?.cip, token, (type) => {
     if (type === 'friendRequest' && user?.cip) {
       getFriendRequests(user.cip)
         .then(setFriendRequests)

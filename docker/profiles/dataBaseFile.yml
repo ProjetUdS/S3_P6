@@ -23,6 +23,17 @@ docker-compose:
   environment:
     MINIO_ROOT_USER: ${MINIO_USER:-local_admin}
     MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-local_password}
+    MINIO_DOMAIN: ${SERVER_IP:-localhost:9000}
+
+
+traefik:
+  enabled: true
+  prefix: /fichier
+  strip_prefix: true
+  docker_port: 9000
+  local_port: 9000
+  health_path: /minio/health/live
+  priority: 10
 
 # ============================================
 # SECRETS (optionnel)

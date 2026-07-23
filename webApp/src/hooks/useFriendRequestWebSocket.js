@@ -1,32 +1,50 @@
 import { useEffect, useRef } from 'react';
 
-export function useFriendRequestWebSocket(cip, onRequestReceived) {
-    const socketRef = useRef(null);
+export function useFriendRequestWebSocket(cip, token, onEvent) {
+    const wsRef = useRef(null);
+    const retryRef = useRef(null);
+    const retryCount = useRef(0);
+    const cleanupRef = useRef(false);
 
     useEffect(() => {
-        if (!cip) return;
+        if (!cip || !token) return;
+        cleanupRef.current = false;
+        retryCount.current = 0;
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const url = `${protocol}//${window.location.host}/ws/requeteAmi/${cip}`;
-        const socket = new WebSocket(url);
-        socketRef.current = socket;
+        function connect() {
+            if (cleanupRef.current) return;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const url = `${protocol}//${window.location.host}/ws/requeteAmi/${cip}?token=${encodeURIComponent(token)}`;
+            const socket = new WebSocket(url);
+            wsRef.current = socket;
 
-        socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'friendRequest'|| data.type === 'friendAccept') {
-                    onRequestReceived?.(data.type);
+            socket.onmessage = (event) => {
+                retryCount.current = 0;
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'friendRequest' || data.type === 'friendAccept') onEvent?.(data.type);
+                } catch (err) {
+                    console.error('FriendRequest WS parse error:', err);
                 }
-            } catch (err) {
-                console.error('FriendRequest WebSocket error:', err);
-            }
-        };
+            };
 
-        socket.onerror = (err) => console.error('FriendRequest WebSocket error:', err);
+            socket.onopen = () => { retryCount.current = 0; };
+            socket.onclose = () => {
+                if (cleanupRef.current) return;
+                const delay = Math.min(1000 * Math.pow(2, retryCount.current), 30000);
+                retryCount.current++;
+                retryRef.current = setTimeout(connect, delay);
+            };
+            socket.onerror = () => {};
+        }
+
+        connect();
 
         return () => {
-            socket.close();
-            socketRef.current = null;
+            cleanupRef.current = true;
+            if (retryRef.current) clearTimeout(retryRef.current);
+            if (wsRef.current) wsRef.current.close();
+            wsRef.current = null;
         };
-    }, [cip]);
+    }, [cip, token]);
 }
