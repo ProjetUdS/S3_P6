@@ -1,10 +1,6 @@
 package ca.usherbrooke.fgen.api.service;
 
-import io.quarkus.websockets.next.OnClose;
-import io.quarkus.websockets.next.OnOpen;
-import io.quarkus.websockets.next.OnTextMessage;
-import io.quarkus.websockets.next.WebSocket;
-import io.quarkus.websockets.next.WebSocketConnection;
+import io.quarkus.websockets.next.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,9 +8,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@WebSocket(path = "/ws/requeteAmi/{cip}")
-public class RequeteAmiWebSocket {
-
+@WebSocket(path = "/ws/equipe/{cip}")
+public class EquipeWebSocket {
     private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
 
     @OnOpen

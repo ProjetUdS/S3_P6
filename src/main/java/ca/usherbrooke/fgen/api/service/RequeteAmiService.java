@@ -64,6 +64,7 @@ public class RequeteAmiService {
         }
         contactMapper.insertContact(cip, destinataireCip);
         contactMapper.insertContact(destinataireCip, cip);
+        RequeteAmiWebSocket.broadcast(destinataireCip, "{\"type\":\"friendAccept\",\"de\":\"" + cip + "\",\"a\":\"" + destinataireCip + "\"}");
         requeteAmiMapper.deleteRequete(destinataireCip, cip);
         requeteAmiMapper.deleteRequete(cip,destinataireCip);
         return destinataireCip;

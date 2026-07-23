@@ -14,6 +14,7 @@ import teamIcon from './assets/icons/team.png'
 import './styles/globals.css';
 import './styles/layout.css';
 import './styles/components.css';
+import {useEquipeWebSocket} from "./hooks/useEquipeWebSocket.js";
 
 export default function App() {
     const { authenticated, user, loading } = useAuth();
@@ -134,6 +135,9 @@ export default function App() {
     }
   }, [teams]);
 
+  useEquipeWebSocket(user?.cip, () => {
+      loadTeams();
+  });
 
   if (loading) {
     return (

@@ -56,7 +56,7 @@ public class MessageWebSocket {
         toRemove.forEach(connections::remove);
     }
 
-    private static class ConnectionInfo {
+    static class ConnectionInfo {
         final WebSocketConnection connection;
         final String discussionId;
 

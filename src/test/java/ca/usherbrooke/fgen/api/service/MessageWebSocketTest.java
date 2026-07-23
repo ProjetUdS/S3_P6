@@ -27,9 +27,9 @@ class MessageWebSocketTest {
 
         Field field = MessageWebSocket.class.getDeclaredField("connections");
         field.setAccessible(true);
-        Map<String, WebSocketConnection> connections = (Map<String, WebSocketConnection>) field.get(null);
+        Map<String, Object> connections = (Map<String, Object>) field.get(null);
         connections.clear();
-        connections.put("conn1", mockConnection);
+        connections.put("conn1", new MessageWebSocket.ConnectionInfo(mockConnection, "67"));
     }
 
     @Test

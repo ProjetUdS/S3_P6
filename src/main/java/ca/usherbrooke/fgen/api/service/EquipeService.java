@@ -100,7 +100,10 @@ public class EquipeService {
         for (String cip : membersCip) {
             equipeMemberMapper.insertMember(equipe.equipeId, cip);
             discussionMemberMapper.insertMember(equipe.discussionId, cip);
+
+            EquipeWebSocket.broadcast(cip, "{\"type\":\"teamCreated\"}");
         }
+        EquipeWebSocket.broadcast(cipConnecte, "{\"type\":\"teamCreated\"}");
         return equipe.equipeId;
     }
 

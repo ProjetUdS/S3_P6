@@ -7,6 +7,7 @@ import { getFriendRequests, acceptFriendRequest, refuseFriendRequest } from '../
 import { gradientForCip } from '../../utils/gradient';
 import { useAvatarUrl } from '../../hooks/useAvatarUrl';
 import searchIcon from "../../assets/icons/search.png";
+import { useFriendRequestWebSocket } from '../../hooks/useFriendRequestWebSocket';
 import addIcon from "../../assets/icons/add.png";
 
 import boxIcon from "../../assets/icons/box.png";
@@ -48,6 +49,40 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
 
   const conversations = (conversationsProp || []).filter(c => c.cip !== user?.cip);
 
+  useEffect(() => {
+    loadRequests();
+  }, [user?.cip]);
+
+  useFriendRequestWebSocket(user?.cip, (type) => {
+    if (type === 'friendRequest') {
+      loadRequests();
+    } else if (type === 'friendAccept') {
+      onFriendAdded?.();
+    }
+  });
+
+  async function handleAcceptRequest(senderCip) {
+    if (!user?.cip) return;
+    try {
+      await acceptFriendRequest(user.cip, senderCip);
+      loadRequests();
+      onFriendAdded?.();
+    } catch (err) {
+      console.error('Failed to accept friend request:', err);
+    }
+  }
+
+  async function handleRefuseRequest(senderCip) {
+    if (!user?.cip) return;
+    try {
+      await refuseFriendRequest(user.cip, senderCip);
+      loadRequests();
+    } catch (err) {
+      console.error('Failed to refuse friend request:', err);
+    }
+  }
+
+  const conversations = conversationsProp || [];
   const active = conversations.filter(c => ['enabled', 'active'].includes(c.etat));
   const archived = conversations.filter(c => ['archived', 'disabled'].includes(c.etat));
   const blocked = conversations.filter(c => c.etat === 'blocked');

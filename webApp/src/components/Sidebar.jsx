@@ -16,7 +16,7 @@ import SettingsModal from './parametres/SettingsModal';
 const NAV_ITEMS = [
     {key: 'messages', icon: messageIcon, label: 'Messages', isImage: true},
     {key: 'teams', icon: teamIcon, label: 'Teams', isImage: true},
-    {key: 'notifs', icon: notifIcon, label: 'Notifications', isImage: true},
+    {key: 'notifs', icon: notifIcon, label: 'Notifications', isImage: true, badge: true},
 ];
 
 export default function Sidebar({ activeView, onNav, hasNotif }) {
