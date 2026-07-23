@@ -17,8 +17,6 @@ docker-compose:
   container_name: webserver
   volumes:
     - ./webserver/nginx.conf:/etc/nginx/nginx.conf:ro
-  ports:
-    - "81:81"
   environment:
     - PORT=81
     - KC_PORT=${KC_PORT}
@@ -31,8 +29,8 @@ traefik:
   enabled: true
   prefix: /usager
   strip_prefix: true
-  local_port: "81"
-  docker_port: "81"
+  local_port: 81
+  docker_port: 81
   priority: 10
 
 # Variables de secrets requises (à définir dans secrets.env)

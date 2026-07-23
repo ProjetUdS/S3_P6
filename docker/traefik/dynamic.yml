@@ -5,8 +5,8 @@ tls:
   stores:
     default:
       defaultCertificate:
-        certFile: /etc/traefik/certs/cert.pem
-        keyFile: /etc/traefik/certs/key.pem
+        certFile: "/etc/traefik/certs/cert.pem"
+        keyFile: "/etc/traefik/certs/key.pem"
 http:
 
   middlewares:
@@ -32,22 +32,22 @@ http:
         replacement: "/usager/"
 
   routers:
-    app:
+    app-0:
       rule: "PathPrefix(`/api`)"
       service: app
       priority: 10
+      tls: {}
       entryPoints:
         - web
         - websecure
-      tls : { }
-    app-ws:
+    app-1:
       rule: "PathPrefix(`/ws`)"
       service: app
       priority: 10
+      tls: {}
       entryPoints:
         - web
         - websecure
-      tls: { }
     auth:
       rule: "PathPrefix(`/auth`)"
       service: auth
@@ -55,11 +55,10 @@ http:
       middlewares:
         - auth-forward-prefix
         - auth-strip
+      tls: {}
       entryPoints:
         - web
         - websecure
-      tls: { }
-
     webserver:
       rule: "PathPrefix(`/usager`)"
       service: webserver
@@ -67,11 +66,10 @@ http:
       middlewares:
         - webserver-forward-prefix
         - webserver-strip
+      tls: {}
       entryPoints:
         - web
         - websecure
-      tls: { }
-
     root:
       rule: "PathPrefix(`/`)"
       service: root-noop
@@ -81,8 +79,7 @@ http:
       entryPoints:
         - web
         - websecure
-      tls: { }
-
+      tls: {}
     dozzle-logs:
       rule: "PathPrefix(`/logs`)"
       service: dozzle
@@ -90,8 +87,7 @@ http:
       entryPoints:
         - web
         - websecure
-      tls: { }
-
+      tls: {}
 
   services:
     app:
