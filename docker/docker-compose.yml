@@ -120,6 +120,8 @@ services:
       # Variables exclusives du service
       - MINIO_ROOT_USER=${MINIO_USER:-local_admin}
       - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD:-local_password}
+      - MINIO_DOMAIN=${SERVER_IP:-localhost:9000}
+
 
     ports:
       - "${MINIO_PORT:-9000}:${MINIO_PORT:-9000}"   # S3 API port
