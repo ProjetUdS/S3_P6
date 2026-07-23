@@ -1,8 +1,9 @@
-import React from 'react';
-import {Avatar} from './shared/Avatar';
-import {useAuth} from '../context/AuthContext';
+import React, { useState } from 'react';
 import {useNotifications} from '../hooks/useNotifications';
-
+import { Avatar } from './shared/Avatar';
+import { useAuth } from '../context/AuthContext';
+import { useAvatarUrl } from '../hooks/useAvatarUrl';
+import { gradientForCip, initialsFromUser } from '../utils/gradient';
 import teamIcon from '../assets/icons/team.png';
 import settingIcon from '../assets/icons/setting.png';
 import messageIcon from '../assets/icons/message.png'
@@ -10,21 +11,27 @@ import notifIcon from '../assets/icons/bell.png'
 import logoIcon from '../assets/icons/logo.png'
 import logoutIcon from '../assets/icons/logout.png'
 
+import SettingsModal from './parametres/SettingsModal';
+
 const NAV_ITEMS = [
     {key: 'messages', icon: messageIcon, label: 'Messages', isImage: true},
     {key: 'teams', icon: teamIcon, label: 'Teams', isImage: true},
     {key: 'notifs', icon: notifIcon, label: 'Notifications', isImage: true, badge: true},
 ];
 
-const gradient = 'linear-gradient(135deg, #3b82f6, #60a5fa)';
-
-export default function Sidebar({activeView, onNav, hasNotif}) {
-    const {user, logout} = useAuth();
+export default function Sidebar({ activeView, onNav, hasNotif }) {
+    const { user, logout } = useAuth();
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const { avatarUrl } = useAvatarUrl(user?.cip);
     const {unreadCount} = useNotifications(user?.cip);
 
-    const initials = user?.preferred_username
-        ? user.preferred_username.substring(0, 2).toUpperCase()
-        : 'JD';
+    const initials = initialsFromUser
+        ? initialsFromUser(user)
+        : (user?.pseudo || user?.preferred_username || 'JD').substring(0, 2).toUpperCase();
+
+    const gradient = user?.cip
+        ? gradientForCip(user.cip)
+        : 'linear-gradient(135deg, #3b82f6, #60a5fa)';
 
     return (
         <aside className="sidebar">
@@ -47,7 +54,12 @@ export default function Sidebar({activeView, onNav, hasNotif}) {
             ))}
 
             <div className="sidebar-spacer"/>
-            <button className="sidebar-icon" aria-label="Settings" title="Settings">
+            <button
+                className="sidebar-icon"
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Settings"
+                title="Settings"
+            >
                 <img src={settingIcon} alt=""/>
             </button>
             <button
@@ -63,6 +75,8 @@ export default function Sidebar({activeView, onNav, hasNotif}) {
                     initials={initials}
                     gradient={gradient}
                     size="sm"
+                    src={avatarUrl}
+                    alt={user?.pseudo || user?.preferred_username || 'Photo de profil'}
                     style={{border: '2px solid rgba(15,23,42,0.1)'}}
                 />
             </div>
@@ -75,6 +89,8 @@ export default function Sidebar({activeView, onNav, hasNotif}) {
             >
                 Icons by Freepik - Flaticon
             </a>
+
+            <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </aside>
     );
 }

@@ -22,8 +22,10 @@ echo "keycloak est ready. Beginning of finalisation ...."
 /opt/keycloak/bin/kcadm.sh create realms -s "realm=$KC_REALM_NAME" -s "enabled=true" -o
 
 # Update realm
-/opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME" -s "registrationAllowed=true"
-/opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME" -s "registrationAllowed=true" -s "loginTheme=customized"
+/opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME" \
+    -s "registrationAllowed=true" \
+    -s "editUsernameAllowed=true" \
+    -s "loginTheme=customized"
 
 # Configure acceptable variables
 /opt/keycloak/bin/kcadm.sh update "realms/$KC_REALM_NAME/users/profile" -f /var/tmp/configs/declarative-user-profile.json

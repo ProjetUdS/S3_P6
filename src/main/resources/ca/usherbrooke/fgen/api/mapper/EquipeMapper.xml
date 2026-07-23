@@ -7,7 +7,8 @@
     <select id="select" resultType="ca.usherbrooke.fgen.api.business.Equipe">
         SELECT eq.equipe_id,
                eq.administrateur_cip,
-               eq.nom_equipe
+               eq.nom_equipe,
+               eq.discussion_id
         FROM app.equipe as eq
 
         <!-- Join with the membership table if usersCip is provided -->

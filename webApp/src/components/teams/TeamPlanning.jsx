@@ -5,6 +5,7 @@ import { Avatar } from '../shared/Avatar';
 import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks, getDeadlines, deleteTache, getAssignees, removeTeamMember } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
 import EditTaskModal from './EditTaskModal';
 import { useTaskWebSocket } from '../../hooks/useTaskWebSocket';
 import InviteMemberModal from './InviteMemberModal';
@@ -15,12 +16,37 @@ import unknownPersonIcon from '../../assets/icons/unknownPerson.png';
 import addIcon from '../../assets/icons/add.png';
 import workingIcon from '../../assets/icons/gears.png';
 import completedIcon from '../../assets/icons/check-mark.png'
-/**
- * TeamPlanning  — Planning tab: Kanban board, meetings, calendar, right sidebar.
- *
- * Props:
- *   team  – team object with equipeId, nomEquipe, etc.
- */
+
+
+function AssigneeAvatar({ assignee, size = 'sm', style }) {
+  const { avatarUrl } = useAvatarUrl(assignee.cip);
+  return (
+    <Avatar
+      initials={assignee.initials}
+      gradient={assignee.gradient}
+      size={size}
+      src={avatarUrl}
+      alt={assignee.initials}
+      style={style}
+    />
+  );
+}
+
+function MemberAvatar({ member, size = 'sm', status, dotSize }) {
+  const { avatarUrl } = useAvatarUrl(member.id || member.cip);
+  return (
+    <Avatar
+      initials={member.initials}
+      gradient={member.gradient}
+      size={size}
+      status={status}
+      dotSize={dotSize}
+      src={avatarUrl}
+      alt={member.name || member.initials}
+    />
+  );
+}
+
 export default function TeamPlanning({ team, showPlanningInfo }) {
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
@@ -286,10 +312,9 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       >
                         {task.assignees && task.assignees.length > 0 ? (
                           task.assignees.map((assignee, idx) => (
-                            <Avatar
+                            <AssigneeAvatar
                               key={assignee.cip}
-                              initials={assignee.initials}
-                              gradient={assignee.gradient}
+                              assignee={assignee}
                               size="sm"
                               style={{
                                 marginLeft: idx > 0 ? '-8px' : '0',
@@ -395,7 +420,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                     </button>
                     <span className="kanban-task-text">{task.text}</span>
                     <div className="kanban-task-meta" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
-                      <div
+<div
                         className="attendee-stack"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                         onClick={(e) => {
@@ -405,10 +430,9 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       >
                         {task.assignees && task.assignees.length > 0 ? (
                           task.assignees.map((assignee, idx) => (
-                            <Avatar
+                            <AssigneeAvatar
                               key={assignee.cip}
-                              initials={assignee.initials}
-                              gradient={assignee.gradient}
+                              assignee={assignee}
                               size="sm"
                               style={{
                                 marginLeft: idx > 0 ? '-8px' : '0',
@@ -432,7 +456,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                             }}
                             title="Aucun assigné"
                           >
-                              <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
+                                <img src={unknownPersonIcon} alt="Inconnu" style={{ width: '20px', height: '20px', objectFit: 'contain' }}/>
                           </div>
                         )}
                       </div>
@@ -484,10 +508,9 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                       >
                         {task.assignees && task.assignees.length > 0 ? (
                           task.assignees.map((assignee, idx) => (
-                            <Avatar
+                            <AssigneeAvatar
                               key={assignee.cip}
-                              initials={assignee.initials}
-                              gradient={assignee.gradient}
+                              assignee={assignee}
                               size="sm"
                               style={{
                                 marginLeft: idx > 0 ? '-8px' : '0',
@@ -522,8 +545,6 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
             </div>
           </div>
         </section>
-
-
 
         {/* Today's Deadlines */}
         <section aria-labelledby="deadlines-heading">
@@ -610,7 +631,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                 </div>
                 {members.filter(m => m.status === 'Admin').map(m => (
                   <div key={m.id} className="member-row" style={{ marginBottom: '6px' }}>
-                    <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
+                    <MemberAvatar member={m} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
                     <div className="member-info">
                       <div className="member-name">{m.name}</div>
                       <div className="member-role">Admin</div>
@@ -639,7 +660,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                 </div>
                 {members.filter(m => m.status !== 'Admin').map(m => (
                   <div key={m.id} className="member-row" style={{ marginBottom: '6px' }}>
-                    <Avatar initials={m.initials} gradient={m.gradient} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
+                    <MemberAvatar member={m} size="sm" status={m.status === 'Admin' ? 'offline' : (m.status || 'offline')} dotSize="sm" />
                     <div className="member-info">
                       <div className="member-name">{m.name}</div>
                       <div className="member-role">{m.role}</div>

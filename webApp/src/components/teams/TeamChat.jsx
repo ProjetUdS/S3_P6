@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Avatar, TeamIcon } from '../shared/Avatar';
+import React, { useState, useRef, useEffect } from 'react';
+import { TeamIcon } from '../shared/Avatar';
 import { ChatMessagesList } from '../shared/ChatMessagesList';
 import { useChatMessages } from '../shared/useChatMessages';
 import ChatInput from '../shared/ChatInput';
@@ -165,13 +165,14 @@ export default function TeamChat({ team }) {
 
     function getSender(msg) {
         if (isOwn(msg)) {
-            return { initials: initialsFromUser(user), gradient: gradientForCip(myCip) };
+            return { initials: initialsFromUser(user), gradient: gradientForCip(myCip), cip: myCip };
         }
         const member = MEMBER_MAP[msg.from];
         return {
             initials: member?.initials || '?',
             gradient: member?.gradient || '#ccc',
             name: member?.name,
+            cip: member?.id,
         };
     }
 

@@ -1,5 +1,5 @@
 {
-  "realm": "api",
+  "realm": "usager",
   "users": [
     {
       "username": "test",
@@ -14,7 +14,7 @@
       },
       "realmRoles": [
         "student",
-        "default-roles-master"
+        "default-roles-usager"
       ],
       "credentials": [
         {

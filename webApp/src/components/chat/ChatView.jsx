@@ -7,10 +7,12 @@ import ChatInput from '../shared/ChatInput';
 import { getFriendConversation, sendMessage, createDiscussion, changeDiscussionMemberState, getUploadUrl, uploadToUrl, getDownloadUrl, default as api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
 
 export default function ChatView({ friend, onDeleteConversation, conversations, discussionId: propDiscussionId, onStateChanged, activeFriend, onNotif }) {
   const { user } = useAuth();
   const myCip = user?.cip;
+  const { avatarUrl: friendAvatarUrl } = useAvatarUrl(friend?.cip);
   const [localDiscussionId, setLocalDiscussionId] = useState(null);
   const [topbarMenuOpen, setTopbarMenuOpen] = useState(false);
   const [confirmDeleteConversation, setConfirmDeleteConversation] = useState(false);
@@ -251,7 +253,14 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
     <div className="main-area">
       {/* Topbar */}
       <div className="chat-topbar">
-        <Avatar initials={friend?.initials} gradient={friend?.gradient} size="md" status={friend?.status} />
+        <Avatar
+          initials={friend?.initials}
+          gradient={friend?.gradient}
+          size="md"
+          status={friend?.status}
+          src={friendAvatarUrl}
+          alt={friend?.name || 'Photo de profil'}
+        />
         <div className="chat-topbar-info">
           <div className="chat-topbar-name">{friend?.name}</div>
           <div className="chat-topbar-sub">
@@ -301,8 +310,8 @@ export default function ChatView({ friend, onDeleteConversation, conversations, 
           setMenuMsgId={setMenuMsgId}
           handleDelete={handleDelete}
           getSender={(msg) => isOwn(msg)
-            ? { initials: initialsFromUser(user), gradient: gradientForCip(myCip) }
-            : { initials: friend?.initials, gradient: friend?.gradient, name: friend?.name }}
+            ? { initials: initialsFromUser(user), gradient: gradientForCip(myCip), cip: myCip }
+            : { initials: friend?.initials, gradient: friend?.gradient, name: friend?.name, cip: friend?.cip }}
           emptyState={
             <div className="empty-state" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="empty-state-icon">💬</span>

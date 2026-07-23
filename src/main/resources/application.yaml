@@ -37,6 +37,7 @@ quarkus:
         - GET
         - PUT
         - POST
+        - PATCH
         - DELETE
         - OPTIONS
       headers:
@@ -79,6 +80,12 @@ quarkus:
     xmlconfig:
       enable: false
     map-underscore-to-camel-case: true
+
+  rest-client:
+    "keycloak-account-api":
+      url: ${HTTP_TYPE:http}://${SERVER_IP:localhost}${KEYCLOAK_PATH:}/${OIDC_REALM:realms/usager}
+      scope: jakarta.inject.Singleton
+      disable-default-mapper: true
 
 # MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
 minio:
