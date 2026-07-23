@@ -2,6 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { getContacts, addTeamMember } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
+
+function ContactAvatar({ contact }) {
+  const { avatarUrl } = useAvatarUrl(contact.cip);
+  return (
+    <Avatar
+      initials={contact.pseudo?.substring(0, 2).toUpperCase() || '?'}
+      gradient="var(--grad-sr)"
+      size="sm"
+      src={avatarUrl}
+      alt={contact.pseudo}
+    />
+  );
+}
 
 export default function InviteMemberModal({ equipeId, existingMemberCips = [], onClose, onAdded }) {
   const { user } = useAuth();
@@ -137,7 +151,7 @@ export default function InviteMemberModal({ equipeId, existingMemberCips = [], o
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white' }} />
                     )}
                   </div>
-                  <Avatar initials={c.pseudo?.substring(0, 2).toUpperCase() || '?'} gradient="var(--grad-sr)" size="sm" />
+                  <ContactAvatar contact={c} />
                   <div className="suggestion-info" style={{ flex: 1 }}>
                     <div className="suggestion-name" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {c.prenom} {c.nom}

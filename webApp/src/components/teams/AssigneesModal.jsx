@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import { getAssignees, addAssignee, deleteAssignee } from '../../services/api';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
+
+function AssigneeAvatar({ member, size = 'sm' }) {
+  const { avatarUrl } = useAvatarUrl(member.id);
+  return (
+    <Avatar
+      initials={member.initials}
+      gradient={member.gradient}
+      size={size}
+      src={avatarUrl}
+      alt={member.name}
+    />
+  );
+}
 
 export default function AssigneesModal({ taskId, taskName, teamMembers = [], onClose, onUpdated }) {
   const [initialCips, setInitialCips] = useState([]);
@@ -133,7 +147,7 @@ export default function AssigneesModal({ taskId, taskName, teamMembers = [], onC
                   {assignedMembers.map(m => (
                     <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Avatar initials={m.initials} gradient={m.gradient} size="sm" />
+                        <AssigneeAvatar member={m} size="sm" />
                         <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</span>
                       </div>
                       <button
@@ -179,7 +193,7 @@ export default function AssigneesModal({ taskId, taskName, teamMembers = [], onC
                   {unassignedMembers.map(m => (
                     <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Avatar initials={m.initials} gradient={m.gradient} size="sm" />
+                        <AssigneeAvatar member={m} size="sm" />
                         <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</span>
                       </div>
                       <button

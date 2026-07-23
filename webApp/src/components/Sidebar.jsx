@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {useNotifications} from '../hooks/useNotifications';
 import { Avatar } from './shared/Avatar';
 import { useAuth } from '../context/AuthContext';
-import { getAvatarUrl } from '../services/settingsApi';
+import { useAvatarUrl } from '../hooks/useAvatarUrl';
 import { gradientForCip, initialsFromUser } from '../utils/gradient';
 import teamIcon from '../assets/icons/team.png';
 import settingIcon from '../assets/icons/setting.png';
@@ -19,12 +19,10 @@ const NAV_ITEMS = [
     {key: 'notifs', icon: notifIcon, label: 'Notifications', isImage: true},
 ];
 
-const gradient = 'linear-gradient(135deg, #3b82f6, #60a5fa)';
-
 export default function Sidebar({ activeView, onNav, hasNotif }) {
     const { user, logout } = useAuth();
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const [avatarUrl, setAvatarUrl] = useState(null);
+    const { avatarUrl } = useAvatarUrl(user?.cip);
     const {unreadCount} = useNotifications(user?.cip);
 
     const initials = initialsFromUser
@@ -34,25 +32,6 @@ export default function Sidebar({ activeView, onNav, hasNotif }) {
     const gradient = user?.cip
         ? gradientForCip(user.cip)
         : 'linear-gradient(135deg, #3b82f6, #60a5fa)';
-
-    function loadAvatar() {
-        if (!user?.cip) return;
-        getAvatarUrl(user.cip)
-            .then(setAvatarUrl)
-            .catch(() => setAvatarUrl(null));
-    }
-
-    useEffect(() => {
-        loadAvatar();
-    }, [user?.cip]);
-
-    // Se rafraîchit immédiatement quand la photo est changée depuis les
-    // paramètres, sans attendre un rechargement de page.
-    useEffect(() => {
-        window.addEventListener('avatar-updated', loadAvatar);
-        return () => window.removeEventListener('avatar-updated', loadAvatar);
-    }, [user?.cip]);
-
 
     return (
         <aside className="sidebar">
@@ -92,26 +71,14 @@ export default function Sidebar({ activeView, onNav, hasNotif }) {
                 <img src={logoutIcon} alt="Logout" className="logout-icon"/>
             </button>
             <div className="sidebar-avatar-wrap">
-                {avatarUrl ? (
-                    <img
-                        src={avatarUrl}
-                        alt=""
-                        style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                            border: '2px solid rgba(15,23,42,0.1)',
-                        }}
-                    />
-                ) : (
-                    <Avatar
-                        initials={initials}
-                        gradient={gradient}
-                        size="sm"
-                        style={{border: '2px solid rgba(15,23,42,0.1)'}}
-                    />
-                )}
+                <Avatar
+                    initials={initials}
+                    gradient={gradient}
+                    size="sm"
+                    src={avatarUrl}
+                    alt={user?.pseudo || user?.preferred_username || 'Photo de profil'}
+                    style={{border: '2px solid rgba(15,23,42,0.1)'}}
+                />
             </div>
             <a
                 href="https://www.flaticon.com/authors/freepik"

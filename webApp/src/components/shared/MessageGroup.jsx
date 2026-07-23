@@ -5,6 +5,30 @@ import { getDownloadUrl } from '../../services/api';
 import api from '../../services/api';
 import SecureImage from '../SecureImage';
 import clipIcon from '../../assets/icons/clip.png';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
+
+function SenderAvatar({ sender }) {
+  if (!sender) {
+    return (
+      <Avatar
+        initials="?"
+        gradient="#ccc"
+        size="sm"
+      />
+    );
+  }
+  const cip = sender.cip;
+  const { avatarUrl } = useAvatarUrl(cip);
+  return (
+    <Avatar
+      initials={sender.initials || '?'}
+      gradient={sender.gradient || '#ccc'}
+      size="sm"
+      src={avatarUrl}
+      alt={sender.name || sender.initials}
+    />
+  );
+}
 
 export function MessageGroup({
   msg,
@@ -68,7 +92,7 @@ export function MessageGroup({
         onMouseEnter={onHover}
         onMouseLeave={onHoverOut}
       >
-        <Avatar initials={sender?.initials || '?'} gradient={sender?.gradient || '#ccc'} size="sm" />
+        <SenderAvatar sender={sender} />
         <div className="msg-content">
           {!own && sender?.name && <div className="msg-sender">{sender.name}</div>}
           <div className={`bubble-wrapper ${own ? 'own' : ''}`}>

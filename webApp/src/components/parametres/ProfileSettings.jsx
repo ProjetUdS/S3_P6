@@ -1,30 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { updatePseudo, uploadAvatar, removeAvatar, getAvatarUrl } from '../../services/settingsApi';
+import { updatePseudo, uploadAvatar, removeAvatar } from '../../services/settingsApi';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 import { useAuth } from '../../context/AuthContext';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
 
 export default function ProfileSettings({ user }) {
     const { updateUser } = useAuth();
     const fileInputRef = useRef(null);
+    const { avatarUrl } = useAvatarUrl(user?.cip);
 
     const [pseudo, setPseudo] = useState(user?.pseudo || user?.preferred_username || '');
-    const [avatarUrl, setAvatarUrl] = useState(null);
 
     const [savingPseudo, setSavingPseudo] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [error, setError] = useState(null);
     const [saved, setSaved] = useState(false);
-
-    useEffect(() => {
-        let cancelled = false;
-        if (user?.cip) {
-            getAvatarUrl(user.cip)
-                .then((url) => { if (!cancelled) setAvatarUrl(url); })
-                .catch(() => { /* pas grave, on retombe sur les initiales */ });
-        }
-        return () => { cancelled = true; };
-    }, [user?.cip]);
 
     const initials = initialsFromUser
         ? initialsFromUser(user)
@@ -67,7 +58,6 @@ export default function ProfileSettings({ user }) {
         setUploadingPhoto(true);
         uploadAvatar(user?.cip, file)
             .then((url) => {
-                setAvatarUrl(url);
                 setUploadingPhoto(false);
                 window.dispatchEvent(new CustomEvent('avatar-updated'));
                 flashSaved();
@@ -86,7 +76,6 @@ export default function ProfileSettings({ user }) {
         setUploadingPhoto(true);
         removeAvatar(user?.cip)
             .then(() => {
-                setAvatarUrl(null);
                 setUploadingPhoto(false);
                 window.dispatchEvent(new CustomEvent('avatar-updated'));
                 flashSaved();
@@ -107,11 +96,13 @@ export default function ProfileSettings({ user }) {
             <div className="settings-field">
                 <label className="settings-label">Photo de profil</label>
                 <div className="settings-avatar-row">
-                    {avatarUrl ? (
-                        <img src={avatarUrl} alt="Photo de profil" className="settings-avatar-preview" />
-                    ) : (
-                        <Avatar initials={initials} gradient={gradient} size="lg" />
-                    )}
+                    <Avatar
+                        initials={initials}
+                        gradient={gradient}
+                        size="lg"
+                        src={avatarUrl}
+                        alt={user?.pseudo || user?.preferred_username || 'Photo de profil'}
+                    />
                     <div className="settings-avatar-actions">
                         <button
                             className="settings-btn settings-btn-secondary"
