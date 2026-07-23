@@ -6,6 +6,7 @@ import { getTeamMembers, getTaches, createTache, updateTache, getCalendrierTasks
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
 import EditTaskModal from './EditTaskModal';
+import { useTaskWebSocket } from '../../hooks/useTaskWebSocket';
 import InviteMemberModal from './InviteMemberModal';
 import AssigneesModal from './AssigneesModal';
 
@@ -146,6 +147,8 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
       fetchTasks(),
     ]).finally(() => setLoading(false));
   }, [team?.equipeId]);
+
+    useTaskWebSocket(team?.equipeId, fetchTasks);
 
   async function handleCreateTask() {
     if (!newTaskName.trim() || !team?.equipeId || !user?.cip) return;

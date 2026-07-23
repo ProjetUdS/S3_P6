@@ -55,7 +55,7 @@ public class RequeteAmiWebSocket {
         toRemove.forEach(connections::remove);
     }
 
-    private static class ConnectionInfo {
+    static class ConnectionInfo {
         final WebSocketConnection connection;
         final String cip;
 

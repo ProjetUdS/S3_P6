@@ -13,7 +13,7 @@ import logoutIcon from '../assets/icons/logout.png'
 const NAV_ITEMS = [
     {key: 'messages', icon: messageIcon, label: 'Messages', isImage: true},
     {key: 'teams', icon: teamIcon, label: 'Teams', isImage: true},
-    {key: 'notifs', icon: notifIcon, label: 'Notifications', isImage: true},
+    {key: 'notifs', icon: notifIcon, label: 'Notifications', isImage: true, badge: true},
 ];
 
 const gradient = 'linear-gradient(135deg, #3b82f6, #60a5fa)';

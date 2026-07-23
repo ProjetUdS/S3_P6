@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getFriendRequests, acceptFriendRequest, refuseFriendRequest } from '../../services/api';
 import { gradientForCip } from '../../utils/gradient';
 import searchIcon from "../../assets/icons/search.png";
+import { useFriendRequestWebSocket } from '../../hooks/useFriendRequestWebSocket';
 import addIcon from "../../assets/icons/add.png";
 
 import boxIcon from "../../assets/icons/box.png";
@@ -29,6 +30,8 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, conversat
   useEffect(() => {
     loadRequests();
   }, [user?.cip]);
+
+  useFriendRequestWebSocket(user?.cip, loadRequests);
 
   async function handleAcceptRequest(senderCip) {
     if (!user?.cip) return;
