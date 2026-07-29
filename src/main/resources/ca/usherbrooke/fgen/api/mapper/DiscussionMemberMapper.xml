@@ -31,6 +31,7 @@
         DELETE
         FROM app.fait_parti
         WHERE cip = #{cip}
+          AND discussion_id = #{discussionId}
     </delete>
 
   <select id="selectConversations" resultType="ca.usherbrooke.fgen.api.business.DiscussionMemberSummary">
