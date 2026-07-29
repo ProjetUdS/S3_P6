@@ -150,8 +150,12 @@
         SET nom_tache   = coalesce(#{nomTache}, nom_tache),
             status      = coalesce(#{status}, status),
             description = coalesce(#{description}, description),
-            date_debut  = coalesce(#{dateDebut}, date_debut),
-            date_fin    = coalesce(#{dateFin}, date_fin)
+            date_debut  = CASE WHEN #{dateDebut} IS NULL THEN date_debut
+                               WHEN #{dateDebut} = '' THEN NULL
+                               ELSE CAST(#{dateDebut} AS DATE) END,
+            date_fin    = CASE WHEN #{dateFin} IS NULL THEN date_fin
+                               WHEN #{dateFin} = '' THEN NULL
+                               ELSE CAST(#{dateFin} AS DATE) END
         WHERE tache_id = #{tacheId}
     </update>
 

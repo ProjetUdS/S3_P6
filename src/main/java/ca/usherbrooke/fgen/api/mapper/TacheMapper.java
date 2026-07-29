@@ -58,8 +58,8 @@ public interface TacheMapper {
             @Param("nomTache") String nomTache,
             @Param("status") String status,
             @Param("description") String description,
-            @Param("dateDebut") Date dateDebut,
-            @Param("dateFin") Date dateFin);
+            @Param("dateDebut") String dateDebut,
+            @Param("dateFin") String dateFin);
 
   String getNewId();
 }

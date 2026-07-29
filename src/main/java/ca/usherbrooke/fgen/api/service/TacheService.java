@@ -131,14 +131,14 @@ public class TacheService {
             @QueryParam("nomTache") String nomTache,
             @QueryParam("status") String status,
             @QueryParam("description") String description,
-            @QueryParam("dateDebut") Date dateDebut,
-            @QueryParam("dateFin") Date dateFin) {
+            @QueryParam("dateDebut") String dateDebutStr,
+            @QueryParam("dateFin") String dateFinStr) {
         String cipConnecte = (String) jwt.getClaim("cip");
         Tache tache = tacheMapper.selectOne(tacheId);
         if (tache == null || !equipeMemberMapper.isMember(tache.equipeId, cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
-        tacheMapper.updateTache(tacheId, nomTache, status, description, dateDebut, dateFin);
+        tacheMapper.updateTache(tacheId, nomTache, status, description, dateDebutStr, dateFinStr);
         tache = tacheMapper.selectOne(tacheId);
         if (tache != null) {
             TacheWebSocket.broadcast(tache.equipeId,
