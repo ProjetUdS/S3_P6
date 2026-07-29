@@ -177,8 +177,8 @@ public class DatabaseTacheTest {
         mapper.insertTache(tache);
         verify(mapper).insertTache(tache);
 
-        doNothing().when(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", tache.dateDebut, tache.dateFin);
-        mapper.updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", tache.dateDebut, tache.dateFin);
-        verify(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", tache.dateDebut, tache.dateFin);
+        doNothing().when(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", "2026-07-28", "2026-08-15");
+        mapper.updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", "2026-07-28", "2026-08-15");
+        verify(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", "2026-07-28", "2026-08-15");
     }
 }

@@ -7,8 +7,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Date;
-
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,11 +38,9 @@ class TacheServiceTest {
     @Test
     void updateTache() {
         TacheMapper mapper = Mockito.mock(TacheMapper.class);
-        Date dateDebut = new Date();
-        Date dateFin = new Date();
 
-        doNothing().when(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", dateDebut, dateFin);
-        mapper.updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", dateDebut, dateFin);
-        verify(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", dateDebut, dateFin);
+        doNothing().when(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", "2026-07-28", "2026-08-15");
+        mapper.updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", "2026-07-28", "2026-08-15");
+        verify(mapper).updateTache("1234", "Nouveau Nom", "terminé", "Nouvelle description", "2026-07-28", "2026-08-15");
     }
 }
