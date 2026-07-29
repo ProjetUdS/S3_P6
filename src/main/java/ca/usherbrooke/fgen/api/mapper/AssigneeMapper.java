@@ -12,5 +12,7 @@ public interface AssigneeMapper {
 
     void deleteAssignee(@Param("tacheId") String tacheId, @Param("cip") String cip);
 
+    void deleteAssigneesByTeamAndCip(@Param("equipeId") String equipeId, @Param("cip") String cip);
+
     List<String> selectAssignees(@Param("tacheId") String tacheId);
 }

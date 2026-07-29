@@ -1,6 +1,7 @@
 package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Equipe;
+import ca.usherbrooke.fgen.api.mapper.AssigneeMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
@@ -12,6 +13,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.List;
+import java.util.Map;
 
 @Path("/api/equipeMember")
 @Produces(MediaType.APPLICATION_JSON)
@@ -26,6 +28,9 @@ public class EquipeMemberService {
 
     @Inject
     DiscussionMemberMapper discussionMemberMapper;
+
+    @Inject
+    AssigneeMapper assigneeMapper;
 
     @Inject
     JsonWebToken jwt;
@@ -62,6 +67,9 @@ public class EquipeMemberService {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         equipeMemberMapper.deleteMember(equipeId, memberCip);
+        discussionMemberMapper.deleteMember(equipe.discussionId, memberCip);
+        assigneeMapper.deleteAssigneesByTeamAndCip(equipeId, memberCip);
+        TacheWebSocket.broadcast(equipeId, JsonUtil.toJson(Map.of("type", "taskUpdated")));
         return memberCip;
     }
 }

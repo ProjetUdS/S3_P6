@@ -17,6 +17,12 @@
           AND cip = #{cip}
     </delete>
 
+    <delete id="deleteAssigneesByTeamAndCip">
+        DELETE FROM app.Assignee
+        WHERE cip = #{cip}
+          AND tache_id IN (SELECT tache_id FROM app.Tache WHERE equipe_id = #{equipeId})
+    </delete>
+
     <select id="selectAssignees" resultType="String">
         SELECT cip
         FROM app.Assignee
