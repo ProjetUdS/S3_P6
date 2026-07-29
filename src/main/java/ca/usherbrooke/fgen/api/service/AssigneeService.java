@@ -64,7 +64,7 @@ public class AssigneeService {
         assigneeMapper.insertAssignee(tacheId, cip);
         try {
             notificationService.creerNotification(cip, "taskAssigned",
-                    "Une tache vous a ete assignee");
+                    "Une tache vous a ete assignee", cipConnecte);
         } catch (Exception e) {
             // non-critical
         }

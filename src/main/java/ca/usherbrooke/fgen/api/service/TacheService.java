@@ -147,7 +147,7 @@ public class TacheService {
             for (String assignee : assignees) {
                 if (!assignee.equals(cipConnecte)) {
                     try {
-                        notificationService.creerNotification(assignee, "taskUpdated", "La tâche '" + tache.nomTache + "' a été mise à jour.");
+                        notificationService.creerNotification(assignee, "taskUpdated", "La tâche '" + tache.nomTache + "' a été mise à jour.", cipConnecte);
                     } catch (Exception e) {}
                 }
             }

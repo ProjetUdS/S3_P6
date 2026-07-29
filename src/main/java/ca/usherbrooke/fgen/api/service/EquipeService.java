@@ -111,13 +111,16 @@ public class EquipeService {
         if (membersCipBrackets != null) allMembers.addAll(membersCipBrackets);
 
         for (String cip : allMembers) {
-            if (cip.equals(cipConnecte)) continue; // Already added creator
+            if (cip.equals(cipConnecte)) continue;
+            if (discussionMemberMapper.isUserBlocked(cipConnecte, cip) || discussionMemberMapper.isUserBlocked(cip, cipConnecte)) {
+                continue;
+            }
             equipeMemberMapper.insertMember(equipe.equipeId, cip);
             discussionMemberMapper.insertMember(equipe.discussionId, cip);
 
             EquipeWebSocket.broadcast(cip, JsonUtil.toJson(Map.of("type", "teamCreated")));
             try {
-                notificationService.creerNotification(cip, "teamCreated", "Vous avez été ajouté à l'équipe: " + equipe.nomEquipe);
+                notificationService.creerNotification(cip, "teamCreated", "Vous avez été ajouté à l'équipe: " + equipe.nomEquipe, cipConnecte);
             } catch (Exception e) {
                 // non-critical
             }

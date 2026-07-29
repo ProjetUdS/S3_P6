@@ -1,6 +1,7 @@
 package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.mapper.ContactMapper;
+import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.RequeteAmiMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -21,6 +22,9 @@ public class RequeteAmiService {
 
     @Inject
     ContactMapper contactMapper;
+
+    @Inject
+    DiscussionMemberMapper discussionMemberMapper;
 
     @Inject
     JsonWebToken jwt;
@@ -53,11 +57,14 @@ public class RequeteAmiService {
         if (!cipConnecte.equals(cip)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
+        if (discussionMemberMapper.isUserBlocked(cip, destinataireCip) || discussionMemberMapper.isUserBlocked(destinataireCip, cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
         requeteAmiMapper.insertRequete(cip, destinataireCip);
         RequeteAmiWebSocket.broadcast(destinataireCip,
                 JsonUtil.toJson(Map.of("type", "friendRequest", "de", cip, "a", destinataireCip)));
         try {
-            notificationService.creerNotification(destinataireCip, "friendRequest", "Vous avez reçu une demande d'ami de " + cip);
+            notificationService.creerNotification(destinataireCip, "friendRequest", "Vous avez reçu une demande d'ami de " + cip, cip);
         } catch (Exception e) {
             // non-critical
         }

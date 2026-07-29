@@ -21,4 +21,6 @@ public interface DiscussionMemberMapper {
     List<DiscussionMemberSummary> selectConversations(@Param("cip") String cip);
 
     boolean isDiscussionParticipant(@Param("discussionId") String discussionId, @Param("cip") String cip);
+
+    boolean isUserBlocked(@Param("blockerCip") String blockerCip, @Param("blockedCip") String blockedCip);
 }

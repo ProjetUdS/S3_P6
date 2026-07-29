@@ -1,6 +1,7 @@
 package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Notification;
+import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.NotificationMapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,6 +25,9 @@ public class NotificationService {
 
     @Inject
     NotificationMapper notificationMapper;
+
+    @Inject
+    DiscussionMemberMapper discussionMemberMapper;
 
     @Inject
     JsonWebToken jwt;
@@ -94,11 +98,15 @@ public class NotificationService {
      * Crée une notification, la persiste et la pousse en temps réel via WebSocket.
      * Méthode réutilisable appelée par les autres services lors d'événements.
      *
-     * @param cip     le destinataire
-     * @param type    le type d'événement (taskAssigned, deadlineAlert, newMessage...)
-     * @param contenu le texte affiché à l'utilisateur
+     * @param cip       le destinataire
+     * @param type      le type d'événement (taskAssigned, deadlineAlert, newMessage...)
+     * @param contenu   le texte affiché à l'utilisateur
+     * @param senderCip l'expéditeur (null si système)
      */
-    public void creerNotification(String cip, String type, String contenu) {
+    public void creerNotification(String cip, String type, String contenu, String senderCip) {
+        if (senderCip != null && (discussionMemberMapper.isUserBlocked(cip, senderCip) || discussionMemberMapper.isUserBlocked(senderCip, cip))) {
+            return;
+        }
         Notification notification = new Notification();
         notification.id = UUID.randomUUID().toString();
         notification.cip = cip;
@@ -111,5 +119,10 @@ public class NotificationService {
 
         NotificationWebSocket.broadcast(cip,
                 JsonUtil.toJson(Map.of("type", type, "contenu", contenu)));
+    }
+
+    // convenience overload without senderCip for system notifications
+    public void creerNotification(String cip, String type, String contenu) {
+        creerNotification(cip, type, contenu, null);
     }
 }

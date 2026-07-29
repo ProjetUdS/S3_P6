@@ -2,8 +2,8 @@ package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Equipe;
 import ca.usherbrooke.fgen.api.mapper.AssigneeMapper;
-import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
+import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.record.TeamMember;
 import jakarta.inject.Inject;
@@ -50,6 +50,9 @@ public class EquipeMemberService {
     public String insertMember(@PathParam("equipeId") String equipeId, @QueryParam("cip") String memberCip) {
         String cipConnecte = (String) jwt.getClaim("cip");
         if (!equipeMemberMapper.isMember(equipeId, cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        if (discussionMemberMapper.isUserBlocked(cipConnecte, memberCip) || discussionMemberMapper.isUserBlocked(memberCip, cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         Equipe equipe = equipeMapper.selectOne(equipeId);
