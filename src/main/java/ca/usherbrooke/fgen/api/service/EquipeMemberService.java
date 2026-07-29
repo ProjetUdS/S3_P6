@@ -44,10 +44,10 @@ public class EquipeMemberService {
     @Path("/{equipeId}")
     public String insertMember(@PathParam("equipeId") String equipeId, @QueryParam("cip") String memberCip) {
         String cipConnecte = (String) jwt.getClaim("cip");
-        Equipe equipe = equipeMapper.selectOne(equipeId);
-        if (equipe == null || !equipe.administrateurCip.equals(cipConnecte)) {
+        if (!equipeMemberMapper.isMember(equipeId, cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
+        Equipe equipe = equipeMapper.selectOne(equipeId);
         equipeMemberMapper.insertMember(equipeId, memberCip);
         discussionMemberMapper.insertMember(equipe.discussionId, memberCip);
         return memberCip;

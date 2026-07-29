@@ -64,7 +64,8 @@ public class TacheWebSocket {
                 try {
                     info.connection.sendTextAndAwait(tacheJson);
                 } catch (Exception e) {
-                    LOG.warnf("Failed to send WS message to equipe %s: %s", info.equipeId, e.getMessage());
+                    LOG.warnf("Failed to send WS message to equipe %s: %s",
+                            info.equipeId, e.getMessage());
                     toRemove.add(id);
                 }
             }
