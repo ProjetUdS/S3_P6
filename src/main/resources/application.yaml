@@ -52,13 +52,7 @@ quarkus:
       secret: ${OIDC_SECRET:secret}
     application-type: service
 
-#
-#  tls:
-#    keycloak:
-#      trust-store:
-#        pem:
-#          certs: cert.pem
-
+  # -- Seulement pour le local, enlever pour la prod
   tls:
     trust-all: true
     hostname-verification-algorithm: NONE
