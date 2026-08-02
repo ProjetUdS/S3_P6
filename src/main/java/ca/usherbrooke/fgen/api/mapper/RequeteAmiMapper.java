@@ -15,4 +15,6 @@ public interface RequeteAmiMapper {
     List<String> selectRequetes(@Param("cip") String cip);
 
     List<String> selectRequetesEnvoyees(@Param("cip") String cip);
+
+    String selectRequeteAtoB(@Param("cipSource")String cipSource,@Param("cipDestinataire") String cipDestinataire);
 }

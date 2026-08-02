@@ -29,4 +29,10 @@
         WHERE cip = #{cip}
     </select>
 
+    <select id="selectRequeteAtoB" resultType="String">
+        SELECT 1
+        FROM app.requeteami
+        WHERE cip = #{cipSource} AND destinataire_cip = #{cipDestinataire}
+    </select>
+
 </mapper>

@@ -61,7 +61,10 @@ public class MessageService {
         if (discussionId != null) {
             ensureDiscussionAccess(discussionId, cipConnecte);
         }
-        return messageMapper.select(discussionId, limit, offset, cip, messageId);
+
+        List<Message> messages = messageMapper.select(discussionId, limit, offset, cip, messageId);
+        messages.removeIf(message -> !discussionMemberMapper.isDiscussionParticipant(message.discussionId,cipConnecte));
+        return messages;
     }
 
     @GET
@@ -69,7 +72,7 @@ public class MessageService {
     public Message getMessage(@PathParam("messageId") String messageId) {
         String cipConnecte = (String) jwt.getClaim("cip");
         Message message = messageMapper.selectOne(messageId);
-        if (message == null || !message.cip.equals(cipConnecte)) {
+        if (message == null || !discussionMemberMapper.isDiscussionParticipant(message.discussionId, cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         return message;
@@ -154,4 +157,5 @@ public class MessageService {
         }
         discussionMemberMapper.insertMember(discussionId, cip);
     }
+
 }

@@ -23,7 +23,7 @@ public class ContactService {
     @GET
     public List<String> getContacts(@QueryParam("cip") String cip) {
         String cipConnecte = jwt.getClaim("cip");
-        if(cipConnecte == null || !(cipConnecte == cip)) {
+        if(cipConnecte == null || !(cipConnecte.equals(cip))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         return contactMapper.selectContacts(cip);

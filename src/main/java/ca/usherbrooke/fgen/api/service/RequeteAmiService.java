@@ -75,7 +75,7 @@ public class RequeteAmiService {
     @Path("/accepter")
     public String accepterRequete(@QueryParam("cip") String cip, @QueryParam("destinataireCip") String destinataireCip) {
         String cipConnecte = (String) jwt.getClaim("cip");
-        if (!cipConnecte.equals(cip)) {
+        if (!cipConnecte.equals(cip) || requeteAmiMapper.selectRequeteAtoB(destinataireCip,cip) == null) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         contactMapper.insertContact(cip, destinataireCip);

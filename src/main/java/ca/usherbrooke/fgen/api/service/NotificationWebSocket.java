@@ -1,13 +1,13 @@
 package ca.usherbrooke.fgen.api.service;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.quarkus.websockets.next.*;
+import io.smallrye.common.annotation.Blocking;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -19,10 +19,15 @@ public class NotificationWebSocket {
     private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
     private static final Map<WebSocketConnection, String> connectionToId = new ConcurrentHashMap<>();
 
+    @Inject
+    WebSocketAuthenticator authenticator;
+
     @OnOpen
+    @Blocking
     public void onOpen(WebSocketConnection conn, HandshakeRequest request) {
         String targetCip = conn.pathParam("cip");
-        if (!validateToken(request, targetCip)) {
+        String cip = authenticator.verifyAndGetCip(WebSocketHelper.extractQueryParam(request.query(), "token"));
+        if (cip == null || !cip.equals(targetCip)) {
             LOG.warnf("WebSocket auth failed for notification cip=%s", targetCip);
             conn.close();
             return;
@@ -42,36 +47,6 @@ public class NotificationWebSocket {
 
     @OnTextMessage
     public void onMessage(String message) {}
-
-    private boolean validateToken(HandshakeRequest request, String expectedCip) {
-        String token = extractQueryParam(request.query(), "token");
-        if (token == null || token.isEmpty()) return false;
-        String cip = decodeCipFromToken(token);
-        return cip != null && expectedCip.equals(cip);
-    }
-
-    private static String decodeCipFromToken(String token) {
-        try {
-            String payload = token.split("\\.")[1];
-            byte[] decoded = Base64.getUrlDecoder().decode(payload);
-            ObjectNode node = (ObjectNode) JsonUtil.getMapper().readTree(decoded);
-            return node.get("cip").asText();
-        } catch (Exception e) {
-            LOG.warnf("Failed to decode JWT: %s", e.getMessage());
-            return null;
-        }
-    }
-
-    private static String extractQueryParam(String query, String name) {
-        if (query == null || query.isEmpty()) return null;
-        for (String param : query.split("&")) {
-            String[] parts = param.split("=", 2);
-            if (parts.length == 2 && parts[0].equals(name)) {
-                return URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
-            }
-        }
-        return null;
-    }
 
     public static void broadcast(String cip, String notificationJson) {
         List<String> toRemove = new ArrayList<>();

@@ -1,6 +1,7 @@
 package ca.usherbrooke.fgen.api.service;
 
 import ca.usherbrooke.fgen.api.business.Tache;
+import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.TacheMapper;
 import ca.usherbrooke.fgen.api.mapper.AssigneeMapper;
@@ -43,10 +44,10 @@ public class TacheService {
             @QueryParam("dateCreation") Date dateCreation,
             @QueryParam("nomTache") String nomTache) {
         String cipConnecte = (String) jwt.getClaim("cip");
-        if (equipeId != null && !equipeMemberMapper.isMember(equipeId, cipConnecte)) {
-            throw new WebApplicationException(Response.Status.FORBIDDEN);
-        }
-        return tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
+
+        List<Tache> taches = tacheMapper.select(equipeId, usersId, dateCreation, nomTache);
+        taches.removeIf(tache -> !hasAcces(tache.id, cipConnecte));
+        return taches;
     }
 
     @GET
@@ -75,7 +76,13 @@ public class TacheService {
     @GET
     @Path("/{tacheId}")
     public Tache getTache(@PathParam("tacheId") String tacheId) {
-        return tacheMapper.selectOne(tacheId);
+        String cipConnecte = (String) jwt.getClaim("cip");
+        Tache tache = tacheMapper.selectOne(tacheId);
+        if (tache == null) throw new WebApplicationException(Response.Status.NOT_FOUND);
+        if (!hasAcces(tacheId,cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        return tache;
     }
 
     @DELETE
@@ -152,5 +159,11 @@ public class TacheService {
                 }
             }
         }
+    }
+
+    private boolean hasAcces(String tacheId, String cip){
+        Tache tache =  tacheMapper.selectOne(tacheId);
+        if(tache==null) return false;
+        return equipeMemberMapper.isMember(tache.equipeId, cip);
     }
 }

@@ -1,6 +1,9 @@
 package ca.usherbrooke.fgen.api.service;
 
+import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import io.quarkus.websockets.next.*;
+import io.smallrye.common.annotation.Blocking;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.net.URLDecoder;
@@ -17,15 +20,22 @@ public class TacheWebSocket {
     private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
     private static final Map<WebSocketConnection, String> connectionToId = new ConcurrentHashMap<>();
 
+    @Inject
+    WebSocketAuthenticator authenticator;
+    @Inject
+    EquipeMemberMapper equipeMemberMapper;
+
     @OnOpen
+    @Blocking
     public void onOpen(WebSocketConnection conn, HandshakeRequest request) {
-        if (!validateToken(request)) {
+        String cip = authenticator.verifyAndGetCip(WebSocketHelper.extractQueryParam(request.query(), "token"));
+        String eqId = conn.pathParam("equipeId");
+        if (cip == null || !equipeMemberMapper.isMember(eqId, cip)) {
             LOG.warn("WebSocket auth failed for tache endpoint");
             conn.close();
             return;
         }
         String id = UUID.randomUUID().toString();
-        String eqId = conn.pathParam("equipeId");
         connections.put(id, new ConnectionInfo(conn, eqId));
         connectionToId.put(conn, id);
     }
@@ -40,22 +50,6 @@ public class TacheWebSocket {
 
     @OnTextMessage
     public void onMessage(String message) {}
-
-    private boolean validateToken(HandshakeRequest request) {
-        String token = extractQueryParam(request.query(), "token");
-        return token != null && !token.isEmpty();
-    }
-
-    private static String extractQueryParam(String query, String name) {
-        if (query == null || query.isEmpty()) return null;
-        for (String param : query.split("&")) {
-            String[] parts = param.split("=", 2);
-            if (parts.length == 2 && parts[0].equals(name)) {
-                return URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
-            }
-        }
-        return null;
-    }
 
     public static void broadcast(String equipeId, String tacheJson) {
         List<String> toRemove = new ArrayList<>();

@@ -52,7 +52,7 @@ public class FichierService {
             String disposition = "attachment";
             if (filename != null && !filename.isEmpty()) {
                 // sanitize filename minimally
-                String safe = filename.replaceAll("[\"\\\\]", "_");
+                String safe = filename.replaceAll("[\\x00-\\x1F\\x7F\"\\\\]", "_");
                 disposition += "; filename=\"" + safe + "\"";
             }
             return Response.ok(is).header("Content-Disposition", disposition).build();

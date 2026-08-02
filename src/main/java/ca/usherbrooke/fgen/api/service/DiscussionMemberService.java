@@ -8,7 +8,6 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.apache.ibatis.annotations.Param;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.List;
@@ -42,7 +41,7 @@ public class DiscussionMemberService {
         String cipConnecte = (String)jwt.getClaim("cip");
         Discussion discussion = discussionMapper.selectOne(discussionId);
 
-        if(discussion == null || !discussion.members.contains(cipConnecte)) {
+        if(discussion == null || !discussion.members.contains(cipConnecte) || !cipConnecte.equals(cip)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 
@@ -51,11 +50,12 @@ public class DiscussionMemberService {
     }
 
     @DELETE
-    public String deleteMember(@Param("discussionId") String discussionId, @QueryParam("cip") String cip) {
+    @Path("/{discussionId}")
+    public String deleteMember(@PathParam("discussionId") String discussionId, @QueryParam("cip") String cip) {
         String cipConnecte = (String)jwt.getClaim("cip");
         Discussion discussion = discussionMapper.selectOne(discussionId);
 
-        if(discussion == null || discussion.members.contains(cipConnecte)) {
+        if(discussion == null || !discussion.members.contains(cipConnecte) || !cipConnecte.equals(cip)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 

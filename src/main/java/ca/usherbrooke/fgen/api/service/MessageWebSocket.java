@@ -1,6 +1,9 @@
 package ca.usherbrooke.fgen.api.service;
 
+import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import io.quarkus.websockets.next.*;
+import io.smallrye.common.annotation.Blocking;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.net.URLDecoder;
@@ -17,15 +20,23 @@ public class MessageWebSocket {
     private static final Map<String, ConnectionInfo> connections = new ConcurrentHashMap<>();
     private static final Map<WebSocketConnection, String> connectionToId = new ConcurrentHashMap<>();
 
+    @Inject
+    WebSocketAuthenticator authenticator;
+    @Inject
+    DiscussionMemberMapper discussionMemberMapper;
+
+
     @OnOpen
+    @Blocking
     public void onOpen(WebSocketConnection conn, HandshakeRequest request) {
-        if (!validateToken(request)) {
+        String cip = authenticator.verifyAndGetCip(WebSocketHelper.extractQueryParam(request.query(), "token"));
+        String discId = conn.pathParam("discussionId");
+        if (cip == null || !discussionMemberMapper.isDiscussionParticipant(discId, cip)) {
             LOG.warn("WebSocket auth failed for message endpoint");
             conn.close();
             return;
         }
         String id = UUID.randomUUID().toString();
-        String discId = conn.pathParam("discussionId");
         connections.put(id, new ConnectionInfo(conn, discId));
         connectionToId.put(conn, id);
     }
@@ -41,21 +52,6 @@ public class MessageWebSocket {
     @OnTextMessage
     public void onMessage(String message) {}
 
-    private boolean validateToken(HandshakeRequest request) {
-        String token = extractQueryParam(request.query(), "token");
-        return token != null && !token.isEmpty();
-    }
-
-    private static String extractQueryParam(String query, String name) {
-        if (query == null || query.isEmpty()) return null;
-        for (String param : query.split("&")) {
-            String[] parts = param.split("=", 2);
-            if (parts.length == 2 && parts[0].equals(name)) {
-                return URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
-            }
-        }
-        return null;
-    }
 
     public static void broadcast(String discussionId, String messageJson) {
         List<String> toRemove = new ArrayList<>();

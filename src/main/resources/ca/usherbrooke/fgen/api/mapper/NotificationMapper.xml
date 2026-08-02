@@ -42,6 +42,7 @@
         update app.Notification
         set lu = true
         where notification_id = #{notificationId}
+            AND cip = #{cip}
     </update>
 
     <update id="markAllAsRead">
