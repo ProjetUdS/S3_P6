@@ -5,7 +5,10 @@ import ca.usherbrooke.fgen.api.business.Equipe;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMapper;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
+import ca.usherbrooke.fgen.api.mapper.FichierJointMapper;
+import ca.usherbrooke.fgen.api.mapper.MessageMapper;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.ws.rs.core.MediaType;
@@ -27,6 +30,12 @@ public class DiscussionService {
     EquipeMemberMapper equipeMemberMapper;
     @Inject
     DiscussionMemberMapper discussionMemberMapper;
+    @Inject
+    MessageMapper messageMapper;
+    @Inject
+    FichierJointMapper fichierJointMapper;
+    @Inject
+    MinioStorageService minioStorageService;
     @Inject
     JsonWebToken jwt;
 
@@ -61,14 +70,25 @@ public class DiscussionService {
     // DELETE /api/discussion/{discussionId}
     @DELETE
     @Path("/{discussionId}")
+    @Transactional
     public String deleteDiscussion(@PathParam("discussionId") String discussionId) {
         String cipConnecte = (String) jwt.getClaim("cip");
         Discussion discussion = discussionMapper.selectOne(discussionId);
         if (discussion == null || !discussion.members.contains(cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
-        discussionMapper.deleteOne(discussionId);
+        deleteDiscussionResources(discussionId);
         return discussionId;
+    }
+
+    void deleteDiscussionResources(String discussionId) {
+        List<String> fichierIds = fichierJointMapper.selectFichierIdsByDiscussionId(discussionId);
+        for (String fichierId : fichierIds) {
+            minioStorageService.removeObject(fichierId);
+        }
+        messageMapper.deleteByDiscussionId(discussionId);
+        discussionMemberMapper.deleteMembersByDiscussionId(discussionId);
+        discussionMapper.deleteOne(discussionId);
     }
 
     // POST /api/discussion  → création

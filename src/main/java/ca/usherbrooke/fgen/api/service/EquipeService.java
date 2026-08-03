@@ -8,6 +8,7 @@ import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.record.TeamMember;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -37,6 +38,9 @@ public class EquipeService {
 
     @Inject
     NotificationService notificationService;
+
+    @Inject
+    DiscussionService discussionService;
 
     @GET
     public List<Equipe> select(
@@ -73,6 +77,7 @@ public class EquipeService {
 
     @DELETE
     @Path("/{equipeId}")
+    @Transactional
     public String deleteOne(@PathParam("equipeId") String equipeId) {
         String cipConnecte = (String) jwt.getClaim("cip");
         Equipe equipe = equipeMapper.selectOne(equipeId);
@@ -80,6 +85,7 @@ public class EquipeService {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         equipeMapper.deleteOne(equipeId);
+        discussionService.deleteDiscussionResources(equipe.discussionId);
         return equipeId;
     }
 

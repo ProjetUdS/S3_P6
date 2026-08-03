@@ -34,6 +34,12 @@
           AND discussion_id = #{discussionId}
     </delete>
 
+    <delete id="deleteMembersByDiscussionId">
+        DELETE
+        FROM app.fait_parti
+        WHERE discussion_id = #{discussionId}
+    </delete>
+
   <select id="selectConversations" resultType="ca.usherbrooke.fgen.api.business.DiscussionMemberSummary">
         SELECT
             fp.discussion_id     as discussionId,

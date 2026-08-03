@@ -14,6 +14,11 @@ public interface FichierJointMapper {
     @Select("SELECT fichier_id as fichierId, message_id as messageId, cip, nom_original as nomOriginal, type_mime as typeMime, taille_octets as tailleOctets, date_ajout as dateAjout FROM app.fichier_joint WHERE message_id = #{messageId}")
     List<FichierJoint> selectByMessageId(@Param("messageId") String messageId);
 
+    @Select("SELECT fj.fichier_id FROM app.fichier_joint fj " +
+            "JOIN app.message m ON fj.message_id = m.message_id " +
+            "WHERE m.discussion_id = #{discussionId}")
+    List<String> selectFichierIdsByDiscussionId(@Param("discussionId") String discussionId);
+
     @Select("SELECT CASE " +
             "WHEN fj.cip = #{cip} THEN TRUE " +
             "WHEN EXISTS (SELECT 1 FROM app.equipe e JOIN app.est_dans ed ON e.equipe_id = ed.equipe_id WHERE e.discussion_id = m.discussion_id AND ed.cip = #{cip}) THEN TRUE " +

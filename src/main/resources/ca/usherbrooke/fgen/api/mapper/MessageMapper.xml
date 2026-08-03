@@ -46,6 +46,12 @@
         where message_id = #{messageId}
     </delete>
 
+    <delete id="deleteByDiscussionId">
+        delete
+        from app.message
+        where discussion_id = #{discussionId}
+    </delete>
+
     <insert id="insertMessage">
         insert into app.message(message_id,
                                 date_,
