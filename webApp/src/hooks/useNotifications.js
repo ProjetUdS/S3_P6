@@ -17,11 +17,14 @@ export function useNotifications(cip, token) {
             .then(count => setUnreadCount(count))
             .catch(err => console.error('Failed to load unread count:', err));
 
-        function connect() {
+        async function connect() {
             if (cleanupRef.current) return;
+            const { getKeycloakInstance, updateToken } = await import('../utils/keycloak.js');
+            await updateToken(5);
+            const kc = getKeycloakInstance();
+            if (!kc?.token) return;
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const baseUrl = `${protocol}//${window.location.host}/ws/notification/${cip}`;
-            const url = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
+            const url = `${protocol}//${window.location.host}/ws/notification/${cip}?token=${encodeURIComponent(kc.token)}`;
             const socket = new WebSocket(url);
             wsRef.current = socket;
 
@@ -52,7 +55,7 @@ export function useNotifications(cip, token) {
             if (wsRef.current) wsRef.current.close();
             wsRef.current = null;
         };
-    }, [cip, token]);
+    }, [cip]);
 
     return { unreadCount, setUnreadCount };
 }

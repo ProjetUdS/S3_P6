@@ -4,6 +4,7 @@ import ca.usherbrooke.fgen.api.business.Equipe;
 import ca.usherbrooke.fgen.api.business.Tache;
 import ca.usherbrooke.fgen.api.mapper.AssigneeMapper;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
+import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.mapper.TacheMapper;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -31,18 +32,24 @@ public class AssigneeService {
     EquipeMapper equipeMapper;
 
     @Inject
+    EquipeMemberMapper equipeMemberMapper;
+
+    @Inject
     JsonWebToken jwt;
 
     @GET
     @Path("/{tacheId}")
     public List<String> getAssignees(@PathParam("tacheId") String tacheId) {
-        String cipConnecte = (String)jwt.getClaim("cip");
+        String cipConnecte = (String) jwt.getClaim("cip");
 
         Tache tache = tacheMapper.selectOne(tacheId);
+        if(tache == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
         String equipeId = tache.equipeId;
         Equipe equipe = equipeMapper.selectOne(equipeId);
 
-        if(equipe == null || equipeMapper.selectMembers(equipeId).stream().noneMatch(m -> m.cip().equals(cipConnecte))) {
+        if (equipe == null || equipeMapper.selectMembers(equipeId).stream().noneMatch(m -> m.cip().equals(cipConnecte))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         return assigneeMapper.selectAssignees(tacheId);
@@ -51,15 +58,14 @@ public class AssigneeService {
     @POST
     @Path("/{tacheId}")
     public String insertAssignee(@PathParam("tacheId") String tacheId, @QueryParam("cip") String cip) {
-        String cipConnecte = (String)jwt.getClaim("cip");
+        String cipConnecte = (String) jwt.getClaim("cip");
+
+        if (isTacheNotAccessibleByMembers(tacheId, cipConnecte, cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
 
         Tache tache = tacheMapper.selectOne(tacheId);
         String equipeId = tache.equipeId;
-        Equipe equipe = equipeMapper.selectOne(equipeId);
-
-        if(equipe == null || equipeMapper.selectMembers(equipeId).stream().noneMatch(m -> m.cip().equals(cipConnecte))) {
-            throw new WebApplicationException(Response.Status.FORBIDDEN);
-        }
 
         assigneeMapper.insertAssignee(tacheId, cip);
         try {
@@ -75,18 +81,29 @@ public class AssigneeService {
     @DELETE
     @Path("/{tacheId}")
     public String deleteAssignee(@PathParam("tacheId") String tacheId, @QueryParam("cip") String cip) {
-        String cipConnecte = (String)jwt.getClaim("cip");
+        String cipConnecte = (String) jwt.getClaim("cip");
+
+        if (isTacheNotAccessibleByMembers(tacheId, cipConnecte, cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
 
         Tache tache = tacheMapper.selectOne(tacheId);
         String equipeId = tache.equipeId;
-        Equipe equipe = equipeMapper.selectOne(equipeId);
-
-        if(equipe == null || equipeMapper.selectMembers(equipeId).stream().noneMatch(m -> m.cip().equals(cipConnecte))) {
-            throw new WebApplicationException(Response.Status.FORBIDDEN);
-        }
 
         assigneeMapper.deleteAssignee(tacheId, cip);
         TacheWebSocket.broadcast(equipeId, JsonUtil.toJson(Map.of("type", "taskUpdated")));
         return cip;
+    }
+
+    private boolean isTacheNotAccessibleByMembers(String tacheId, String cipRequester, String cipCible){
+        Tache tache = tacheMapper.selectOne(tacheId);
+        if (tache == null) {
+            return true;
+        }
+
+        String equipeId = tache.equipeId;
+        Equipe equipe = equipeMapper.selectOne(equipeId);
+
+        return equipe == null || !equipeMemberMapper.isMember(equipeId, cipRequester) || !equipeMemberMapper.isMember(equipeId, cipCible);
     }
 }

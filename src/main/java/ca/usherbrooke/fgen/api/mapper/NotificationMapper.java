@@ -36,8 +36,9 @@ public interface NotificationMapper {
      * Marque une notification comme lue.
      *
      * @param notificationId l'identifiant de la notification
+     * @param cip Cip à qui appartient la notification
      */
-    void markAsRead(@Param("notificationId") String notificationId);
+    void markAsRead(@Param("notificationId") String notificationId, @Param("cip") String cip);
 
     /**
      * Marque toutes les notifications d'un utilisateur comme lues.

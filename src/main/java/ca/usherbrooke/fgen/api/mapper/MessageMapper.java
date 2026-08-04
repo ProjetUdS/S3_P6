@@ -15,6 +15,8 @@ public interface MessageMapper {
 
     void deleteOne(@Param("messageId") String messageId, @Param("discussionId") String discussionId);
 
+    void deleteByDiscussionId(@Param("discussionId") String discussionId);
+
     void insertMessage(@Param("message") Message message);
 
     String getNewId();

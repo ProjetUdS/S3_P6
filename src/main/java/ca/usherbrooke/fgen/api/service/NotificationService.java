@@ -63,9 +63,8 @@ public class NotificationService {
     @POST
     @Path("/{notificationId}/read")
     public void markAsRead(@PathParam("notificationId") String notificationId) {
-        // Idéalement, il faudrait vérifier que la notification appartient bien à cipConnecte
-        // Mais comme on va principalement utiliser markAllAsRead, c'est optionnel pour l'instant.
-        notificationMapper.markAsRead(notificationId);
+        String cip = (String) jwt.getClaim("cip");
+        notificationMapper.markAsRead(notificationId,cip);
     }
 
     /**

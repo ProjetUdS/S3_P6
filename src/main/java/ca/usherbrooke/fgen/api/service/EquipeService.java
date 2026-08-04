@@ -8,14 +8,13 @@ import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
 import ca.usherbrooke.fgen.api.record.TeamMember;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.*;
-import java.util.UUID;
-import java.util.Map;
 
 @Path("/api/equipes")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -40,6 +39,9 @@ public class EquipeService {
     @Inject
     NotificationService notificationService;
 
+    @Inject
+    DiscussionService discussionService;
+
     @GET
     public List<Equipe> select(
             @QueryParam("usersCip[]") String[] usersCip,
@@ -47,10 +49,10 @@ public class EquipeService {
             @QueryParam("administrateur") String administrateur,
             @QueryParam("nomEquipe") String nomEquipe) {
         String cipConnecte = (String) jwt.getClaim("cip");
-        if (equipeId != null && !equipeMemberMapper.isMember(equipeId, cipConnecte)) {
-            throw new WebApplicationException(Response.Status.FORBIDDEN);
-        }
-        return equipeMapper.select(usersCip, equipeId, administrateur, nomEquipe);
+
+        List<Equipe> equipes = equipeMapper.select(usersCip, equipeId, administrateur, nomEquipe);
+        equipes.removeIf(equipe -> !equipeMemberMapper.isMember(equipe.equipeId, cipConnecte));
+        return equipes;
     }
 
     @GET
@@ -75,6 +77,7 @@ public class EquipeService {
 
     @DELETE
     @Path("/{equipeId}")
+    @Transactional
     public String deleteOne(@PathParam("equipeId") String equipeId) {
         String cipConnecte = (String) jwt.getClaim("cip");
         Equipe equipe = equipeMapper.selectOne(equipeId);
@@ -82,6 +85,7 @@ public class EquipeService {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
         equipeMapper.deleteOne(equipeId);
+        discussionService.deleteDiscussionResources(equipe.discussionId);
         return equipeId;
     }
 
@@ -94,12 +98,14 @@ public class EquipeService {
         if (equipe.equipeId == null) {
             equipe.equipeId = UUID.randomUUID().toString().replace("-", "");
         }
-        if (equipe.discussionId == null) {
-            Discussion discussion = new Discussion();
-            discussion.discussionId = UUID.randomUUID().toString().replace("-", "");
-            discussionMapper.insertDiscussion(discussion);
-            equipe.discussionId = discussion.discussionId;
-        }
+
+        //Crée la discussion
+        Discussion discussion = new Discussion();
+        discussion.discussionId = UUID.randomUUID().toString().replace("-", "");
+        discussionMapper.insertDiscussion(discussion);
+        equipe.discussionId = discussion.discussionId;
+
+
         equipeMapper.insertEquipe(equipe);
 
         // ALWAYS add the creator

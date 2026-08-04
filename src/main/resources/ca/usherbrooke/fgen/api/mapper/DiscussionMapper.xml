@@ -17,11 +17,11 @@
     </select>
 
     <select id="select" resultMap="DiscussionResultMap">
-        SELECT d.discussion_id
+        SELECT DISTINCT d.discussion_id
         FROM app.discussion d
         LEFT JOIN app.fait_parti fp ON fp.discussion_id = d.discussion_id
         <where>
-            <if test="usersId != null">
+            <if test="usersId != null and usersId.length > 0">
                 AND fp.cip = ANY(#{usersId, jdbcType=OTHER, typeHandler=org.apache.ibatis.type.ArrayTypeHandler})
             </if>
             <if test="equipeId != null">

@@ -4,7 +4,11 @@ import ca.usherbrooke.fgen.api.business.Discussion;
 import ca.usherbrooke.fgen.api.business.Equipe;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMapper;
 import ca.usherbrooke.fgen.api.mapper.DiscussionMemberMapper;
+import ca.usherbrooke.fgen.api.mapper.EquipeMemberMapper;
+import ca.usherbrooke.fgen.api.mapper.FichierJointMapper;
+import ca.usherbrooke.fgen.api.mapper.MessageMapper;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import ca.usherbrooke.fgen.api.mapper.EquipeMapper;
 import jakarta.ws.rs.core.MediaType;
@@ -23,7 +27,15 @@ public class DiscussionService {
     @Inject
     EquipeMapper equipeMapper;
     @Inject
+    EquipeMemberMapper equipeMemberMapper;
+    @Inject
     DiscussionMemberMapper discussionMemberMapper;
+    @Inject
+    MessageMapper messageMapper;
+    @Inject
+    FichierJointMapper fichierJointMapper;
+    @Inject
+    MinioStorageService minioStorageService;
     @Inject
     JsonWebToken jwt;
 
@@ -33,83 +45,85 @@ public class DiscussionService {
             @QueryParam("usersId") String[] usersId,
             @QueryParam("equipeId") String equipeId,
             @QueryParam("discussionId") String discussionId) {
-        return discussionMapper.select(usersId, equipeId, discussionId);
+        String cip = (String) jwt.getClaim("cip");
+        List<Discussion> discussions = discussionMapper.select(usersId, equipeId, discussionId);
+        discussions.removeIf(discussion -> !discussionMemberMapper.isDiscussionParticipant(discussion.discussionId, cip));
+        return discussions;
     }
 
     // GET /api/discussion/{discussionId}
     @GET
     @Path("/{discussionId}")
     public Discussion getDiscussion(@PathParam("discussionId") String discussionId) {
-        return discussionMapper.selectOne(discussionId);
+
+        String cip = (String) jwt.getClaim("cip");
+        Discussion discussion = discussionMapper.selectOne(discussionId);
+        if (discussion == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        if (!discussionMemberMapper.isDiscussionParticipant(discussion.discussionId, cip)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+        return discussion;
     }
 
     // DELETE /api/discussion/{discussionId}
     @DELETE
     @Path("/{discussionId}")
+    @Transactional
     public String deleteDiscussion(@PathParam("discussionId") String discussionId) {
         String cipConnecte = (String) jwt.getClaim("cip");
         Discussion discussion = discussionMapper.selectOne(discussionId);
-        if(discussion == null|| !discussion.members.contains(cipConnecte)) {
+        if (discussion == null || !discussion.members.contains(cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
-        discussionMapper.deleteOne(discussionId);
+        deleteDiscussionResources(discussionId);
         return discussionId;
     }
 
-  // POST /api/discussion  → création
-  @POST
-  public String createDiscussion(Discussion discussion) {
-    if (discussion.discussionId == null) {
-      discussion.discussionId = discussionMapper.getNewId();
+    void deleteDiscussionResources(String discussionId) {
+        List<String> fichierIds = fichierJointMapper.selectFichierIdsByDiscussionId(discussionId);
+        for (String fichierId : fichierIds) {
+            minioStorageService.removeObject(fichierId);
+        }
+        messageMapper.deleteByDiscussionId(discussionId);
+        discussionMemberMapper.deleteMembersByDiscussionId(discussionId);
+        discussionMapper.deleteOne(discussionId);
     }
 
-    String cipConnecte = (String) jwt.getClaim("cip");
-    if(discussion.members.isEmpty() || !discussion.members.contains(cipConnecte)) {
-        throw new WebApplicationException(Response.Status.FORBIDDEN);
+    // POST /api/discussion  → création
+    @POST
+    public String createDiscussion(Discussion discussion) {
+        if (discussion.discussionId == null) {
+            discussion.discussionId = discussionMapper.getNewId();
+        }
+
+        String cipConnecte = (String) jwt.getClaim("cip");
+        if (discussion.members == null || discussion.members.isEmpty() || !discussion.members.contains(cipConnecte)) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+
+        discussion.members.removeIf(member -> discussionMemberMapper.isUserBlocked(member, cipConnecte) || discussionMemberMapper.isUserBlocked(cipConnecte, member));
+        //Si la personne est dans l'équipe, mais pas dans le chat pour une raison random
+        if (discussion.equipeId != null) {
+            Equipe equipe = equipeMapper.selectOne(discussion.equipeId);
+            if (equipe == null) throw new WebApplicationException(Response.Status.NOT_FOUND);
+            if (!equipeMemberMapper.isMember(equipe.equipeId, cipConnecte))
+                throw new WebApplicationException(Response.Status.FORBIDDEN);
+            discussionMemberMapper.insertMember(equipe.discussionId, cipConnecte);
+            return equipe.discussionId;
+        }
+
+        discussionMapper.insertDiscussion(discussion);
+        discussionMemberMapper.insertMembers(discussion.discussionId, discussion.members);
+
+        return discussion.discussionId;
     }
 
-      // If the discussion is linked to an equipe, check if one already exists
-      if (discussion.equipeId != null) {
-          Equipe equipe = equipeMapper.selectOne(discussion.equipeId);
-          if (equipe != null && equipe.discussionId != null) {
-              if (!discussionMemberMapper.isDiscussionParticipant(equipe.discussionId, cipConnecte)) {
-                  discussionMemberMapper.insertMember(equipe.discussionId, cipConnecte);
-              }
-                  return equipe.discussionId;
-              }
-          }
-
-    discussionMapper.insertDiscussion(discussion);
-
-    if (discussion.members != null && !discussion.members.isEmpty()) {
-      discussionMemberMapper.insertMembers(discussion.discussionId, discussion.members);
+    // GET /api/discussion/nouveauID
+    @GET
+    @Path("/nouveauID")
+    public String getNewId() {
+        return discussionMapper.getNewId();
     }
-
-    if (discussion.equipeId != null) {
-      equipeMapper.updateDiscussionId(discussion.equipeId, discussion.discussionId);
-    }
-
-      if (discussion.equipeId != null) {
-          int updated = equipeMapper.updateDiscussionId(discussion.equipeId, discussion.discussionId);
-          if (updated == 0) {
-              Equipe equipe = equipeMapper.selectOne(discussion.equipeId);
-              if (equipe != null && equipe.discussionId != null) {
-                  if (!discussionMemberMapper.isDiscussionParticipant(equipe.discussionId, cipConnecte)) {
-                      discussionMemberMapper.insertMember(equipe.discussionId, cipConnecte);
-                  }
-                  return equipe.discussionId;
-              }
-          }
-      }
-
-
-      return discussion.discussionId;
-  }
-
-  // GET /api/discussion/nouveauID
-  @GET
-  @Path("/nouveauID")
-  public String getNewId() {
-    return discussionMapper.getNewId();
-  }
 }

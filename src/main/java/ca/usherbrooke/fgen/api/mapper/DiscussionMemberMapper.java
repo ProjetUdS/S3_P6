@@ -18,6 +18,8 @@ public interface DiscussionMemberMapper {
 
     void deleteMember(@Param("discussionId")  String discussionId, @Param("cip") String cip);
 
+    void deleteMembersByDiscussionId(@Param("discussionId") String discussionId);
+
     List<DiscussionMemberSummary> selectConversations(@Param("cip") String cip);
 
     boolean isDiscussionParticipant(@Param("discussionId") String discussionId, @Param("cip") String cip);
