@@ -71,5 +71,9 @@
         UPDATE app.equipe SET discussion_id = #{discussionId} WHERE equipe_id = #{equipeId} AND discussion_id IS NULL
     </update>
 
+    <update id="updateAdministrateur">
+        UPDATE app.equipe SET administrateur_cip = #{cip} WHERE equipe_id = #{equipeId}
+    </update>
+
 
 </mapper>

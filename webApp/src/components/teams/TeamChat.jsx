@@ -36,6 +36,25 @@ export default function TeamChat({ team }) {
         connectWebSocket,
     } = useChatMessages(myCip, messagesAreaRef);
 
+    const loadMembers = async () => {
+        if (!team?.equipeId) return [];
+        const memberData = await getTeamMembers(team.equipeId).catch(err => {
+            console.error('Failed to load team members:', err);
+            return [];
+        });
+        const transformed = (memberData || []).map(m => {
+            const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
+            return {
+                id: m.cip,
+                name,
+                initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
+                gradient: gradientForCip(m.cip),
+            };
+        });
+        setMembers(transformed);
+        return transformed;
+    };
+
     useEffect(() => {
         if (!team?.equipeId || !myCip) {
             setLoading(false);
@@ -46,21 +65,8 @@ export default function TeamChat({ team }) {
         let cancelled = false;
 
         async function init() {
-            const memberData = await getTeamMembers(team.equipeId).catch(err => {
-                console.error('Failed to load team members:', err);
-                return [];
-            });
-            const transformed = (memberData || []).map(m => {
-                const name = [m.prenom, m.nom].filter(Boolean).join(' ') || m.pseudo || 'Unknown';
-                return {
-                    id: m.cip,
-                    name,
-                    initials: m.pseudo?.substring(0, 2).toUpperCase() || '?',
-                    gradient: gradientForCip(m.cip),
-                };
-            });
+            const transformed = await loadMembers();
             if (cancelled) return;
-            setMembers(transformed);
 
             const memberCips = transformed.map(m => m.id);
             const discussions = await getDiscussions(null, team.equipeId).catch(() => []);
@@ -100,6 +106,16 @@ export default function TeamChat({ team }) {
 
         return () => { cancelled = true; };
     }, [team?.equipeId, myCip]);
+
+    useEffect(() => {
+        const handleMembersChanged = (e) => {
+            if (team?.equipeId && e.detail?.equipeId === team.equipeId) {
+                loadMembers();
+            }
+        };
+        window.addEventListener('team-members-changed', handleMembersChanged);
+        return () => window.removeEventListener('team-members-changed', handleMembersChanged);
+    }, [team?.equipeId]);
 
     useEffect(() => {
         if (!discussionId) return;

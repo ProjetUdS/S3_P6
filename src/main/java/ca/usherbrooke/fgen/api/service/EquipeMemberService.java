@@ -58,6 +58,7 @@ public class EquipeMemberService {
         Equipe equipe = equipeMapper.selectOne(equipeId);
         equipeMemberMapper.insertMember(equipeId, memberCip);
         discussionMemberMapper.insertMember(equipe.discussionId, memberCip);
+        EquipeWebSocket.broadcast(memberCip, JsonUtil.toJson(Map.of("type", "teamMemberAdded", "equipeId", equipeId)));
         return memberCip;
     }
 
@@ -69,10 +70,33 @@ public class EquipeMemberService {
         if (equipe == null || (!equipe.administrateurCip.equals(cipConnecte) && !cipConnecte.equals(memberCip))) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
+
+        boolean adminLeaves = equipe.administrateurCip.equals(memberCip);
+        if (adminLeaves) {
+            if (equipeMemberMapper.countMembers(equipeId) <= 1) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Vous êtes le seul membre de l'équipe. Vous devez supprimer l'équipe pour la quitter.")
+                        .build());
+            }
+            String newAdmin = equipeMemberMapper.selectOldestMember(equipeId, memberCip);
+            equipeMapper.updateAdministrateur(equipeId, newAdmin);
+            for (TeamMember member : equipeMemberMapper.selectMembers(equipeId)) {
+                if (!member.cip().equals(memberCip)) {
+                    EquipeWebSocket.broadcast(member.cip(), JsonUtil.toJson(Map.of(
+                            "type", "teamAdminChanged",
+                            "equipeId", equipeId,
+                            "administrateurCip", newAdmin)));
+                }
+            }
+        }
+
         equipeMemberMapper.deleteMember(equipeId, memberCip);
         discussionMemberMapper.deleteMember(equipe.discussionId, memberCip);
         assigneeMapper.deleteAssigneesByTeamAndCip(equipeId, memberCip);
         TacheWebSocket.broadcast(equipeId, JsonUtil.toJson(Map.of("type", "taskUpdated")));
+        if (!cipConnecte.equals(memberCip)) {
+            EquipeWebSocket.broadcast(memberCip, JsonUtil.toJson(Map.of("type", "teamMemberRemoved", "equipeId", equipeId)));
+        }
         return memberCip;
     }
 }

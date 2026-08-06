@@ -82,7 +82,13 @@ export default function App() {
     if (!user?.cip) return;
     getEquipes(user.cip)
       .then(data => {
-        setTeams(data || []);
+        const list = data || [];
+        setTeams(list);
+        setActiveTeam(prev => {
+          if (!prev) return prev;
+          const fresh = list.find(t => t.equipeId === prev.equipeId);
+          return fresh || prev;
+        });
       })
       .catch(err => console.error('Failed to load teams:', err));
   }
@@ -136,8 +142,17 @@ export default function App() {
     }
   }, [teams]);
 
-  useEquipeWebSocket(user?.cip, token, () => {
+  useEffect(() => {
+    if (activeTeam && teams.length > 0 && !teams.some(t => t.equipeId === activeTeam.equipeId)) {
+      setActiveTeam(null);
+    }
+  }, [teams]);
+
+  useEquipeWebSocket(user?.cip, token, (data) => {
       loadTeams();
+      if (data?.equipeId && ['teamMemberAdded', 'teamMemberRemoved', 'teamAdminChanged'].includes(data.type)) {
+        window.dispatchEvent(new CustomEvent('team-members-changed', { detail: { equipeId: data.equipeId } }));
+      }
   });
 
   if (loading) {

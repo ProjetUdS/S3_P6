@@ -106,6 +106,26 @@ class ChangementsTest {
     // ========== 2. DÉPART : nettoie les assignations ==========
 
     @Test
+    void departAdminTransfertAuPlusAncienMembre() {
+        equipeMemberMapper.insertMember(equipeId, cipOutside);
+
+        String nouveauAdmin = equipeMemberMapper.selectOldestMember(equipeId, cipAdmin);
+        assertEquals(cipMember, nouveauAdmin);
+
+        equipeMapper.updateAdministrateur(equipeId, nouveauAdmin);
+        equipeMemberMapper.deleteMember(equipeId, cipAdmin);
+
+        assertEquals(cipMember, equipeMapper.selectOne(equipeId).administrateurCip);
+        assertFalse(equipeMemberMapper.isMember(equipeId, cipAdmin));
+    }
+
+    @Test
+    void plusAncienMembreHorsEquipeExclu() {
+        String nouveauAdmin = equipeMemberMapper.selectOldestMember(equipeId, cipMember);
+        assertEquals(cipAdmin, nouveauAdmin);
+    }
+
+    @Test
     void departNettoieAssignations() {
         List<String> assignesAvant = assigneeMapper.selectAssignees(tacheId);
         assertTrue(assignesAvant.contains(cipMember));

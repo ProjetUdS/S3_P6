@@ -110,6 +110,7 @@ CREATE TABLE app.Est_dans
 (
     cip       VARCHAR(50),
     equipe_id VARCHAR(50),
+    date_ajout TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (cip, equipe_id),
     FOREIGN KEY (cip) REFERENCES app.Utilisateur (cip) ,
     FOREIGN KEY (equipe_id) REFERENCES app.Equipe (equipe_id) ON DELETE CASCADE

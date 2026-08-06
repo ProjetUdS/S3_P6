@@ -26,7 +26,7 @@ export function useEquipeWebSocket(cip, token, onEvent) {
                 retryCount.current = 0;
                 try {
                     const data = JSON.parse(event.data);
-                    if (data.type === 'teamCreated') onEvent?.();
+                    if (data.type === 'teamCreated' || data.type === 'teamMemberAdded' || data.type === 'teamMemberRemoved' || data.type === 'teamAdminChanged' || data.type === 'teamDeleted') onEvent?.(data);
                 } catch (err) {
                     console.error('Equipe WS parse error:', err);
                 }

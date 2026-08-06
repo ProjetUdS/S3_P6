@@ -15,6 +15,10 @@ public interface EquipeMemberMapper {
 
     List<TeamMember> selectMembers(@Param("equipeId") String equipeId);
 
+    String selectOldestMember(@Param("equipeId") String equipeId, @Param("excludeCip") String excludeCip);
+
+    int countMembers(@Param("equipeId") String equipeId);
+
     boolean isMember(@Param("equipeId") String equipeId, @Param("cip") String cip);
 
     String getNewId();

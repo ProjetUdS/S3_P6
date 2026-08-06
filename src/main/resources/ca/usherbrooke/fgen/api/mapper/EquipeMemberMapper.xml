@@ -17,10 +17,27 @@
 
     <select id="selectMembers" resultType="ca.usherbrooke.fgen.api.record.TeamMember">
         SELECT u.cip, u.pseudo, u.nom, u.prenom,
+               CASE WHEN u.cip = e.administrateur_cip THEN 'Admin' ELSE 'Member' END as role,
                null as status
+        FROM app.equipe e
+        INNER JOIN app.est_dans ed ON ed.equipe_id = e.equipe_id
+        INNER JOIN app.utilisateur u ON u.cip = ed.cip
+        WHERE e.equipe_id = #{equipeId}
+    </select>
+
+    <select id="selectOldestMember" resultType="String">
+        SELECT ed.cip
         FROM app.est_dans ed
-                 INNER JOIN app.utilisateur u ON u.cip = ed.cip
         WHERE ed.equipe_id = #{equipeId}
+          AND ed.cip != #{excludeCip}
+        ORDER BY ed.date_ajout ASC, ed.cip ASC
+        LIMIT 1
+    </select>
+
+    <select id="countMembers" resultType="int">
+        SELECT COUNT(*)
+        FROM app.est_dans
+        WHERE equipe_id = #{equipeId}
     </select>
 
     <select id="isMember" resultType="boolean">

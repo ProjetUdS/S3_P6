@@ -31,11 +31,11 @@ INSERT INTO app.equipe (equipe_id, administrateur_cip, nom_equipe, discussion_id
 VALUES ('12345', 'tura2517', 'Equipe test', '12345');
 
 -- Ajoute gens à équipe
-INSERT INTO app.est_dans (cip, equipe_id)
-VALUES ('tura2517', '12345');
+INSERT INTO app.est_dans (cip, equipe_id, date_ajout)
+VALUES ('tura2517', '12345', '2026-06-01 10:00:00');
 
-INSERT INTO app.est_dans (cip, equipe_id)
-VALUES ('daly0386', '12345');
+INSERT INTO app.est_dans (cip, equipe_id, date_ajout)
+VALUES ('daly0386', '12345', '2026-06-02 10:00:00');
 
 
 -- Tache

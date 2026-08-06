@@ -84,8 +84,13 @@ public class EquipeService {
         if (equipe == null || !equipe.administrateurCip.equals(cipConnecte)) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
+        List<TeamMember> members = equipeMapper.selectMembers(equipeId);
         equipeMapper.deleteOne(equipeId);
         discussionService.deleteDiscussionResources(equipe.discussionId);
+        String message = JsonUtil.toJson(Map.of("type", "teamDeleted", "equipeId", equipeId));
+        for (TeamMember member : members) {
+            EquipeWebSocket.broadcast(member.cip(), message);
+        }
         return equipeId;
     }
 

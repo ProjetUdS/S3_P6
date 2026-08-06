@@ -28,4 +28,6 @@ public interface EquipeMapper {
     String selectEquipeIdByDiscussionId(@Param("discussionId") String discussionId);
 
     int updateDiscussionId(@Param("equipeId") String equipeId, @Param("discussionId") String discussionId);
+
+    int updateAdministrateur(@Param("equipeId") String equipeId, @Param("cip") String cip);
 }

@@ -62,10 +62,12 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [assigningTask, setAssigningTask] = useState(null);
   const [memberToRemove, setMemberToRemove] = useState(null);
+  const [removeError, setRemoveError] = useState('');
 
   const isCurrentUserAdmin = user?.cip === team?.administrateurCip || members.some(m => m.id === user?.cip && m.status === 'Admin');
 
   async function handleRemoveMember(memberCip) {
+    setRemoveError('');
     try {
       await removeTeamMember(team.equipeId, memberCip);
       if (memberCip === user?.cip) {
@@ -75,6 +77,7 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
       }
     } catch (err) {
       console.error('Failed to remove team member:', err);
+      setRemoveError(err.response?.data || err.message || 'Failed to remove member');
     } finally {
       setMemberToRemove(null);
     }
@@ -172,6 +175,16 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
       fetchMembers(),
       fetchTasks(),
     ]).finally(() => setLoading(false));
+  }, [team?.equipeId]);
+
+  useEffect(() => {
+    const handleMembersChanged = (e) => {
+      if (team?.equipeId && e.detail?.equipeId === team.equipeId) {
+        fetchMembers();
+      }
+    };
+    window.addEventListener('team-members-changed', handleMembersChanged);
+    return () => window.removeEventListener('team-members-changed', handleMembersChanged);
   }, [team?.equipeId]);
 
     useTaskWebSocket(team?.equipeId, token, fetchTasks);
@@ -737,12 +750,13 @@ export default function TeamPlanning({ team, showPlanningInfo }) {
                  ? "Are you sure you want to leave the team?"
                  : `Are you sure you want to remove ${memberToRemove.name} from the team?`}
              </div>
-             <div className="modal-actions">
-               <button className="btn-cancel" onClick={() => setMemberToRemove(null)}>Cancel</button>
-               <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleRemoveMember(memberToRemove.id)}>
-                 {memberToRemove.id === user?.cip ? "Leave" : "Remove"}
-               </button>
-             </div>
+              <div className="modal-actions">
+                <button className="btn-cancel" onClick={() => { setMemberToRemove(null); setRemoveError(''); }}>Cancel</button>
+                <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => handleRemoveMember(memberToRemove.id)}>
+                  {memberToRemove.id === user?.cip ? "Leave" : "Remove"}
+                </button>
+              </div>
+              {removeError && <div style={{ color: 'var(--red)', fontSize: 13, marginTop: 8 }}>{removeError}</div>}
            </div>
          </div>
        )}
