@@ -1,0 +1,52 @@
+# Configuration globale de Dev.Local 2.0
+namespace: devlocal
+
+# Dozzle - Monitoring des logs Docker via interface web
+dozzle_enabled: true
+dozzle_port: 9999  # Port accessible via http://localhost:9999 ou http://localhost:8080/logs
+
+# Docker Registries
+# Configuration des registres Docker pour le projet
+registries:
+  jfrog:
+    url: CUSTOM.jfrog.io
+    description: "JFrog Artifactory - Registre Docker Organisation"
+  ecr:
+    url: <id>.dkr.ecr.ca-central-1.amazonaws.com
+    description: "AWS ECR - Elastic Container Registry"
+
+# Traefik cert
+tls:
+  enabled: true
+  certFile: /etc/traefik/certs/cert.pem
+  keyFile: /etc/traefik/certs/key.pem
+
+# Variables d'environnement partagées
+# Ces variables seront injectées dans tous les services (ou services spécifiques)
+shared_env:
+  # Variables globales pour tous les services
+  global:
+    - LOG_LEVEL=info
+    - NODE_ENV=development
+    - TZ=America/Toronto
+  external_services: {}
+
+
+# Configuration de l'injection des variables partagées
+shared_env_config:
+  # Activer l'injection automatique
+  enabled: true
+
+  # Groupes à injecter automatiquement dans tous les services
+  auto_inject:
+    - global
+    - external_services
+
+  # Exclure certains services de l'injection automatique
+  exclude_services:
+    - traefik
+    - dozzle
+
+  # Inclure des groupes spécifiques pour certains services
+  service_specific:
+

@@ -1,0 +1,1334 @@
+#!/bin/bash
+# Gestionnaire de profils pour Dev.Local 2.0
+# Script pour ajouter, modifier, supprimer et lister des profils de services
+# Génère automatiquement docker-compose.yml et la configuration Traefik
+
+set -e
+
+ACTION="${1:-list}"
+PROFILES_DIR="profiles"
+DOCKER_COMPOSE_FILE="docker-compose.yml"
+TRAEFIK_DYNAMIC_FILE="traefik/dynamic.yml"
+SECRETS_FILE="secrets.env"
+CONFIG_FILE="config.yml"
+
+# Configuration par défaut
+DOZZLE_ENABLED=true
+DOZZLE_PORT=9999
+NAMESPACE="default"
+
+# Détection robuste de yq (mikefarah v4+)
+YQ_CMD=""
+detect_yq() {
+    # Vérifier si yq est installé
+    if ! command -v yq >/dev/null 2>&1; then
+        return 1
+    fi
+
+    # Vérifier qu'il s'agit de mikefarah/yq (pas kislyuk/yq)
+    # mikefarah/yq a une commande 'eval' ou 'e', kislyuk n'en a pas
+    if yq --help 2>&1 | grep -q "eval"; then
+        # Vérifier la version (v4+)
+        local version
+        version=$(yq --version 2>&1 | grep -oE 'version [v]?[0-9]+' | head -1 | grep -oE '[0-9]+')
+        if [ -n "$version" ] && [ "$version" -ge 4 ]; then
+            YQ_CMD="yq"
+            return 0
+        fi
+    fi
+
+    # Si ce n'est pas mikefarah v4+, ne pas utiliser yq
+    return 1
+}
+
+# Activer yq si disponible et compatible
+if detect_yq; then
+    echo -e "\033[92m✓ yq (mikefarah v4+) détecté - parsing YAML robuste activé\033[0m" >&2
+else
+    echo -e "\033[93m⚠ yq non disponible ou version incompatible - utilisation du fallback sed/grep\033[0m" >&2
+    echo -e "\033[93m  Installez yq v4+ pour un parsing plus fiable: https://github.com/mikefarah/yq\033[0m" >&2
+fi
+
+# Extraire le nom de la clé YAML d'une ligne (ex: "  image: nginx" -> "image")
+# Usage: key_from_line "  image: nginx"
+key_from_line() {
+    echo "$1" | sed -E 's/:[[:space:]].*//; s/:[[:space:]]*$//'
+}
+
+# Insérer du contenu après la première ligne dont la clé correspond
+# Usage: insert_content_after_key "$text" "$content" "key1|key2"
+# Retourne le texte modifié via stdout
+insert_content_after_key() {
+    local text="$1"
+    local content="$2"
+    local keys_pattern="$3"
+    local result=""
+    local inserted=false
+
+    while IFS= read -r line; do
+        result="${result}${line}"$'\n'
+        if [ "$inserted" = false ] && echo "$line" | grep -qE "^ *(${keys_pattern})"; then
+            result="${result}${content}"$'\n'
+            inserted=true
+        fi
+    done <<< "$text"
+
+    printf '%s' "$result"
+}
+
+# Nettoyer un item YAML : supprime commentaires inline, espaces, et guillemets
+# Usage: clean_yaml_item "item" [strip_dash] [strip_quotes]
+clean_yaml_item() {
+    local item="$1"
+    [ -z "$item" ] && return
+    local strip_dash="${2:-false}"
+    local strip_quotes="${3:-false}"
+
+    # Supprimer les commentaires inline et les espaces
+    item=$(echo "$item" | sed -E 's/[[:space:]]+#.*//; s/^[[:space:]]+//; s/[[:space:]]+$//')
+
+    # Supprimer le tiret YAML si demandé
+    if [ "$strip_dash" = true ]; then
+      item=$(echo "$item" | sed -E 's/^-[[:space:]]*//')
+    fi
+
+    # Supprimer les guillemets si demandé
+    if [ "$strip_quotes" = true ]; then
+        item=$(echo "$item" | sed -E 's/^"(.*)"$/\1/')
+    fi
+
+    printf '%s' "$item"
+}
+
+# Block normalization
+# Usage: normalize_block "block" [indent_level] [output_format]
+#   indent_level: 2 or 4 (default: 4)
+#   output_format: "list" (default) or "map"
+# Converts any block format (list, map, raw key=value) to normalized output
+normalize_block() {
+    local block="$1"
+    local indent="${2:-4}"
+    local format="${3:-list}"
+    local result=""
+    local prefix
+    prefix=$(printf '%*s' "$indent" '')
+
+    [ -z "$block" ] && { printf '%s' "$result"; return; }
+
+    # Detect input format
+    local is_list_dash=false
+    local is_map=false
+    local is_list_raw=false
+
+    if echo "$block" | grep -qE "^[[:space:]]*[-][[:space:]]"; then
+        is_list_dash=true
+    elif echo "$block" | grep -qE "^[[:space:]]+[A-Z_]+:"; then
+        is_map=true
+    elif echo "$block" | sed 's/^[[:space:]]*//' | grep -qE "^[A-Z_]+=.+" || echo "$block" | sed 's/^[[:space:]]*//' | grep -qvE "^[[:space:]]*$|#|^[[:space:]]*[A-Za-z_]+:"; then
+        is_list_raw=true
+    fi
+
+    if [ "$is_list_dash" = true ] && [ "$format" = "list" ]; then
+        while IFS= read -r item; do
+            item=$(clean_yaml_item "$item" true false)
+            [ -n "$item" ] && result="${result}${prefix}- ${item}"$'\n'
+        done <<< "$block"
+    elif [ "$is_map" = true ]; then
+        if [ "$format" = "map" ]; then
+            while IFS= read -r item; do
+                item=$(clean_yaml_item "$item" false false)
+                [ -z "$item" ] && continue
+                local k v
+                k=$(echo "$item" | cut -d: -f1)
+                v=$(echo "$item" | cut -d: -f2- | sed -E 's/^[[:space:]]+//; s/^"(.*)"$/\1/')
+                [ -n "$k" ] && result="${result}${prefix}${k}: ${v}"$'\n'
+            done <<< "$block"
+        else
+            if [ -n "$YQ_CMD" ]; then
+                local stripped
+                stripped=$(echo "$block" | sed 's/^[[:space:]]*//')
+                local normalized
+                normalized=$(echo "$stripped" | $YQ_CMD 'to_entries | .[] | .key + "=" + (.value | tostring)' 2>/dev/null)
+                if [ -n "$normalized" ]; then
+                    while IFS= read -r item; do
+                        [ -n "$item" ] && result="${result}${prefix}- ${item}"$'\n'
+                    done <<< "$normalized"
+                fi
+            else
+                while IFS= read -r item; do
+                    item=$(clean_yaml_item "$item" false false)
+                    [ -z "$item" ] && continue
+                    local k v
+                    k=$(echo "$item" | cut -d: -f1)
+                    v=$(echo "$item" | cut -d: -f2- | sed -E 's/^[[:space:]]+//')
+                    v=$(clean_yaml_item "$v" false true)
+                    [ -n "$k" ] && result="${result}${prefix}- ${k}=${v}"$'\n'
+                done <<< "$block"
+            fi
+        fi
+    elif [ "$is_list_raw" = true ]; then
+        while IFS= read -r item; do
+            item=$(clean_yaml_item "$item" false false)
+            [ -n "$item" ] && result="${result}${prefix}- ${item}"$'\n'
+        done <<< "$block"
+    fi
+
+    printf '%s' "$result"
+}
+
+# Charger la configuration
+load_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        if [ -n "$YQ_CMD" ]; then
+            # Using yq for robust parsing
+            DOZZLE_ENABLED=$(yq e '.dozzle_enabled // true' "$CONFIG_FILE" 2>/dev/null)
+            DOZZLE_PORT=$(yq e '.dozzle_port // 9999' "$CONFIG_FILE" 2>/dev/null)
+            NAMESPACE=$(yq e '.namespace // "devlocal"' "$CONFIG_FILE" 2>/dev/null)
+            TLS_ENABLED=$(yq e '.tls.enabled // false' "$CONFIG_FILE" 2>/dev/null)
+            TLS_CERT_FILE=$(yq e '.tls.certFile // ""' "$CONFIG_FILE" 2>/dev/null)
+            TLS_KEY_FILE=$(yq e '.tls.keyFile // ""' "$CONFIG_FILE" 2>/dev/null)
+        else
+            if grep -q "dozzle_enabled: false" "$CONFIG_FILE" 2>/dev/null; then
+                DOZZLE_ENABLED=false
+            fi
+            # Extraire seulement le nombre du port (ignorer le commentaire #)
+            local port
+            port=$(grep "dozzle_port:" "$CONFIG_FILE" 2>/dev/null | sed 's/.*dozzle_port: *//; s/ *#.*//' | tr -d '\r')
+            if [ -n "$port" ]; then
+                DOZZLE_PORT=$port
+            fi
+
+            # Extraire la valeur namespace si presente
+            local ns_line
+            ns_line=$(grep -E '^[[:space:]]*namespace:' "$CONFIG_FILE" 2>/dev/null | head -n1 || true)
+            if [ -n "$ns_line" ]; then
+                NAMESPACE=$(echo "$ns_line" | sed -E 's/^[[:space:]]*namespace:[[:space:]]*//; s/"//g; s/[[:space:]]+#.*//' | tr -d '\r')
+                if [ -z "$NAMESPACE" ]; then
+                    NAMESPACE="devlocal"
+                fi
+            fi
+
+            # TLS config (fallback grep/sed)
+            TLS_ENABLED=$(grep -A 2 "^tls:" "$CONFIG_FILE" 2>/dev/null | grep "enabled:" | head -1 | sed 's/.*enabled: *//; s/ *#.*//' | tr -d '\r')
+            [ -z "$TLS_ENABLED" ] && TLS_ENABLED="false"
+            TLS_CERT_FILE=$(grep -A 3 "^tls:" "$CONFIG_FILE" 2>/dev/null | grep "certFile:" | head -1 | sed 's/.*certFile: *//; s/ *#.*//' | tr -d '\r')
+            TLS_KEY_FILE=$(grep -A 3 "^tls:" "$CONFIG_FILE" 2>/dev/null | grep "keyFile:" | head -1 | sed 's/.*keyFile: *//; s/ *#.*//' | tr -d '\r')
+        fi
+    fi
+}
+
+# Fonction pour charger les variables d'environnement partagées
+get_shared_env_vars() {
+    local service_name="$1"
+    local shared_vars=""
+
+    [ ! -f "$CONFIG_FILE" ] && echo "" && return
+
+    if [ -n "$YQ_CMD" ]; then
+        # yq-based implementation
+        local enabled
+        enabled=$(yq e '.shared_env_config.enabled // true' "$CONFIG_FILE" 2>/dev/null)
+        [ "$enabled" = "false" ] && echo "" && return
+
+        # auto_inject groups
+        local groups
+        groups=$(yq e '.shared_env_config.auto_inject[]? // []' "$CONFIG_FILE" 2>/dev/null || true)
+
+        # service specific groups
+        if [ -n "$service_name" ]; then
+            local svc_groups
+            svc_groups=$(yq e ".shared_env_config.service_specific.${service_name}[]? // []" "$CONFIG_FILE" 2>/dev/null || true)
+            if [ -n "$svc_groups" ]; then
+                groups="$groups\n$svc_groups"
+            fi
+        fi
+
+        # iterate groups and collect variables
+        while IFS= read -r grp; do
+            [ -z "$grp" ] && continue
+            # for each group, get the list under shared_env.<group>
+            while IFS= read -r v; do
+                # Filtrer les valeurs vides et la chaîne littérale "[]"
+                [ -n "$v" ] && [ "$v" != "[]" ] && shared_vars="$shared_vars$v"$'\n'
+            done < <(yq e ".shared_env.${grp}[]? // []" "$CONFIG_FILE" 2>/dev/null || true)
+        done <<< "$groups"
+
+        echo "$shared_vars"
+        return
+    fi
+
+    # Fallback: original grep/sed implementation
+    local enabled
+    enabled=$(grep -A 10 "^shared_env_config:" "$CONFIG_FILE" | grep "enabled:" | sed 's/.*enabled: *//; s/ *#.*//' | tr -d '\r' | head -1)
+    [ "$enabled" = "false" ] && echo "" && return
+
+    # Récupérer les groupes auto_inject
+    local auto_inject_groups=""
+    local in_auto_inject=false
+    while IFS= read -r line; do
+        if echo "$line" | grep -q "^  auto_inject:"; then
+            in_auto_inject=true
+            continue
+        fi
+        if [ "$in_auto_inject" = true ]; then
+            if echo "$line" | grep -q "^    - "; then
+                local group
+                group=$(echo "$line" | sed -E 's/^[[:space:]]*-[[:space:]]*//; s/[[:space:]]+#.*//; s/[[:space:]]+$//' | tr -d '\r')
+                auto_inject_groups="${auto_inject_groups} ${group}"
+            else
+                break
+            fi
+        fi
+    done < "$CONFIG_FILE"
+
+    # Vérifier si le service est exclu
+    if [ -n "$service_name" ]; then
+        local in_exclude=false
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "^  exclude_services:"; then
+                in_exclude=true
+                continue
+            fi
+            if [ "$in_exclude" = true ]; then
+                if echo "$line" | grep -q "^    - "; then
+                    local excluded_service
+                    excluded_service=$(echo "$line" | sed -E 's/^[[:space:]]*-[[:space:]]*//; s/[[:space:]]+#.*//; s/[[:space:]]+$//' | tr -d '\r')
+                    if [ "$excluded_service" = "$service_name" ]; then
+                        echo ""
+                        return
+                    fi
+                else
+                    break
+                fi
+            fi
+        done < "$CONFIG_FILE"
+    fi
+
+    # Récupérer les groupes service_specific pour ce service
+    local service_groups=""
+    if [ -n "$service_name" ]; then
+        local in_service_specific=false
+        local in_current_service=false
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "^  service_specific:"; then
+                in_service_specific=true
+                continue
+            fi
+            if [ "$in_service_specific" = true ]; then
+                if echo "$line" | grep -q "^    ${service_name}:"; then
+                    in_current_service=true
+                    continue
+                fi
+                if [ "$in_current_service" = true ]; then
+                    if echo "$line" | grep -q "^      - "; then
+                        local group
+                        group=$(echo "$line" | sed -E 's/^[[:space:]]*-[[:space:]]*//; s/[[:space:]]+#.*//; s/[[:space:]]+$//' | tr -d '\r')
+                        service_groups="${service_groups} ${group}"
+                    else
+                        in_current_service=false
+                        if [ "$(echo "$line" | grep -c "^    [a-z]")" -eq 0 ]; then
+                            break
+                        fi
+                    fi
+                fi
+            fi
+        done < "$CONFIG_FILE"
+    fi
+
+    # Combiner tous les groupes
+    local all_groups
+    all_groups="${auto_inject_groups} ${service_groups}"
+
+    # Extraire les variables de chaque groupe
+    for group in $all_groups; do
+        [ -z "$group" ] && continue
+
+        local in_shared_env=false
+        local in_group=false
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "^shared_env:"; then
+                in_shared_env=true
+                continue
+            fi
+            if [ "$in_shared_env" = true ]; then
+                if echo "$line" | grep -q "^  ${group}:"; then
+                    in_group=true
+                    continue
+                fi
+                if [ "$in_group" = true ]; then
+                    if echo "$line" | grep -q "^    - "; then
+                        local var
+                        # Fix: strip only the YAML list marker, preserve hyphens in values
+                        var=$(echo "$line" | sed -E 's/^[[:space:]]*-[[:space:]]*//; s/[[:space:]]+#.*//; s/[[:space:]]+$//' | tr -d '\r')
+                        shared_vars="${shared_vars}${var}"$'\n'
+                    elif echo "$line" | grep -qE "^[[:space:]]+#"; then
+                        # Skip comment lines within the list (at list item indentation or deeper)
+                        continue
+                    else
+                        in_group=false
+                        if [ "$(echo "$line" | grep -c "^  [a-z]")" -eq 0 ]; then
+                            break
+                        fi
+                    fi
+                fi
+            fi
+        done < "$CONFIG_FILE"
+    done
+
+    echo "$shared_vars"
+}
+
+# Fonction pour lister les profils
+show_profiles() {
+    echo -e "\n\033[96m📋 PROFILS DISPONIBLES\033[0m"
+    echo -e "\033[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    
+    if [ ! -d "$PROFILES_DIR" ] || [ -z "$(ls -A $PROFILES_DIR/*.yml 2>/dev/null)" ]; then
+        echo -e "\033[93mAucun profil trouvé dans $PROFILES_DIR\033[0m"
+        return
+    fi
+    
+    for profile in "$PROFILES_DIR"/*.yml; do
+        [ -f "$profile" ] || continue
+        local basename
+        basename=$(basename "$profile")
+        local name
+        name=$(grep -m1 "^name:" "$profile" | sed 's/name: *//; s/ *#.*//' | tr -d '\r' || echo "${basename%.yml}")
+        local enabled
+        enabled=$(grep -m1 "^enabled:" "$profile" | sed 's/enabled: *//; s/ *#.*//' | tr -d '\r' || echo "true")
+        local description
+        description=$(grep -m1 '^description:' "$profile" | sed -E 's/description: *"//; s/"$//; s/[[:space:]]+#.*//' | tr -d '\r' || echo "Sans description")
+
+        if [ "$enabled" = "true" ]; then
+            echo -e "  \033[97m$name\033[0m - \033[92m✅ Activé\033[0m"
+        else
+            echo -e "  \033[97m$name\033[0m - \033[91m❌ Désactivé\033[0m"
+        fi
+        echo -e "    \033[90m📝 $description\033[0m"
+        echo -e "    \033[90m📁 $basename\033[0m"
+        echo ""
+    done
+}
+
+# Fonction pour ajouter un profil
+add_profile() {
+    echo -e "\n\033[96m➕ AJOUTER UN NOUVEAU PROFIL\033[0m"
+    echo -e "\033[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    
+    # Collecter les informations
+    read -p $'\nNom du service (ex: api-backend, frontend): ' name
+    if [ -z "$name" ]; then
+        echo -e "\033[91mLe nom est requis\033[0m"
+        return 1
+    fi
+    
+    # Nettoyer le nom
+    name=$(echo "$name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+    filename="$PROFILES_DIR/$name.yml"
+    
+    if [ -f "$filename" ]; then
+        echo -e "\033[91mUn profil '$name' existe déjà !\033[0m"
+        return 1
+    fi
+    
+    read -p "Description du service: " description
+    read -p "Image Docker (ex: nginx:latest, registry.io/myapp:v1.0): " image
+    read -p "Port interne du conteneur (ex: 80, 8000): " docker_port
+    read -p "Port exposé localement (via Traefik host) (ex: 8001): " local_port
+    [ -z "$docker_port" ] && docker_port="80"
+    [ -z "$local_port" ] && local_port=$docker_port
+    
+    # Port mapping docker-compose (host:container) can be same as local_port:docker_port or different
+    read -p "Port binding Docker (host:container) (Entrée pour utiliser $local_port:$docker_port, 'none' pour aucun): " host_binding
+    if [ -z "$host_binding" ]; then
+        host_binding="$local_port:$docker_port"
+    fi
+    
+    echo -e "\n\033[93m🔑 Activation du service\033[0m"
+    read -p "Service toujours actif (démarré par défaut) ? (O/n): " always_active_input
+    always_active="true"
+    docker_profile="null"
+    if [ "$always_active_input" = "n" ]; then
+        always_active="false"
+        read -p "Nom du profil Docker (pour démarrage conditionnel, ex: $name): " docker_profile
+        [ -z "$docker_profile" ] && docker_profile=$name
+    fi
+    
+    echo -e "\n\033[93m🔧 Configuration Traefik\033[0m"
+    read -p "Activer Traefik ? (o/N): " enable_traefik_input
+    enable_traefik="false"
+    traefik_prefix="/"
+    strip_prefix="false"
+    traefik_priority="10"
+    traefik_routes=""
+    traefik_docker_port="80"
+    traefik_local_port="80"
+    traefik_health_path="/health"
+    
+    if [ "$enable_traefik_input" = "o" ]; then
+        enable_traefik="true"
+        read -p "Utiliser plusieurs routes ? (o/N): " multi_routes_input
+        
+        if [ "$multi_routes_input" = "o" ]; then
+            echo -e "\n\033[96m📋 Configuration des routes multiples\033[0m"
+            echo "Chaque route: préfixe, strip_prefix, priorité (défaut: 10)"
+            echo "Exemple: /api, false, 10"
+            echo ""
+            
+            route_count=0
+            while true; do
+                read -p "Route $((route_count + 1)) - Préfixe (ex: /api, /ws) ou vide pour terminer: " route_prefix
+                [ -z "$route_prefix" ] && break
+                
+                read -p "  Supprimer le préfixe ? (o/N): " route_strip
+                [ "$route_strip" = "o" ] && route_strip="true" || route_strip="false"
+                
+                read -p "  Priorité (défaut 10): " route_priority
+                [ -z "$route_priority" ] && route_priority="10"
+                
+                # Sanitize prefix for naming (remove leading /, replace non-alphanum with -)
+                route_suffix=$(echo "$route_prefix" | sed 's|^/||; s|[^a-zA-Z0-9]|-|g; s|--*|-|g; s|^-||; s|-$||')
+                [ -z "$route_suffix" ] && route_suffix="route$route_count"
+                
+                # Build routes array entry
+                traefik_routes="${traefik_routes}    - prefix: \"$route_prefix\""$'\n'"      strip_prefix: $route_strip"$'\n'"      priority: $route_priority"$'\n'
+                
+                # Use first route as legacy defaults for backward compat
+                if [ $route_count -eq 0 ]; then
+                    traefik_prefix="$route_prefix"
+                    strip_prefix="$route_strip"
+                    traefik_priority="$route_priority"
+                fi
+                
+                ((route_count++))
+            done
+            
+            # Ask for common docker port / local port / health path
+            read -p "Port interne du conteneur (défaut 80): " traefik_docker_port
+            [ -z "$traefik_docker_port" ] && traefik_docker_port="80"
+            read -p "Port exposé localement via Traefik (défaut 80): " traefik_local_port
+            [ -z "$traefik_local_port" ] && traefik_local_port="80"
+            read -p "Chemin health check (défaut /health): " traefik_health_path
+            [ -z "$traefik_health_path" ] && traefik_health_path="/health"
+        else
+            # Single route (legacy mode)
+            read -p "Préfixe de route (ex: /api, /app): " traefik_prefix
+            [ -z "$traefik_prefix" ] && traefik_prefix="/$name"
+            read -p "Supprimer le préfixe avant transmission ? (O/n): " strip_prefix_input
+            [ "$strip_prefix_input" != "n" ] && strip_prefix="true"
+            read -p "Priorité (défaut 10): " traefik_priority
+            [ -z "$traefik_priority" ] && traefik_priority="10"
+            read -p "Port interne du conteneur (défaut 80): " traefik_docker_port
+            [ -z "$traefik_docker_port" ] && traefik_docker_port="80"
+            read -p "Port exposé localement via Traefik (défaut 80): " traefik_local_port
+            [ -z "$traefik_local_port" ] && traefik_local_port="80"
+            read -p "Chemin health check (défaut /health): " traefik_health_path
+            [ -z "$traefik_health_path" ] && traefik_health_path="/health"
+        fi
+    fi
+    
+    echo -e "\n\033[93m🔐 Variables d'environnement\033[0m"
+    echo "Entrez les variables (format: NOM=valeur), ligne vide pour terminer"
+    env_vars=""
+    while true; do
+        read -p "Variable d'environnement: " env_var
+        [ -z "$env_var" ] && break
+        env_vars="${env_vars}    - ${env_var}"$'\n'
+    done
+    
+    echo -e "\n\033[93m🔑 Secrets depuis secrets.env\033[0m"
+    echo "Entrez les secrets (format: SECRET_NAME), ligne vide pour terminer"
+    secrets=""
+    secrets_doc=""
+    while true; do
+        read -p "Nom du secret: " secret
+        [ -z "$secret" ] && break
+        secret_var=$(echo "$secret" | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9_]/_/g')
+        read -p "  Description de $secret_var (optionnel): " secret_desc
+        [ -z "$secret_desc" ] && secret_desc="Secret pour $name"
+        
+        secrets="${secrets}    - ${secret_var}=\${${secret_var}:-changeme}"$'\n'
+        secrets_doc="${secrets_doc}  - name: ${secret_var}"$'\n'"    description: \"${secret_desc}\""$'\n'"    default: changeme"$'\n'
+    done
+    
+    # Combiner env vars et secrets
+    all_env="${env_vars}${secrets}"
+    [ -z "$all_env" ] && all_env="    # Aucune variable d'environnement"
+    
+    # Section secrets si nécessaire
+    secrets_section=""
+    if [ -n "$secrets_doc" ]; then
+        secrets_section=$'\n'"# Variables de secrets requises (à définir dans secrets.env)"$'\n'"secrets:"$'\n'"${secrets_doc}"
+    fi
+    
+    # Générer le fichier YAML
+    mkdir -p "$PROFILES_DIR"
+    cat > "$filename" << EOF
+# Profil généré automatiquement
+name: $name
+description: "$description"
+enabled: true
+always_active: $always_active
+docker_profile: $docker_profile
+
+docker-compose:
+  image: $image
+  container_name: $name
+  ports:
+    - "$host_binding"
+  environment:
+$all_env
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:$docker_port/health"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 10s
+
+traefik:
+  enabled: $enable_traefik
+  prefix: $traefik_prefix
+  strip_prefix: $strip_prefix
+  local_port: $traefik_local_port
+  docker_port: $traefik_docker_port
+  priority: $traefik_priority
+  health_path: $traefik_health_path
+$traefik_routes$secrets_section
+metadata:
+  category: custom
+  tags:
+    - $name
+EOF
+    
+    echo -e "\n\033[92m✅ Profil créé : $filename\033[0m"
+    echo -e "\033[90m📝 Vous pouvez éditer ce fichier pour personnaliser davantage\033[0m"
+    
+    # Proposer de regénérer docker-compose.yml
+    read -p $'\nRegénérer docker-compose.yml maintenant ? (O/n): ' regen
+    if [ "$regen" != "n" ]; then
+        generate_docker_compose
+    fi
+}
+
+# Fonction pour générer docker-compose.yml
+generate_docker_compose() {
+    echo -e "\n\033[96m🔧 GÉNÉRATION DE docker-compose.yml\033[0m"
+    echo -e "\033[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+
+    if [ ! -d "$PROFILES_DIR" ] || [ -z "$(ls -A $PROFILES_DIR/*.yml 2>/dev/null)" ]; then
+        echo -e "\033[93mAucun profil trouvé\033[0m"
+        return 1
+    fi
+
+    # Validation des profils avant génération
+    if [ -f "./validate-profiles.sh" ]; then
+        echo -e "\n\033[96m🔍 Validation des profils...\033[0m"
+        if ! bash ./validate-profiles.sh; then
+            echo -e "\n\033[91m❌ La validation a échoué. Corrigez les erreurs avant de générer.\033[0m"
+            return 1
+        fi
+        echo ""
+    fi
+
+    load_config
+    
+    # Header avec timestamp
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    cat > "$DOCKER_COMPOSE_FILE" << EOF
+# Généré automatiquement par manage-profiles.sh
+# NE PAS ÉDITER MANUELLEMENT - Vos modifications seront écrasées
+# Dernière génération : $timestamp
+name: $NAMESPACE
+
+services:
+  # Reverse Proxy Traefik
+  traefik:
+    image: traefik:v3.6.4
+    container_name: ${COMPOSE_PROJECT_NAME:-devlocal}_traefik
+    ports:
+      - "80:80"
+      - "8080:80"
+      - "443:443"
+      - "8081:8080"
+    extra_hosts:
+      - "external-ip:host-gateway"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./traefik/certs:/etc/traefik/certs:ro
+    networks:
+      - traefik-network
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+EOF
+    
+    # Ajouter Dozzle si activé
+    if [ "$DOZZLE_ENABLED" = "true" ]; then
+        cat >> "$DOCKER_COMPOSE_FILE" << EOF
+  # Monitoring des logs
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-devlocal}_dozzle
+    ports:
+      - "$DOZZLE_PORT:8080"
+    environment:
+      - DOZZLE_TIMEOUT=15s
+      - DOZZLE_BASE=/logs
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    extra_hosts:
+      - "external-ip:host-gateway"
+    networks:
+      - traefik-network
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 3s
+      timeout: 30s
+
+EOF
+    fi
+    
+    # Ajouter chaque service
+    for profile in "$PROFILES_DIR"/*.yml; do
+        [ -f "$profile" ] || continue
+        
+        local enabled
+        enabled=$(grep -m1 "^enabled:" "$profile" | sed 's/enabled: *//; s/ *#.*//' | tr -d '\r' || echo "true")
+        if [ "$enabled" != "true" ]; then
+            echo -e "  \033[90m⏭️  Ignoré (désactivé) : $(basename "$profile" .yml)\033[0m"
+            continue
+        fi
+        
+        local name
+        name=$(grep -m1 "^name:" "$profile" | sed 's/name: *//; s/ *#.*//' | tr -d '\r' || basename "$profile" .yml)
+        echo -e "  \033[92m✅ Ajout : $(basename "$profile" .yml)\033[0m"
+
+        # Charger les variables partagées pour ce service
+        local shared_env_vars
+        shared_env_vars=$(get_shared_env_vars "$name")
+        local shared_count=0
+        if [ -n "$shared_env_vars" ]; then
+            shared_count=$(echo "$shared_env_vars" | grep -c "^" || echo 0)
+            echo -e "    \033[90m📌 $shared_count variable(s) partagée(s)\033[0m"
+        fi
+
+        local always_active
+        always_active=$(grep -m1 "^always_active:" "$profile" | sed 's/always_active: *//; s/ *#.*//' | tr -d '\r' || echo "true")
+        local docker_profile_raw
+        docker_profile_raw=$(grep -m1 "^docker_profile:" "$profile" | sed 's/docker_profile: *//; s/ *#.*//' | tr -d '\r')
+        # Considérer null, vide, ou whitespace comme absence de profil
+        local docker_profile
+        docker_profile=$(echo "$docker_profile_raw" | xargs)  # trim whitespace
+        if [ "$docker_profile" = "null" ] || [ -z "$docker_profile" ]; then
+            docker_profile=""
+        fi
+
+        local keep_port_mapping
+        keep_port_mapping=$(grep -m1 "^keep_port_mapping:" "$profile" | sed 's/keep_port_mapping: *//; s/ *#.*//' | tr -d '\r' || echo "false")
+
+        # Extraire la section docker-compose:
+        local compose_section
+        compose_section=$(awk '/^docker-compose:/{found=1; next} found && /^[^[:space:]#]/{found=0} found && !/^#/' "$profile")
+
+        # Traiter la section environment pour injecter les variables partagées
+        local filtered_compose=""
+        local in_ports=false
+        local environment_block=""
+        local environment_indent=""
+
+        while IFS= read -r line; do
+            if [ "$keep_port_mapping" != "true" ]; then
+                if echo "$line" | grep -q "^  ports:"; then
+                    in_ports=true
+                    continue
+                fi
+                if [ "$in_ports" = true ]; then
+                    if echo "$line" | grep -q "^    "; then
+                        continue
+                    else
+                        in_ports=false
+                    fi
+                fi
+            fi
+
+            # Détecter et capturer le bloc environment
+            if echo "$line" | grep -q "^  environment:"; then
+                environment_indent=$(echo "$line" | sed 's/[^ ].*//')
+                environment_block=""
+                continue
+            fi
+
+            # Capturer les items environment (indentés)
+            if [ -n "$environment_indent" ]; then
+                local line_indent
+                line_indent=$(echo "$line" | sed 's/[^ ].*//')
+                if [ "${#line_indent}" -gt "${#environment_indent}" ] || echo "$line" | grep -q "^[[:space:]]*[-]"; then
+                    environment_block="${environment_block}${line}"$'\n'
+                    continue
+                else
+                    environment_indent=""
+                fi
+            fi
+
+            filtered_compose="${filtered_compose}${line}"$'\n'
+        done <<< "$compose_section"
+
+        # Gérer le cas où le fichier se termine dans un bloc environment
+        if [ -n "$environment_indent" ] && [ -n "$environment_block" ]; then
+            environment_block=$(normalize_block "$environment_block" 4 "list")
+            environment_indent=""
+        fi
+
+        # Construire et injecter le bloc environment complet
+        if [ -n "$shared_env_vars" ] || [ -n "$environment_block" ]; then
+            local env_body=""
+            if [ -n "$shared_env_vars" ]; then
+                env_body+="    # Variables partagées (depuis config.yml)"$'\n'
+                while IFS= read -r var; do
+                    [ -n "$var" ] && env_body+="    - ${var}"$'\n'
+                done <<< "$shared_env_vars"
+            fi
+            local svc_items=""
+            if [ -n "$environment_block" ]; then
+                svc_items=$(normalize_block "$environment_block")
+                if [ -n "$svc_items" ]; then
+                    if [ -n "$shared_env_vars" ]; then
+                        env_body+="    # Variables exclusives du service"$'\n'
+                    fi
+                    env_body+="${svc_items}"$'\n'
+                fi
+            fi
+
+            local complete_env_section
+            complete_env_section="  environment:"$'\n'"${env_body}"
+            if echo "$filtered_compose" | grep -q "^  container_name:"; then
+                filtered_compose=$(insert_content_after_key "$filtered_compose" "$complete_env_section" "container_name")
+            else
+                filtered_compose=$(insert_content_after_key "$filtered_compose" "$complete_env_section" "image")
+            fi
+        fi
+
+        # Ajouter 2 espaces d'indentation
+        local indented
+        indented=$(echo "$filtered_compose" | sed 's/^  /    /')
+
+        # Nettoyer l'indentation (retirer les lignes vides en fin)
+        indented=$(echo "$indented" | sed -e :a -e '/^\s*$/d;N;ba')
+
+        # Section profiles si not always_active ET docker_profile n'est pas null/vide
+        local profiles_section=""
+        if [ "$always_active" != "true" ] && [ -n "$docker_profile" ] && [ "$docker_profile" != "null" ]; then
+            profiles_section=$'\n'"    profiles:"$'\n'"      - $docker_profile"
+        fi
+        
+        cat >> "$DOCKER_COMPOSE_FILE" << EOF
+  # Service: $name
+  $name:
+$indented
+    extra_hosts:
+      - "external-ip:host-gateway"
+    networks:
+      - traefik-network$profiles_section
+
+EOF
+    done
+    
+    # Networks
+    cat >> "$DOCKER_COMPOSE_FILE" << 'EOF'
+
+networks:
+  traefik-network:
+    driver: bridge
+EOF
+    
+    echo -e "\n\033[92m✅ docker-compose.yml généré\033[0m"
+    
+    # Générer aussi la config Traefik
+    generate_traefik_dynamic
+}
+
+# Fonction pour générer traefik/dynamic.yml
+generate_traefik_dynamic() {
+    echo -e "\n\033[96m🔧 GÉNÉRATION DE traefik/dynamic.yml\033[0m"
+    
+    mkdir -p "traefik"
+    
+    # Load TLS config
+    load_config
+    
+    # Buffers
+    local routers=""
+    local middlewares=""
+    local services=""
+    local tls_config=""
+    
+    # Fonction pour sanitizer un préfixe en suffixe valide
+    sanitize_prefix() {
+        echo "$1" | sed 's|^/||; s|[^a-zA-Z0-9]|-|g; s|--*|-|g; s|^-||; s|-$||'
+    }
+    
+    # Fonction pour générer la config d'une route unique
+    # Args: name, route_prefix, route_strip_prefix, route_priority, docker_port, local_port, health_path, router_suffix
+    generate_route_config() {
+        local name="$1"
+        local route_prefix="$2"
+        local route_strip_prefix="$3"
+        local route_priority="$4"
+        local docker_port="$5"
+        local local_port="$6"
+        local health_path="$7"
+        local router_suffix="$8"
+        
+        local router_name="${name}${router_suffix}"
+        
+        # --- Middleware ---
+        local middleware_ref=""
+        if [ "$route_strip_prefix" = "true" ]; then
+            middleware_ref=$'\n'"      middlewares:"$'\n'"        - ${router_name}-forward-prefix"$'\n'"        - ${router_name}-strip"
+            middlewares="${middlewares}"$'\n'"    ${router_name}-forward-prefix:"$'\n'"      headers:"$'\n'"        customRequestHeaders:"$'\n'"          X-Forwarded-Prefix: \"$route_prefix\""
+            middlewares="${middlewares}"$'\n'"    ${router_name}-strip:"$'\n'"      stripPrefix:"$'\n'"        prefixes:"$'\n'"          - \"$route_prefix\""
+        fi
+        
+        # --- Router ---
+        local tls_router=""
+        if [ "$TLS_ENABLED" = "true" ]; then
+            tls_router=$'\n'"      tls: {}"
+        fi
+        
+        routers="${routers}"$'\n'"    ${router_name}:"$'\n'"      rule: \"PathPrefix(\`$route_prefix\`)\""$'\n'"      service: ${name}"$'\n'"      priority: $route_priority${middleware_ref}${tls_router}"$'\n'"      entryPoints:"$'\n'"        - web"$'\n'"        - websecure"
+    }
+    
+    # Générer les services pour chaque profil
+    for profile in "$PROFILES_DIR"/*.yml; do
+        [ -f "$profile" ] || continue
+        
+        local enabled
+        local traefik_enabled
+        local name
+        local local_port
+        local docker_port
+        local health_path
+        local prefix
+        local strip_prefix
+        local priority
+        local has_routes=false
+        local route_count=0
+        local route_prefixes=()
+        local route_strip_prefixes=()
+        local route_priorities=()
+        
+        if [ -n "$YQ_CMD" ]; then
+            # Parsing avec yq (mikefarah v4+)
+            enabled=$(yq e '.enabled // true' "$profile" 2>/dev/null)
+            traefik_enabled=$(yq e '.traefik.enabled // false' "$profile" 2>/dev/null)
+            
+            if [ "$enabled" != "true" ] || [ "$traefik_enabled" != "true" ]; then
+                continue
+            fi
+            
+            name=$(yq e '.name' "$profile" 2>/dev/null)
+            [ "$name" = "null" ] || [ -z "$name" ] && name=$(basename "$profile" .yml)
+            
+            local_port=$(yq e '.traefik.local_port // 80' "$profile" 2>/dev/null)
+            docker_port=$(yq e '.traefik.docker_port // 80' "$profile" 2>/dev/null)
+            health_path=$(yq e '.traefik.health_path // "/health"' "$profile" 2>/dev/null)
+            
+            # Check if routes array exists and has elements
+            route_count=$(yq e '.traefik.routes | length' "$profile" 2>/dev/null || echo 0)
+            if [ -n "$route_count" ] && [ "$route_count" -gt 0 ] 2>/dev/null; then
+                has_routes=true
+            fi
+            
+            if [ "$has_routes" = "true" ]; then
+                # Parse each route
+                for i in $(seq 0 $((route_count - 1))); do
+                    local route_prefix
+                    local route_strip_prefix
+                    local route_priority
+                    
+                    route_prefix=$(yq e ".traefik.routes[$i].prefix" "$profile" 2>/dev/null)
+                    route_strip_prefix=$(yq e ".traefik.routes[$i].strip_prefix // false" "$profile" 2>/dev/null)
+                    route_priority=$(yq e ".traefik.routes[$i].priority // 10" "$profile" 2>/dev/null)
+                    
+                    [ "$route_prefix" = "null" ] || [ -z "$route_prefix" ] && continue
+                    
+                    route_prefixes+=("$route_prefix")
+                    route_strip_prefixes+=("$route_strip_prefix")
+                    route_priorities+=("$route_priority")
+                done
+            else
+                # Legacy single prefix fallback
+                prefix=$(yq e ".traefik.prefix // \"/$name\"" "$profile" 2>/dev/null)
+                strip_prefix=$(yq e '.traefik.strip_prefix // false' "$profile" 2>/dev/null)
+                priority=$(yq e '.traefik.priority // 10' "$profile" 2>/dev/null)
+                
+                [ "$prefix" = "null" ] || [ -z "$prefix" ] && prefix="/$name"
+                [ "$strip_prefix" = "null" ] && strip_prefix="false"
+                [ "$priority" = "null" ] && priority="10"
+                
+                route_prefixes+=("$prefix")
+                route_strip_prefixes+=("$strip_prefix")
+                route_priorities+=("$priority")
+            fi
+        else
+            # Fallback: parsing avec grep/sed (legacy only, no routes array support)
+            enabled=$(grep -m1 "^enabled:" "$profile" | sed 's/enabled: *//; s/ *#.*//' | tr -d '\r' || echo "true")
+            traefik_enabled=$(grep -A 10 "^traefik:" "$profile" | grep "enabled:" | head -1 | sed 's/.*enabled: *//; s/ *#.*//' | tr -d '\r' || echo "false")
+            
+            if [ "$enabled" != "true" ] || [ "$traefik_enabled" != "true" ]; then
+                continue
+            fi
+            
+            name=$(grep -m1 "^name:" "$profile" | sed 's/name: *//; s/ *#.*//' | tr -d '\r')
+            [ -z "$name" ] && name=$(basename "$profile" .yml)
+            
+            local_port=$(grep -A 10 "^traefik:" "$profile" | grep "local_port:" | head -1 | sed 's/.*local_port: *//; s/ *#.*//' | tr -d '\r' || echo "80")
+            docker_port=$(grep -A 10 "^traefik:" "$profile" | grep "docker_port:" | head -1 | sed 's/.*docker_port: *//; s/ *#.*//' | tr -d '\r' || echo "80")
+            health_path=$(grep -A 10 "^traefik:" "$profile" | grep "health_path:" | head -1 | sed 's/.*health_path: *//; s/ *#.*//' | tr -d '\r' || echo "/health")
+            prefix=$(grep -A 10 "^traefik:" "$profile" | grep "prefix:" | head -1 | sed 's/.*prefix: *//; s/ *#.*//' | tr -d '\r')
+            [ -z "$prefix" ] && prefix="/$name"
+            strip_prefix=$(grep -A 10 "^traefik:" "$profile" | grep "strip_prefix:" | head -1 | sed 's/.*strip_prefix: *//; s/ *#.*//' | tr -d '\r' || echo "false")
+            priority=$(grep -A 10 "^traefik:" "$profile" | grep "priority:" | head -1 | sed 's/.*priority: *//; s/ *#.*//' | tr -d '\r' || echo "10")
+            
+            route_prefixes+=("$prefix")
+            route_strip_prefixes+=("$strip_prefix")
+            route_priorities+=("$priority")
+        fi
+        
+        # Determine router suffixes based on route count
+        local num_routes=${#route_prefixes[@]}
+        local router_suffixes=()
+        
+        if [ $num_routes -eq 1 ]; then
+            # Single route: use just the service name (e.g., "app")
+            router_suffixes+=("")
+        else
+            # Multiple routes: use index-based suffix (e.g., "app-0", "app-1", "app-2")
+            for i in $(seq 0 $((num_routes - 1))); do
+                router_suffixes+=("-$i")
+            done
+        fi
+        
+        # Generate route configs
+        for i in $(seq 0 $((num_routes - 1))); do
+            generate_route_config "$name" "${route_prefixes[$i]}" "${route_strip_prefixes[$i]}" "${route_priorities[$i]}" "$docker_port" "$local_port" "$health_path" "${router_suffixes[$i]}"
+        done
+        
+        # --- Service (shared across all routes for this profile) ---
+        services="${services}"$'\n'"    ${name}:"$'\n'"      failover:"$'\n'"        service: ${name}-host"$'\n'"        fallback: ${name}-docker"
+        services="${services}"$'\n'"    ${name}-host:"$'\n'"      loadBalancer:"$'\n'"        healthCheck:"$'\n'"          path: $health_path"$'\n'"          interval: 5s"$'\n'"          timeout: 1s"$'\n'"        servers:"$'\n'"          - url: \"http://external-ip:${local_port}\""$'\n'"        passHostHeader: true"
+        services="${services}"$'\n'"    ${name}-docker:"$'\n'"      loadBalancer:"$'\n'"        healthCheck:"$'\n'"          path: $health_path"$'\n'"          interval: 5s"$'\n'"          timeout: 1s"$'\n'"        servers:"$'\n'"          - url: \"http://${name}:${docker_port}\""$'\n'"        passHostHeader: true"
+    done
+    
+    # Generate TLS config if enabled
+    if [ "$TLS_ENABLED" = "true" ] && [ -n "$TLS_CERT_FILE" ] && [ -n "$TLS_KEY_FILE" ]; then
+        tls_config=$'\n'"tls:"$'\n'"  stores:"$'\n'"    default:"$'\n'"      defaultCertificate:"$'\n'"        certFile: \"$TLS_CERT_FILE\""$'\n'"        keyFile: \"$TLS_KEY_FILE\""
+    fi
+    
+    # Écriture du fichier header - TLS first (root level), then http:
+    cat > "$TRAEFIK_DYNAMIC_FILE" << EOF
+# Généré automatiquement par manage-profiles.sh
+# NE PAS ÉDITER MANUELLEMENT - Vos modifications seront écrasées
+${tls_config}
+http:
+EOF
+    
+    # Middleware de redirection racine (toujours ajouté)
+    middlewares="${middlewares}"$'\n'"    root-redirect:"$'\n'"      redirectRegex:"$'\n'"        regex: \"^/$\""$'\n'"        replacement: \"/usager/\""
+    
+    # Ajout des middlewares
+    if [ -n "$middlewares" ]; then
+        echo "" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "  middlewares:$middlewares" >> "$TRAEFIK_DYNAMIC_FILE"
+    fi
+    
+    # Ajout des routers
+    if [ -n "$routers" ] || [ "$DOZZLE_ENABLED" = "true" ]; then
+        echo "" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "  routers:$routers" >> "$TRAEFIK_DYNAMIC_FILE"
+        
+        # Ajouter un router catch-all pour la racine
+        echo "    root:" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo '      rule: "PathPrefix(`/`)"' >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "      service: root-noop" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "      middlewares:" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "        - root-redirect" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "      priority: 1" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "      entryPoints:" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "        - web" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "        - websecure" >> "$TRAEFIK_DYNAMIC_FILE"
+        if [ "$TLS_ENABLED" = "true" ]; then
+            echo "      tls: {}" >> "$TRAEFIK_DYNAMIC_FILE"
+        fi
+        
+        # Ajouter le router Dozzle si activé
+        if [ "$DOZZLE_ENABLED" = "true" ]; then
+            echo "    dozzle-logs:" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo '      rule: "PathPrefix(`/logs`)"' >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "      service: dozzle" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "      priority: 10" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "      entryPoints:" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "        - web" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "        - websecure" >> "$TRAEFIK_DYNAMIC_FILE"
+            if [ "$TLS_ENABLED" = "true" ]; then
+                echo "      tls: {}" >> "$TRAEFIK_DYNAMIC_FILE"
+            fi
+        fi
+    fi
+    
+    # Ajout des services
+    if [ -n "$services" ] || [ "$DOZZLE_ENABLED" = "true" ]; then
+        echo "" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "  services:$services" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "    root-noop:" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "      loadBalancer:" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo "        servers:" >> "$TRAEFIK_DYNAMIC_FILE"
+        echo '          - url: "http://127.0.0.1:1"' >> "$TRAEFIK_DYNAMIC_FILE"
+        
+        # Ajouter le service Dozzle si activé
+        if [ "$DOZZLE_ENABLED" = "true" ]; then
+            echo "    dozzle:" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "      loadBalancer:" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "        healthCheck:" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "          path: /logs" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "          interval: 5s" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "          timeout: 2s" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "        servers:" >> "$TRAEFIK_DYNAMIC_FILE"
+            echo '          - url: "http://dozzle:8080"' >> "$TRAEFIK_DYNAMIC_FILE"
+            echo "        passHostHeader: true" >> "$TRAEFIK_DYNAMIC_FILE"
+        fi
+    fi
+    
+    echo -e "\033[92m✅ traefik/dynamic.yml généré\033[0m"
+}
+
+# Fonction pour synchroniser secrets.env
+sync_secrets() {
+    echo -e "\n\033[96m🔄 SYNCHRONISATION DES SECRETS\033[0m"
+    echo -e "\033[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    
+    # Vérifier SOPS
+    if ! command -v sops &> /dev/null; then
+        echo -e "\033[91mSOPS n'est pas installé. Cette fonctionnalité nécessite SOPS.\033[0m"
+        echo -e "\n  \033[93m💡 Installez SOPS : https://github.com/mozilla/sops/releases\033[0m"
+        return 1
+    fi
+    
+    # Vérifier la configuration SOPS
+    if [ ! -f ".sops.yaml" ]; then
+        echo -e "\033[91mFichier .sops.yaml introuvable. Configurez SOPS d'abord.\033[0m"
+        return 1
+    fi
+    
+    if ! grep -qE '(kms:|age:)' ".sops.yaml"; then
+        echo -e "\033[93mSOPS n'est pas configuré avec une clé KMS ou Age.\033[0m"
+        echo -e "\n  \033[93m💡 Éditez .sops.yaml et configurez :\033[0m"
+        echo -e "     \033[90m- AWS KMS : kms: 'arn:aws:kms:...'\033[0m"
+        echo -e "     \033[90m- Age : age: 'age1...'\033[0m"
+        echo -e "\n  \033[93mPour générer une clé Age :\033[0m"
+        echo -e "     \033[90mage-keygen -o age-key.txt\033[0m"
+        return 1
+    fi
+    
+    # Récupérer toutes les variables des profils
+    declare -A secret_vars
+    
+    for profile in "$PROFILES_DIR"/*.yml; do
+        [ -f "$profile" ] || continue
+        
+        local enabled
+        enabled=$(grep -m1 "^enabled:" "$profile" | sed 's/enabled: *//; s/ *#.*//' | tr -d '\r' || echo "true")
+        [ "$enabled" != "true" ] && continue
+        
+        local profile_name
+        profile_name=$(grep -m1 "^name:" "$profile" | sed 's/name: *//; s/ *#.*//' | tr -d '\r' || basename "$profile" .yml)
+
+        # Méthode 1 : Lire la section secrets:
+        if grep -q "^secrets:" "$profile"; then
+            local in_secrets=false
+            while IFS= read -r line; do
+                if echo "$line" | grep -q "^secrets:"; then
+                    in_secrets=true
+                    continue
+                fi
+                if [ "$in_secrets" = true ]; then
+                    if echo "$line" | grep -q "^  - name:"; then
+                        local secret_name
+                        secret_name=$(echo "$line" | sed 's/.*name: *//; s/ *#.*//' | tr -d '\r')
+                        local secret_desc=""
+                        local secret_default="changeme"
+                        
+                        # Lire les lignes suivantes pour description et default
+                        while IFS= read -r next_line; do
+                            if echo "$next_line" | grep -q "^    description:"; then
+                                secret_desc=$(echo "$next_line" | sed -E 's/.*description: *"//; s/"$//; s/[[:space:]]+#.*//' | tr -d '\r')
+                            elif echo "$next_line" | grep -q "^    default:"; then
+                                secret_default=$(echo "$next_line" | sed 's/.*default: *//; s/ *#.*//' | tr -d '\r')
+                                break
+                            elif echo "$next_line" | grep -qE "^(  -|[a-z])"; then
+                                break
+                            fi
+                        done
+                        
+                        if [ -n "$secret_name" ] && [ -z "${secret_vars[$secret_name]}" ]; then
+                            secret_vars["$secret_name"]="$secret_default"
+                            echo -e "  \033[90m📌 [$profile_name] $secret_name = $secret_default ($secret_desc)\033[0m"
+                        fi
+                    elif echo "$line" | grep -qE "^[a-z]"; then
+                        break
+                    fi
+                fi
+            done < "$profile"
+        fi
+        
+        # Méthode 2 (fallback) : Scanner les ${VAR:-default}
+        while IFS= read -r match; do
+            local var_name
+            var_name=$(echo "$match" | sed 's/.*\${\([A-Z_][A-Z0-9_]*\).*/\1/')
+            local default_value
+            default_value=$(echo "$match" | sed 's/.*:-\([^}]*\)}.*/\1/')
+            [ -z "$default_value" ] && default_value="changeme"
+            
+            if [ -n "$var_name" ] && [ -z "${secret_vars[$var_name]}" ]; then
+                secret_vars["$var_name"]="$default_value"
+                echo -e "  \033[90m📌 [$profile_name] $var_name = $default_value (auto-détecté)\033[0m"
+            fi
+        done < <(grep -o '\${[A-Z_][A-Z0-9_]*:-[^}]*}' "$profile" 2>/dev/null || true)
+    done
+    
+    if [ ${#secret_vars[@]} -eq 0 ]; then
+        echo -e "  \033[93mℹ️  Aucune variable de secrets trouvée dans les profils\033[0m"
+        return 0
+    fi
+    
+    echo -e "\n  \033[96mTotal: ${#secret_vars[@]} variable(s) trouvée(s)\033[0m"
+    
+    # Lire le fichier secrets.env existant
+    declare -A existing_secrets
+    local secrets_content=""
+    
+    if [ -f "$SECRETS_FILE" ]; then
+        secrets_content=$(sops -d "$SECRETS_FILE" 2>&1)
+        if [ $? -eq 0 ]; then
+            while IFS='=' read -r key value; do
+                if [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+                    existing_secrets["$key"]="$value"
+                fi
+            done <<< "$secrets_content"
+            echo -e "\n  \033[92m✅ Fichier secrets.env déchiffré (${#existing_secrets[@]} variables existantes)\033[0m"
+        else
+            echo -e "\033[93mImpossible de déchiffrer secrets.env. Création d'un nouveau fichier.\033[0m"
+        fi
+    fi
+    
+    # Identifier les nouvelles variables
+    declare -A new_vars
+    for var in "${!secret_vars[@]}"; do
+        if [ -z "${existing_secrets[$var]}" ]; then
+            new_vars["$var"]="${secret_vars[$var]}"
+        fi
+    done
+    
+    if [ ${#new_vars[@]} -eq 0 ]; then
+        echo -e "\n  \033[92m✅ Toutes les variables sont déjà présentes dans secrets.env\033[0m"
+        return 0
+    fi
+    
+    echo -e "\n  \033[93m📝 Variables manquantes à ajouter:\033[0m"
+    for var in "${!new_vars[@]}"; do
+        echo -e "     \033[90m- $var=${new_vars[$var]}\033[0m"
+    done
+    
+    # Demander confirmation
+    read -p $'\n  Ajouter ces variables à secrets.env ? (o/N): ' confirm
+    if [ "$confirm" != "o" ]; then
+        echo -e "  \033[93m⏭️  Annulé\033[0m"
+        return 0
+    fi
+    
+    # Construire le nouveau contenu
+    local new_content="$secrets_content"
+    [ -n "$new_content" ] && new_content="${new_content}"$'\n'
+    new_content="${new_content}"$'\n'"# Variables ajoutées automatiquement le $(date '+%Y-%m-%d %H:%M:%S')"$'\n'
+    for var in $(echo "${!new_vars[@]}" | tr ' ' '\n' | sort); do
+        new_content="${new_content}${var}=${new_vars[$var]}"$'\n'
+    done
+    
+    # Sauvegarder temporairement en clair
+    local temp_file="${SECRETS_FILE}.tmp"
+    echo -n "$new_content" > "$temp_file"
+    
+    # Chiffrer avec SOPS
+    # Note: On passe --filename-override secrets.env pour que SOPS applique les règles de .sops.yaml
+    if output=$(sops -e --filename-override "$SECRETS_FILE" "$temp_file" 2>&1); then
+        echo "$output" > "$SECRETS_FILE"
+        rm -f "$temp_file"
+        echo -e "\n  \033[92m✅ secrets.env mis à jour et rechiffré (${#new_vars[@]} variable(s) ajoutée(s))\033[0m"
+    else
+        echo -e "\033[91mErreur lors du chiffrement\033[0m"
+        echo "$output"
+        rm -f "$temp_file"
+        return 1
+    fi
+}
+
+# Fonction pour initialiser secrets.env
+init_secrets() {
+    echo -e "\n\033[96m🔐 INITIALISATION DES SECRETS\033[0m"
+    echo -e "\033[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    
+    if [ -f "$SECRETS_FILE" ]; then
+        echo -e "\033[93mLe fichier $SECRETS_FILE existe déjà\033[0m"
+        read -p "Écraser ? (o/N): " overwrite
+        [ "$overwrite" != "o" ] && return 0
+    fi
+    
+    # Vérifier SOPS
+    if ! command -v sops &> /dev/null; then
+        echo -e "\033[91mSOPS n'est pas installé. Installez-le d'abord.\033[0m"
+        return 1
+    fi
+    
+    # Copier l'exemple
+    if [ -f "secrets.env.example" ]; then
+        cp "secrets.env.example" "$SECRETS_FILE"
+    else
+        echo "# Secrets file - Edit with: sops secrets.env" > "$SECRETS_FILE"
+    fi
+    
+    echo -e "\n\033[92m✅ Fichier $SECRETS_FILE créé\033[0m"
+    echo -e "\033[93m📝 Éditez-le maintenant avec: sops $SECRETS_FILE\033[0m"
+    
+    read -p $'\nOuvrir l\'éditeur SOPS maintenant ? (O/n): ' open_editor
+    if [ "$open_editor" != "n" ]; then
+        sops "$SECRETS_FILE"
+    fi
+}
+
+# Main
+case "$ACTION" in
+    add)
+        add_profile
+        ;;
+    list)
+        show_profiles
+        ;;
+    generate)
+        generate_docker_compose
+        ;;
+    init-secrets)
+        init_secrets
+        ;;
+    sync-secrets)
+        sync_secrets
+        ;;
+    *)
+        show_profiles
+        ;;
+esac

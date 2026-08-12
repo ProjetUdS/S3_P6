@@ -1,0 +1,199 @@
+# Généré automatiquement par manage-profiles.sh
+# NE PAS ÉDITER MANUELLEMENT - Vos modifications seront écrasées
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: "/etc/traefik/certs/cert.pem"
+        keyFile: "/etc/traefik/certs/key.pem"
+http:
+
+  middlewares:
+    auth-forward-prefix:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Prefix: "/auth"
+    auth-strip:
+      stripPrefix:
+        prefixes:
+          - "/auth"
+    minio-forward-prefix:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Prefix: "/fichier"
+    minio-strip:
+      stripPrefix:
+        prefixes:
+          - "/fichier"
+    webserver-forward-prefix:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Prefix: "/usager"
+    webserver-strip:
+      stripPrefix:
+        prefixes:
+          - "/usager"
+    root-redirect:
+      redirectRegex:
+        regex: "^/$"
+        replacement: "/usager/"
+
+  routers:
+    app-0:
+      rule: "PathPrefix(`/api`)"
+      service: app
+      priority: 10
+      tls: {}
+      entryPoints:
+        - web
+        - websecure
+    app-1:
+      rule: "PathPrefix(`/ws`)"
+      service: app
+      priority: 10
+      tls: {}
+      entryPoints:
+        - web
+        - websecure
+    auth:
+      rule: "PathPrefix(`/auth`)"
+      service: auth
+      priority: 10
+      middlewares:
+        - auth-forward-prefix
+        - auth-strip
+      tls: {}
+      entryPoints:
+        - web
+        - websecure
+    minio:
+      rule: "PathPrefix(`/fichier`)"
+      service: minio
+      priority: 10
+      middlewares:
+        - minio-forward-prefix
+        - minio-strip
+      tls: {}
+      entryPoints:
+        - web
+        - websecure
+    webserver:
+      rule: "PathPrefix(`/usager`)"
+      service: webserver
+      priority: 10
+      middlewares:
+        - webserver-forward-prefix
+        - webserver-strip
+      tls: {}
+      entryPoints:
+        - web
+        - websecure
+    root:
+      rule: "PathPrefix(`/`)"
+      service: root-noop
+      middlewares:
+        - root-redirect
+      priority: 1
+      entryPoints:
+        - web
+        - websecure
+      tls: {}
+    dozzle-logs:
+      rule: "PathPrefix(`/logs`)"
+      service: dozzle
+      priority: 10
+      entryPoints:
+        - web
+        - websecure
+      tls: {}
+
+  services:
+    app:
+      failover:
+        service: app-host
+        fallback: app-docker
+    app-host:
+      loadBalancer:
+        healthCheck:
+          path: /q/health
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://external-ip:8888"
+        passHostHeader: true
+    app-docker:
+      loadBalancer:
+        healthCheck:
+          path: /q/health
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://app:8888"
+        passHostHeader: true
+    auth:
+      failover:
+        service: auth-host
+        fallback: auth-docker
+    auth-host:
+      loadBalancer:
+        healthCheck:
+          path: /realms/master
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://external-ip:8180"
+        passHostHeader: true
+    auth-docker:
+      loadBalancer:
+        healthCheck:
+          path: /realms/master
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://auth:8180"
+        passHostHeader: true
+    minio:
+      loadBalancer:
+        healthCheck:
+          path: /minio/health/live
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://minio-storage:9000"
+        passHostHeader: true
+    webserver:
+      failover:
+        service: webserver-host
+        fallback: webserver-docker
+    webserver-host:
+      loadBalancer:
+        healthCheck:
+          path: /health
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://external-ip:81"
+        passHostHeader: true
+    webserver-docker:
+      loadBalancer:
+        healthCheck:
+          path: /health
+          interval: 5s
+          timeout: 1s
+        servers:
+          - url: "http://webserver:81"
+        passHostHeader: true
+    root-noop:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:1"
+    dozzle:
+      loadBalancer:
+        healthCheck:
+          path: /logs
+          interval: 5s
+          timeout: 2s
+        servers:
+          - url: "http://dozzle:8080"
+        passHostHeader: true

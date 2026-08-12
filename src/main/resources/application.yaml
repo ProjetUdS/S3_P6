@@ -1,0 +1,94 @@
+quarkus:
+  http:
+    host: 0.0.0.0
+    port: 8888
+    # --- HTTP Authentication Rules ---
+    auth:
+      permission:
+        # Règle 1 : Protéger uniquement les routes de l'API
+        api:
+          paths: /api/*
+          policy: authenticated
+        # Ajout exception pour les routes WebSocket
+        websocket:
+          paths: /ws/*
+          policy: permit
+        # Règle 2 : Laisser tout le reste public (index.html, Swagger, etc.)
+        public:
+          paths:
+            - /*
+            - /q/swagger-ui/*
+            - /q/openapi
+            - /q/health/*
+          policy: permit
+    # --- CORS Configuration ---
+    cors:
+      enabled: true
+      exposed-headers:
+        - location
+        - info
+      access-control-max-age: 24H
+      origins:
+        - http://localhost
+        - http://localhost:8888
+        - http://localhost:8180
+        - ${HTTP_TYPE:http}://${SERVER_IP:localhost}
+      methods:
+        - GET
+        - PUT
+        - POST
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+        - Accept
+  # --- OIDC (OpenID Connect) Configuration ---
+  oidc:
+    auth-server-url: ${HTTP_TYPE:http}://${SERVER_IP:localhost}${KEYCLOAK_PATH:}/${OIDC_REALM:realms/usager}
+    client-id: ${OIDC_CLIENT_ID:client-id}
+    credentials:
+      secret: ${OIDC_SECRET:secret}
+    application-type: service
+
+  # -- Seulement pour le local, enlever pour la prod
+  tls:
+    trust-all: true
+    hostname-verification-algorithm: NONE
+
+  # --- Data Source Configuration ---
+  datasource:
+    devservices:
+      enabled: false
+
+    db-kind: postgresql
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    jdbc:
+      url: "jdbc:postgresql://localhost:5444/postgres"
+      leak-detection-interval: 5M
+
+   # --- MyBatis Mapping Configuration ---
+  mybatis:
+    xmlconfig:
+      enable: false
+    map-underscore-to-camel-case: true
+
+  rest-client:
+    "keycloak-account-api":
+      url: ${HTTP_TYPE:http}://${SERVER_IP:localhost}${KEYCLOAK_PATH:}/${OIDC_REALM:realms/usager}
+      scope: jakarta.inject.Singleton
+      disable-default-mapper: true
+
+# MinIO Configuration (not part of quarkus namespace - matches @ConfigProperty names)
+minio:
+  url: "http://localhost:${MINIO_PORT:9000}"
+  browser:
+    url: "http://localhost:${MINIO_PORT:9000}"
+  access:
+    key: ${MINIO_USER:minioadmin}
+  secret:
+    key: ${MINIO_PASSWORD:minioadmin}
+  bucket:
+    name: "chat-media"

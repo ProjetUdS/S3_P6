@@ -1,0 +1,51 @@
+
+name: minio-storage
+description: "Database pour stocker les fichiers"
+enabled: true  # false pour désactiver le service sans supprimer le profil
+always_active: true  # Si true, démarré automatiquement sans --profile
+docker_profile: minio  # Nom du profil Docker (ou null si always_active)
+keep_port_mapping: true # Si le mapping de port devrait être conservé
+
+# ============================================
+# CONFIGURATION DOCKER
+# ============================================
+docker-compose:
+
+  image: minio/minio:${MINIO_VERSION:-latest}
+
+  container_name: minio-storage
+  ports:
+    - "${MINIO_PORT:-9000}:${MINIO_PORT:-9000}"   # S3 API port
+    - "9001:9001"   # Web UI console port
+  volumes:
+    - ./minio/data:/data
+  command: server /data --console-address ":9001"
+  environment:
+    MINIO_ROOT_USER: ${MINIO_USER:-local_admin}
+    MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-local_password}
+    MINIO_DOMAIN: ${SERVER_IP:-localhost:9000}
+
+
+traefik:
+  enabled: true
+  prefix: /fichier
+  strip_prefix: true
+  docker_port: 9000
+  local_port: 9000
+  health_path: /minio/health/live
+  priority: 10
+
+# ============================================
+# SECRETS (optionnel)
+# ============================================
+# Variables de secrets requises (à définir dans secrets.env)
+secrets:
+  - name : MINIO_VERSION
+    description: "Version de minio a utiliser"
+    default: latest
+  - name: MINIO_USER
+    description: "Nom de l'usager minio"
+    default: local_admin
+  - name: MINIO_PASSWORD
+    description: "Mots de passe de l'usager"
+    default: local_password

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.RequeteAmiMapper">
+
+    <insert id="insertRequete">
+        INSERT INTO app.RequeteAmi(cip, destinataire_cip)
+        VALUES (#{cip}, #{destinataireCip})
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <delete id="deleteRequete">
+        DELETE FROM app.RequeteAmi
+        WHERE cip = #{cip}
+          AND destinataire_cip = #{destinataireCip}
+    </delete>
+
+    <select id="selectRequetes" resultType="String">
+        SELECT cip
+        FROM app.RequeteAmi
+        WHERE destinataire_cip = #{cip}
+    </select>
+
+    <select id="selectRequetesEnvoyees" resultType="String">
+        SELECT destinataire_cip
+        FROM app.requeteami
+        WHERE cip = #{cip}
+    </select>
+
+    <select id="selectRequeteAtoB" resultType="String">
+        SELECT 1
+        FROM app.requeteami
+        WHERE cip = #{cipSource} AND destinataire_cip = #{cipDestinataire}
+    </select>
+
+</mapper>

@@ -14,6 +14,14 @@
 .avatar-md  { width: 36px; height: 36px; font-size: 13px; }
 .avatar-lg  { width: 42px; height: 42px; font-size: 15px; }
 
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
 /* Team icon: square-ish avatar */
 .team-icon {
   border-radius: 10px;
@@ -79,7 +87,7 @@
   color: var(--text-primary);
   margin-bottom: 12px;
 }
-.modal-input:focus { border-color: var(--purple); outline: none; }
+.modal-input:focus { border-color: var(--blue); outline: none; }
 
 .suggestion-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .suggestion-item {
@@ -94,8 +102,8 @@
   transition: all 0.15s;
 }
 .suggestion-item:hover {
-  border-color: var(--purple);
-  background: var(--purple-bg);
+  border-color: var(--blue);
+  background: var(--blue-bg);
 }
 .suggestion-info { flex: 1; }
 .suggestion-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
@@ -103,7 +111,7 @@
 .suggestion-add {
   font-size: 12px;
   font-weight: 500;
-  color: var(--purple);
+  color: var(--blue);
   display: flex;
   align-items: center;
   gap: 3px;
@@ -127,7 +135,7 @@
 .btn-primary {
   padding: 8px 18px;
   border-radius: var(--radius-sm);
-  background: var(--purple);
+  background: var(--blue);
   font-size: 13px;
   font-weight: 600;
   color: white;
@@ -155,8 +163,8 @@
 }
 .tab:hover { color: var(--text-primary); }
 .tab.active {
-  color: var(--purple);
-  border-bottom-color: var(--purple);
+  color: var(--blue);
+  border-bottom-color: var(--blue);
 }
 
 /* ─── Planning Area ───────────────────────────────────────────── */
@@ -201,7 +209,7 @@
 .plan-add-btn {
   font-size: 11px;
   font-weight: 500;
-  color: var(--purple);
+  color: var(--blue);
   display: flex;
   align-items: center;
   gap: 3px;
@@ -242,7 +250,7 @@
   color: white;
 }
 .task-check:not(.done):hover {
-  border-color: var(--purple);
+  border-color: var(--blue);
 }
 .task-text {
   flex: 1;
@@ -276,7 +284,7 @@
   transition: border-color 0.15s;
 }
 .task-create-input::placeholder { color: var(--text-tertiary); }
-.task-create-input:focus { border-color: var(--purple); }
+.task-create-input:focus { border-color: var(--blue); }
 .task-create-actions {
   display: flex;
   justify-content: flex-end;
@@ -287,7 +295,7 @@
   font-weight: 600;
   padding: 6px 16px;
   border-radius: var(--radius-sm);
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   border: none;
   cursor: pointer;
@@ -350,6 +358,49 @@
 }
 .attendee-stack .avatar:first-child { margin-left: 0; }
 
+/* Deadlines */
+.deadline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.deadline-item {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-left-width: 3px;
+  border-left-color: #f59e0b;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.deadline-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.deadline-item-status {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #fef3c7;
+  color: #d97706;
+}
+.deadlines-empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: 8px 0;
+}
+
 /* ─── Mini Calendar ───────────────────────────────────────────── */
 .mini-calendar {
   background: var(--bg-primary);
@@ -401,7 +452,7 @@
 }
 .cal-day:hover { background: var(--bg-secondary); }
 .cal-day.today {
-  background: var(--purple);
+  background: var(--blue);
   color: white;
   font-weight: 700;
 }
@@ -416,6 +467,94 @@
   background: var(--amber);
 }
 .cal-day.today.has-event::after { background: rgba(255,255,255,0.75); }
+
+/* ── Calendar task items ──────────────────────────────────────── */
+.cal-day-cell {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 2px 3px;
+  position: relative;
+}
+.cal-day-number {
+  font-size: 11px;
+  line-height: 1;
+}
+.cal-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  overflow: hidden;
+}
+.cal-task-item {
+  font-size: 8px;
+  line-height: 1.2;
+  padding: 1px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+  color: var(--text-primary);
+  background: rgba(59, 130, 246, 0.12);
+}
+.cal-task-item.cal-task-first {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.cal-task-item.cal-task-more {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--text-secondary);
+}
+.cal-task-more {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: default;
+}
+.cal-day.today .cal-task-item,
+.cal-day.today .cal-task-more {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+/* ── Calendar tooltip ─────────────────────────────────────────── */
+.cal-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 130px;
+  max-width: 220px;
+  z-index: 10;
+  pointer-events: none;
+}
+.cal-tooltip-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex-shrink: 0;
+}
 
 /* ─── Planning Right Sidebar ──────────────────────────────────── */
 .ps-section-title {
@@ -440,6 +579,29 @@
 .member-info { flex: 1; }
 .member-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
 .member-role { font-size: 10px; color: var(--text-tertiary); }
+.member-remove-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+.member-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+.member-row:hover .member-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 
 .event-card {
   border-radius: var(--radius-sm);
@@ -460,3 +622,412 @@
 .stat-label { color: var(--text-secondary); }
 .stat-value { font-weight: 700; color: var(--text-primary); }
 .stat-value.green { color: var(--green); }
+
+/* ─── Kanban Board ────────────────────────────────────────────── */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  min-height: 500px;
+}
+
+.kanban-column {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  overflow: hidden;
+}
+
+.kanban-column-header {
+  padding: 14px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.kanban-column-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.kanban-count {
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--blue);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  min-width: 22px;
+  text-align: center;
+}
+
+.kanban-tasks {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanban-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  cursor: grab;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanban-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--blue);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+
+.kanban-card.done {
+  opacity: 0.7;
+}
+
+.kanban-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s;
+}
+.kanban-card:hover .kanban-delete-btn {
+  opacity: 1;
+}
+.kanban-delete-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.kanban-card {
+  position: relative;
+}
+
+.kanban-task-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.kanban-card.done .kanban-task-text {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.kanban-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kanban-task-form {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanban-task-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.kanban-task-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.kanban-task-input:focus {
+  border-color: var(--blue);
+}
+
+.kanban-task-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.kanban-task-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--blue);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.kanban-task-btn:hover {
+  opacity: 0.85;
+}
+
+.kanban-task-btn:hover {
+  opacity: 0.85;
+}
+
+.kanban-task-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kanban-task-cancel {
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.kanban-task-cancel:hover {
+  color: var(--text-primary);
+}
+
+.kanban-add-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.kanban-add-btn:hover {
+  border-color: var(--blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* ---- Attachment styles (added for file messages) ---- */
+.attachment-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.attachment-link {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  padding: 6px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.attachment-link:disabled { opacity: 0.6; cursor: default; }
+
+/* Responsive Kanban board */
+@media (max-width: 1400px) {
+  .kanban-board {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    max-height: none;
+  }
+}
+
+/* ─── Emoji Picker ────────────────────────────────────────────── */
+.emoji-picker-container {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+.emoji-picker {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  width: 320px;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+
+.emoji-search {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.emoji-search:focus {
+  border-color: var(--blue);
+  outline: none;
+}
+
+.emoji-categories {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.emoji-category-btn {
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  opacity: 0.6;
+}
+
+.emoji-category-btn:hover {
+  opacity: 1;
+  background: var(--bg-secondary);
+}
+
+.emoji-category-btn.active {
+  opacity: 1;
+  background: var(--bg-secondary);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.emoji-item {
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  line-height: 1;
+}
+
+.emoji-item:hover {
+  background: var(--bg-secondary);
+  transform: scale(1.2);
+}
+
+/* ─── Mobile Planning Toggle ──────────────────────────────────── */
+.tab-info-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .tab-info-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    margin: auto 16px auto auto; /* Push to the far right of the flex container */
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tab-info-btn:hover {
+    background: var(--border-light);
+    color: var(--text-primary);
+  }
+  .tab-info-btn.active {
+    background: var(--blue);
+    color: white;
+    border-color: var(--blue);
+  }
+
+  /* By default, hide the planning sidebar on mobile */
+  .planning-layout .planning-sidebar {
+    display: none;
+    width: 100% !important;
+    border-left: none;
+  }
+  
+  /* Minimize/hide planning-main when planning sidebar is active on mobile */
+  .planning-layout.info-open .planning-main {
+    display: none !important;
+  }
+  
+  /* Show planning sidebar when active on mobile */
+  .planning-layout.info-open .planning-sidebar {
+    display: block !important;
+  }
+}
+

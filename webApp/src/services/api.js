@@ -98,13 +98,23 @@ export async function getEquipe(equipeId) {
   return response.data;
 }
 
+export async function deleteEquipe(equipeId) {
+  const response = await api.delete(`/equipes/${equipeId}`);
+  return response.data;
+}
+
 export async function createEquipe(teamName, adminCip, memberCips = []) {
   const idRes = await api.get('/equipes/nouveauID');
   const equipeId = idRes.data;
-  const equipe = { equipeId, administrateur: adminCip, nomEquipe: teamName };
+  const equipe = { equipeId, administrateurCip: adminCip, nomEquipe: teamName };
   const params = new URLSearchParams();
   memberCips.forEach(c => params.append('membersCip', c));
   const response = await api.post(`/equipes?${params.toString()}`, equipe);
+  return response.data;
+}
+
+export async function getDeadlines(equipeId) {
+  const response = await api.get('/tache/deadlines', { params: { equipeId } });
   return response.data;
 }
 
@@ -120,6 +130,17 @@ export async function getTache(tacheId) {
 
 export async function createTache(tache) {
   const response = await api.post('/tache', tache);
+  return response.data;
+}
+
+export async function updateTache(tacheId, tache) {
+  const params = new URLSearchParams();
+  if (tache.nomTache != null) params.set('nomTache', tache.nomTache);
+  if (tache.status != null) params.set('status', tache.status);
+  if (tache.description != null) params.set('description', tache.description);
+  if ('dateDebut' in tache) params.set('dateDebut', tache.dateDebut || '');
+  if ('dateFin' in tache) params.set('dateFin', tache.dateFin || '');
+  const response = await api.put(`/tache/${tacheId}?${params.toString()}`);
   return response.data;
 }
 
@@ -139,7 +160,27 @@ export async function searchUsers(query) {
 }
 
 export async function addContact(userCip, contactCip) {
-  const response = await api.post(`/utilisateur/${userCip}/contact/${contactCip}`);
+  const response = await api.post('/requeteAmi', {}, { params: { cip: userCip, destinataireCip: contactCip } });
+  return response.data;
+}
+
+export async function getFriendRequests(cip) {
+  const response = await api.get('/requeteAmi', { params: { cip } });
+  return response.data;
+}
+
+export async function getSentFriendRequests(cip) {
+  const response = await api.get('/requeteAmi/envoyees', { params: { cip } });
+  return response.data;
+}
+
+export async function acceptFriendRequest(userCip, senderCip) {
+  const response = await api.post('/requeteAmi/accepter', {}, { params: { cip: userCip, destinataireCip: senderCip } });
+  return response.data;
+}
+
+export async function refuseFriendRequest(userCip, senderCip) {
+  const response = await api.post('/requeteAmi/refuser', {}, { params: { cip: userCip, destinataireCip: senderCip } });
   return response.data;
 }
 
@@ -151,13 +192,90 @@ export async function getFriendConversation(userCip, friendCip, limit, offset) {
   return response.data;
 }
 
+// Fichiers (minio) helpers
+export async function getUploadUrl(nomFichier) {
+  const response = await api.get('/fichiers/upload-url', { params: { nomFichier } });
+  return response.data;
+}
+
+// Upload directly to the presigned URL returned by the backend. We use the global axios
+// instance so requests to the full URL work without the API baseURL interfering.
+export async function uploadToUrl(uploadUrl, file) {
+  return await axios.put(uploadUrl, file, {headers: {'Content-Type': file.type || 'application/octet-stream'}});
+}
+
+export async function getDownloadUrl(fichierId) {
+  const response = await api.get(`/fichiers/download-url/${fichierId}`);
+  return response.data;
+}
+
+export async function getCalendrierTasks(equipeId, dateMin, dateMax) {
+  const response = await api.get('/tache/calendrier', { params: { equipeId, dateMin, dateMax } });
+  return response.data;
+}
+
 export async function getTeamMembers(equipeId) {
   const response = await api.get(`/equipes/${equipeId}/members`);
   return response.data;
 }
 
 export async function addTeamMember(equipeId, memberCip) {
-  const response = await api.post(`/equipes/${equipeId}/member`, { memberCip });
+  const response = await api.post(`/equipeMember/${equipeId}?cip=${memberCip}`);
+  return response.data;
+}
+
+export async function removeTeamMember(equipeId, memberCip) {
+  const response = await api.delete(`/equipeMember/${equipeId}?cip=${memberCip}`);
+  return response.data;
+}
+
+export async function removeDiscussionMember(discussionId, cip) {
+  const response = await api.delete('/discussionMember', { params: { discussionId, cip } });
+  return response.data;
+}
+
+export async function changeDiscussionMemberState(discussionId, cip, etat) {
+  const response = await api.post(`/discussionMember/${discussionId}`, undefined, { params: { cip, etat } });
+  return response.data;
+}
+
+export async function getConversations(cip) {
+  const response = await api.get('/discussionMember/conversations', { params: { cip } });
+  return response.data;
+}
+
+export async function getAssignees(tacheId) {
+  const response = await api.get(`/assignee/${tacheId}`);
+  return response.data;
+}
+
+export async function addAssignee(tacheId, cip) {
+  const response = await api.post(`/assignee/${tacheId}?cip=${cip}`);
+  return response.data;
+}
+
+export async function deleteAssignee(tacheId, cip) {
+  const response = await api.delete(`/assignee/${tacheId}?cip=${cip}`);
+  return response.data;
+}
+
+export async function getNotifications(cip) {
+  const response = await api.get('/notification', { params: { cip } });
+  return response.data;
+}
+
+export async function getUnreadCount(cip) {
+  const response = await api.get('/notification/unread', { params: { cip } });
+  return response.data;
+}
+
+export async function markAllNotificationsAsRead(cip) {
+  const response = await api.post('/notification/read-all', undefined, { params: { cip } });
+  return response.data;
+}
+
+export async function clearAllNotifications(cip) {
+  const response = await api.delete('/notification/clear-all', { params: { cip } });
   return response.data;
 }
 

@@ -1,13 +1,13 @@
 // ─── Avatar gradient map ─────────────────────────────────────────
 export const GRADIENTS = {
-  SR: 'linear-gradient(135deg, #7c6af7, #a78bfa)',
-  JD: 'linear-gradient(135deg, #f093fb, #f5576c)',
-  AK: 'linear-gradient(135deg, #43e97b, #38f9d7)',
-  PL: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-  TM: 'linear-gradient(135deg, #667eea, #764ba2)',
-  P:  'linear-gradient(135deg, #7c6af7, #a78bfa)',
-  D:  'linear-gradient(135deg, #43e97b, #38f9d7)',
-  E:  'linear-gradient(135deg, #f59e0b, #ef4444)',
+  SR: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+  JD: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+  AK: 'linear-gradient(135deg, #10b981, #14b8a6)',
+  PL: 'linear-gradient(135deg, #f59e0b, #f97316)',
+  TM: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+  P:  'linear-gradient(135deg, #3b82f6, #60a5fa)',
+  D:  'linear-gradient(135deg, #10b981, #14b8a6)',
+  E:  'linear-gradient(135deg, #f59e0b, #f97316)',
 };
 
 // ─── Current user ────────────────────────────────────────────────
@@ -119,7 +119,7 @@ export const MEETINGS = [
     time: '10:00', duration: '30 min',
     name: 'Sprint review',
     when: 'Today · All team',
-    color: '#7c6af7',
+    color: '#3b82f6',
     attendees: [
       { initials: 'SR', gradient: GRADIENTS.SR },
       { initials: 'JD', gradient: GRADIENTS.JD },
@@ -157,6 +157,6 @@ export const CALENDAR = {
 
 // ─── Today's events (sidebar) ────────────────────────────────────
 export const TODAY_EVENTS = [
-  { id: 1, time: '10:00 – 10:30', name: 'Sprint review',    color: '#7c6af7', bg: 'rgba(124,106,247,0.08)', border: 'rgba(124,106,247,0.2)'  },
+  { id: 1, time: '10:00 – 10:30', name: 'Sprint review',    color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)'  },
   { id: 2, time: '15:00 – 16:00', name: 'Roadmap planning', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.25)'  },
 ];

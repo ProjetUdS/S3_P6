@@ -1,0 +1,62 @@
+# ============================================
+# INFORMATIONS DU SERVICE
+# ============================================
+name: database
+description: "Base de données de stockage"
+enabled: true # false pour désactiver le service sans supprimer le profil
+always_active: true  # Si true, démarré automatiquement sans --profile
+docker_profile: null  # Nom du profil Docker (ou null si always_active)
+keep_port_mapping: true
+# true = garder les ports dans le docker-compose final
+# false / absent = exclure les ports
+
+# ============================================
+# CONFIGURATION DOCKER
+# ============================================
+docker-compose:
+
+  image: postgres:13
+
+  container_name: database
+  ports:
+    - "${DB_PORT}:5432"
+  volumes:
+    - ./postgres/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
+    - ./postgres/02_setdata.sql:/docker-entrypoint-initdb.d/02_setdata.sql
+  environment:
+    - POSTGRES_USER=${DB_USER}
+    - POSTGRES_PASSWORD=${DB_PASSWORD}
+    - POSTGRES_DATABASE=${DB_NAME}
+
+
+# ============================================
+# SECRETS (optionnel)
+# ============================================
+# Variables de secrets requises (à définir dans secrets.env)
+secrets:
+  - name: DB_VERSION
+    description: "Version de la database"
+    default: "13"
+  - name: DB_USER
+    default: "postgres"
+  - name: DB_PASSWORD
+    default: "postgres"
+  - name: DB_NAME
+    default: "postgres"
+  - name: DB_PORT
+    default: "5432"
+
+
+# ============================================
+# MÉTADONNÉES (optionnel)
+# ============================================
+metadata:
+  # Catégorie du service
+  category: db
+  
+  # Tags pour filtrage
+  tags:
+    - db
+
+  # Documentation
+  docs_url: https://www.postgresql.org/docs/

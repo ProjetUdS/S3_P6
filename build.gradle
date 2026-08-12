@@ -9,33 +9,48 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+     toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
 }
 
 
 dependencies {
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
 
+    // Config avec yaml
+    implementation("io.quarkus:quarkus-config-yaml")
+
+    // Santé
+    implementation("io.quarkus:quarkus-smallrye-health")
+
     // Sécurité / OIDC
     implementation("io.quarkus:quarkus-oidc")
     implementation("io.quarkus:quarkus-security")
+    implementation("io.quarkus:quarkus-tls-registry")
 
     // Client REST
     implementation 'io.quarkus:quarkus-rest'
     implementation 'io.quarkus:quarkus-rest-jackson'
     implementation 'io.quarkus:quarkus-arc'
+
+    // Test
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-core:5.7.0'
-    testImplementation 'org.mockito:mockito-core:5.7.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.7.0'
     //testImplementation 'io.quarkus:quarkus-testcontainers-postgresql:3.23.2'
+    testImplementation 'org.testcontainers:postgresql:1.21.4'
+    //      Ensure PostgreSQL driver is available for tests
+    runtimeOnly 'org.postgresql:postgresql'
 
     // MyBatis
     implementation("io.quarkiverse.mybatis:quarkus-mybatis:$quarkusMybatisVersion")
 
     // JDBC (PostgreSQL ou autre)
+    implementation("io.quarkus:quarkus-agroal")
     implementation("io.quarkus:quarkus-jdbc-postgresql") // adapte selon ton SGBD
 
     // https://mvnrepository.com/artifact/org.jsoup/jsoup
@@ -43,4 +58,14 @@ dependencies {
 
     // utilisation avec swagger
     implementation("io.quarkus:quarkus-smallrye-openapi")
+
+    //MinIo
+    implementation 'io.minio:minio:8.5.7'
+
+    //Websockets
+    implementation("io.quarkus:quarkus-websockets-next")
+    implementation("io.quarkus:quarkus-scheduler")
+
+    // Pour changement pseudo dans Keycloak
+    implementation("io.quarkus:quarkus-rest-client-jackson")
 }

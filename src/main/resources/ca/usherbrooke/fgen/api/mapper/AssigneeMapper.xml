@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ca.usherbrooke.fgen.api.mapper.AssigneeMapper">
+
+    <insert id="insertAssignee">
+        INSERT INTO app.Assignee(tache_id, cip)
+        VALUES (#{tacheId}, #{cip})
+            ON CONFLICT DO NOTHING
+    </insert>
+
+    <delete id="deleteAssignee">
+        DELETE FROM app.Assignee
+        WHERE tache_id = #{tacheId}
+          AND cip = #{cip}
+    </delete>
+
+    <delete id="deleteAssigneesByTeamAndCip">
+        DELETE FROM app.Assignee
+        WHERE cip = #{cip}
+          AND tache_id IN (SELECT tache_id FROM app.Tache WHERE equipe_id = #{equipeId})
+    </delete>
+
+    <select id="selectAssignees" resultType="String">
+        SELECT cip
+        FROM app.Assignee
+        WHERE tache_id = #{tacheId}
+    </select>
+
+</mapper>

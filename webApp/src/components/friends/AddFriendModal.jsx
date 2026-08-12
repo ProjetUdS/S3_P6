@@ -1,9 +1,10 @@
 // src/components/friends/AddFriendModal.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Avatar } from '../shared/Avatar';
-import { searchUsers, addContact } from '../../services/api';
+import { searchUsers, addContact, getSentFriendRequests } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { gradientForCip, initialsFromUser } from '../../utils/gradient';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
 
 export default function AddFriendModal({ onClose, existingCips, onAdded }) {
   const { user } = useAuth();
@@ -11,7 +12,16 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(new Set());
+  const [sentRequests, setSentRequests] = useState(new Set());
   const searchTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.cip) {
+      getSentFriendRequests(user.cip)
+        .then(data => setSentRequests(new Set(data || [])))
+        .catch(err => console.error('Failed to load sent requests:', err));
+    }
+  }, [user?.cip]);
 
   const performSearch = useCallback(async (searchQuery) => {
     if (searchQuery.length < 2) {
@@ -42,10 +52,11 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
   }, [query, performSearch]);
 
   async function handleAdd(cip) {
-    if (!user?.cip || added.has(cip)) return;
+    if (!user?.cip || added.has(cip) || sentRequests.has(cip)) return;
     try {
       await addContact(user.cip, cip);
       setAdded(prev => new Set(prev).add(cip));
+      setSentRequests(prev => new Set(prev).add(cip));
       onAdded?.();
     } catch (err) {
       console.error('Failed to add friend:', err);
@@ -57,6 +68,35 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
   }
 
   const existingCipSet = new Set(existingCips || []);
+
+  function SearchResult({ u, isExisting, isSent }) {
+    const addedTo = added.has(u.cip);
+    const sent = sentRequests.has(u.cip);
+    const { avatarUrl } = useAvatarUrl(u.cip);
+    return (
+      <li className="suggestion-item">
+        <Avatar
+          initials={initialsFromUser(u)}
+          gradient={gradientForCip(u.cip)}
+          size="md"
+          src={avatarUrl}
+          alt={u.pseudo || 'Photo de profil'}
+        />
+        <div className="suggestion-info">
+          <div className="suggestion-name">{[u.prenom, u.nom].filter(Boolean).join(' ') || u.pseudo}</div>
+          <div className="suggestion-email">{u.pseudo}</div>
+        </div>
+        <button
+          className="suggestion-add"
+          onClick={() => handleAdd(u.cip)}
+          aria-label={`Add ${u.pseudo}`}
+          disabled={addedTo || sent || isExisting}
+        >
+          {addedTo || sent ? '✓ Requested' : isExisting ? 'Already friend' : '+ Add'}
+        </button>
+      </li>
+    );
+  }
 
   return (
     <div className="modal-overlay" onClick={handleOverlayClick} role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -78,26 +118,14 @@ export default function AddFriendModal({ onClose, existingCips, onAdded }) {
 
         {!loading && results.length > 0 && (
           <ul className="suggestion-list" aria-label="Search results">
-            {results.map(u => {
-              const isExisting = existingCipSet.has(u.cip);
-              return (
-                <li key={u.cip} className="suggestion-item">
-                  <Avatar initials={initialsFromUser(u)} gradient={gradientForCip(u.cip)} size="md" />
-                  <div className="suggestion-info">
-                    <div className="suggestion-name">{[u.prenom, u.nom].filter(Boolean).join(' ') || u.pseudo}</div>
-                    <div className="suggestion-email">{u.pseudo}</div>
-                  </div>
-                  <button
-                    className="suggestion-add"
-                    onClick={() => handleAdd(u.cip)}
-                    aria-label={`Add ${u.pseudo}`}
-                    disabled={added.has(u.cip) || isExisting}
-                  >
-                    {added.has(u.cip) ? '✓ Added' : isExisting ? 'Already friend' : '+ Add'}
-                  </button>
-                </li>
-              );
-            })}
+            {results.map(u => (
+              <SearchResult
+                key={u.cip}
+                u={u}
+                isExisting={existingCipSet.has(u.cip)}
+                isSent={sentRequests.has(u.cip)}
+              />
+            ))}
           </ul>
         )}
 

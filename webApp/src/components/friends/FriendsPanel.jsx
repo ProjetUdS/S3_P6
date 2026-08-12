@@ -1,26 +1,135 @@
 // src/components/friends/FriendsPanel.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar } from '../shared/Avatar';
 import AddFriendModal from './AddFriendModal';
+import { useAuth } from '../../context/AuthContext';
+import { getFriendRequests, acceptFriendRequest, refuseFriendRequest } from '../../services/api';
+import { gradientForCip } from '../../utils/gradient';
+import { useAvatarUrl } from '../../hooks/useAvatarUrl';
+import searchIcon from "../../assets/icons/search.png";
+import { useFriendRequestWebSocket } from '../../hooks/useFriendRequestWebSocket';
+import addIcon from "../../assets/icons/add.png";
 
-/**
- * FriendsPanel  — left panel showing the friends list + "Add friend" button.
- *
- * Props:
- *   activeFriendId  {string|null}  – id of currently selected friend
- *   onSelectFriend  (friend) => void
- *   friends         {Array}        – friends data from API
- *   existingCips    {Array}        – cip values of current friends (to filter from search)
- *   onFriendAdded   {Function}     – callback to reload contacts after adding a friend
- */
-export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: friendsProp, existingCips, onFriendAdded }) {
+import boxIcon from "../../assets/icons/box.png";
+import forbiddenIcon from "../../assets/icons/forbidden.png";
+import pauseIcon from "../../assets/icons/pause-button.png";
+
+function ConversationAvatar({ convo }) {
+  const { avatarUrl } = useAvatarUrl(convo?.cip);
+  return (
+    <Avatar
+      initials={convo?.initials || '?'}
+      gradient={convo?.gradient || '#ccc'}
+      size="md"
+      status={convo?.status}
+      src={avatarUrl}
+      alt={convo?.name}
+    />
+  );
+}
+
+function RequestAvatar({ cip }) {
+  const { avatarUrl } = useAvatarUrl(cip);
+  return (
+    <Avatar
+      initials={cip.substring(0, 2).toUpperCase()}
+      gradient={gradientForCip(cip)}
+      size="sm"
+      src={avatarUrl}
+      alt={cip}
+    />
+  );
+}
+
+export default function FriendsPanel({ activeFriendId, onSelectFriend, conversations: conversationsProp, expandedSections, onToggleSection, existingCips, onFriendAdded }) {
   const [showModal, setShowModal] = useState(false);
-  const [query, setQuery]         = useState('');
+  const [query, setQuery] = useState('');
+  const { user, token } = useAuth();
+  const [friendRequests, setFriendRequests] = useState([]);
 
-  const friends = friendsProp || [];
-  const filtered = query
-    ? friends.filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
-    : friends;
+  const conversations = (conversationsProp || []).filter(c => c.cip !== user?.cip);
+  const active = conversations.filter(c => ['enabled', 'active'].includes(c.etat));
+  const archived = conversations.filter(c => ['archived', 'disabled'].includes(c.etat));
+  const blocked = conversations.filter(c => c.etat === 'blocked');
+
+  function renderSection(title, data, sectionKey) {
+    const isExpanded = expandedSections[sectionKey];
+    return (
+      <>
+        <div className="panel-section">
+          <span className="panel-section-title">{title}</span>
+          <span className="panel-section-count">{data.length}</span>
+          <button className="panel-section-toggle" onClick={() => onToggleSection(sectionKey)} aria-label={isExpanded ? 'Réduire' : 'Développer'}>
+            {isExpanded ? '▾' : '▸'}
+          </button>
+        </div>
+        {isExpanded && data.map(convo => (
+          <div
+            key={convo.id}
+            className={`list-item ${activeFriendId === convo.id ? 'active' : ''} ${convo.etat === 'archived' ? 'archived' : convo.etat === 'disabled' ? 'disabled-state' : convo.etat === 'blocked' ? 'blocked' : convo.etat === 'active' ? 'active-state' : ''}`}
+            onClick={() => onSelectFriend(convo)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => e.key === 'Enter' && onSelectFriend(convo)}
+            aria-current={activeFriendId === convo.id}
+          >
+            <ConversationAvatar convo={convo} />
+            <div className="list-item-info">
+              <div className="list-item-name">{convo.name}</div>
+              <div className="list-item-sub">{convo.sub}</div>
+            </div>
+            <span className={`conversation-badge ${convo.etat}`}>
+              {convo.etat === 'archived' ? (
+                <img src={boxIcon} alt="Archived" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : convo.etat === 'disabled' ? (
+                <img src={pauseIcon} alt="Disabled" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : convo.etat === 'blocked' ? (
+                <img src={forbiddenIcon} alt="Blocked" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : (
+                ''
+              )}
+            </span>
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  const handleAcceptRequest = async (reqCip) => {
+    try {
+      await acceptFriendRequest(user.cip, reqCip);
+      setFriendRequests(prev => prev.filter(c => c !== reqCip));
+      if (onFriendAdded) onFriendAdded(reqCip);
+    } catch (err) {
+      console.error('Failed to accept friend request:', err);
+    }
+  };
+
+  const handleRefuseRequest = async (reqCip) => {
+    try {
+      await refuseFriendRequest(user.cip, reqCip);
+      setFriendRequests(prev => prev.filter(c => c !== reqCip));
+    } catch (err) {
+      console.error('Failed to refuse friend request:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.cip) return;
+    getFriendRequests(user.cip)
+      .then(setFriendRequests)
+      .catch(() => setFriendRequests([]));
+  }, [user?.cip]);
+
+  useFriendRequestWebSocket(user?.cip, token, (type) => {
+    if (type === 'friendRequest' && user?.cip) {
+      getFriendRequests(user.cip)
+        .then(setFriendRequests)
+        .catch(() => setFriendRequests([]));
+    } else if (type === 'friendAccept') {
+      onFriendAdded?.();
+    }
+  });
 
   return (
     <>
@@ -29,7 +138,9 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: 
         <div className="panel-header">
           <div className="panel-title">Messages</div>
           <div className="search-bar">
-            <span aria-hidden="true">🔍</span>
+            <span aria-hidden="true">
+                <img src={searchIcon} alt="Search" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+            </span>
             <input
               type="text"
               placeholder="Search friends…"
@@ -40,42 +151,49 @@ export default function FriendsPanel({ activeFriendId, onSelectFriend, friends: 
           </div>
         </div>
 
+        {/* Friend Requests List */}
+        {friendRequests.length > 0 && (
+          <div className="friend-requests-section" style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px' }}>
+              Friend Requests ({friendRequests.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {friendRequests.map(reqCip => (
+                <div key={reqCip} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, marginRight: '12px' }}>
+                    <RequestAvatar cip={reqCip} />
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>{reqCip}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={() => handleAcceptRequest(reqCip)}
+                      style={{ background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleRefuseRequest(reqCip)}
+                      style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--radius-sm)', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
+                    >
+                      Refuse
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* List */}
         <div className="panel-list">
-          <div className="panel-section">Friends</div>
+          {renderSection('Conversations actives', active, 'active')}
+          {renderSection('Archivées', archived, 'archived')}
+          {renderSection('Bloquées', blocked, 'blocked')}
 
           <button className="panel-add-btn" onClick={() => setShowModal(true)}>
-            <span aria-hidden="true">➕</span>
-            Add a friend
+              <img src={addIcon} alt="Add" style={{ width: '10px', height: '10px', objectFit: 'contain' }}/>
+              Add a friend
           </button>
-
-          {filtered.map(friend => (
-            <div
-              key={friend.id}
-              className={`list-item ${activeFriendId === friend.id ? 'active' : ''}`}
-              onClick={() => onSelectFriend(friend)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && onSelectFriend(friend)}
-              aria-current={activeFriendId === friend.id}
-            >
-              <Avatar
-                initials={friend.initials}
-                gradient={friend.gradient}
-                size="md"
-                status={friend.status}
-              />
-              <div className="list-item-info">
-                <div className="list-item-name">{friend.name}</div>
-                <div className="list-item-sub">{friend.sub}</div>
-              </div>
-              {friend.unread > 0 && (
-                <span className="badge" aria-label={`${friend.unread} unread messages`}>
-                  {friend.unread}
-                </span>
-              )}
-            </div>
-          ))}
         </div>
       </div>
 

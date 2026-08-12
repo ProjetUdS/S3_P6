@@ -2,14 +2,14 @@
   "id": "b025a9d1-1457-49c7-9642-7c2dfd01ad7f",
   "clientId": "backend",
   "name": "Autorisation de connection à un service web",
-  "rootUrl": "http://localhost:8180",
-  "adminUrl": "",
-  "baseUrl": "/",
+  "rootUrl": "${KC_SERVER_URL}",
+  "adminUrl": "${KC_SERVER_URL}",
+  "baseUrl": "/auth",
   "surrogateAuthRequired": false,
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
-  "secret": "secretsecretsecretsecretsecretsecret",
+  "secret": "$(OIDC_SECRET)",
   "redirectUris": [
     "*"
   ],

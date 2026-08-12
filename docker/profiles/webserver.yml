@@ -1,0 +1,48 @@
+# Profil généré automatiquement
+name: webserver
+description: "Serveur nginx pour le frontend"
+enabled: true
+always_active: true
+docker_profile: null
+keep_port_mapping: true
+
+docker-compose:
+
+  build:
+    context: ..
+    dockerfile: docker/webserver/Dockerfile
+  image: my-react-vite-app
+  pull_policy: never
+
+  container_name: webserver
+  volumes:
+    - ./webserver/nginx.conf:/etc/nginx/nginx.conf:ro
+  environment:
+    - PORT=81
+    - KC_PORT=${KC_PORT}
+    - KC_REALM_NAME=${KC_REALM_NAME}
+  depends_on:
+    - auth
+
+
+traefik:
+  enabled: true
+  prefix: /usager
+  strip_prefix: true
+  local_port: 81
+  docker_port: 81
+  priority: 10
+
+# Variables de secrets requises (à définir dans secrets.env)
+secrets:
+  - name: KC_PORT
+    description: "Port du serveur d'authentification"
+    default: "8180"
+  - name: KC_REALM_NAME
+    description: "Realm des usager sur Keycloak"
+    default: "usager"
+
+metadata:
+  category: webserver
+  tags:
+    - webserver

@@ -1,0 +1,8 @@
+minio:
+  url: "http://minio-storage:${MINIO_PORT:9000}"
+  browser:
+    url: ${MINIO_SERVER_URL}
+
+quarkus:
+  tls:
+    trust-all: false
